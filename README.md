@@ -10,7 +10,7 @@ A high level framework for building live HTML applications with Ruby.
 
 ## Usage
 
-Please see the [project documentation](https://socketry.github.io/lively).
+See the example app in `app/`.
 
 ## Contributing
 
