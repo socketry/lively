@@ -23,6 +23,28 @@
 require 'live/view'
 
 class GameOfLife < Live::View
+	class Color < Struct.new(:r, :g, :b)
+		def to_s
+			"rgb(#{r}, #{g}, #{b})"
+		end
+		
+		def self.mix(*colors)
+			result = Color.new(0.0, 0.0, 0.0)
+			
+			colors.each do |color|
+				result.r += color.r
+				result.g += color.g
+				result.b += color.b
+			end
+			
+			result.r = (result.r / colors.size).round
+			result.g = (result.g / colors.size).round
+			result.b = (result.b / colors.size).round
+			
+			return result
+		end
+	end
+	
 	class Grid
 		def initialize(width, height)
 			@width = width
@@ -41,11 +63,11 @@ class GameOfLife < Live::View
 			@values[@width * (y % @height) + (x % @width)]
 		end
 		
-		def set(x, y, value = true)
+		def set(x, y, value = Color.new(0, 255, 0))
 			@values[@width * (y % @height) + (x % @width)] = value
 		end
 		
-		def count(x, y)
+		def neighbours(x, y)
 			[
 				get(x-1, y-1),
 				get(x-1, y),
@@ -57,7 +79,7 @@ class GameOfLife < Live::View
 				get(x+1, y-1),
 				get(x+1, y),
 				get(x+1, y+1),
-			].count{|value| value}
+			].compact
 		end
 		
 		# Any live cell with two or three live neighbours survives.
@@ -65,14 +87,17 @@ class GameOfLife < Live::View
 		# All other live cells die in the next generation. Similarly, all other dead cells stay dead.
 		def alive?(x, y)
 			current = self.get(x, y)
-			count = self.count(x, y)
+			neighbours = self.neighbours(x, y)
+			count = neighbours.size
+			
+			initial = Color.new(rand(255), rand(255), rand(255))
 			
 			if current && (count == 2 || count == 3)
-				true
+				Color.mix(initial, current, *neighbours)
 			elsif !current && count == 3
-				true
+				Color.mix(initial, *neighbours)
 			else
-				false
+				nil
 			end
 		end
 		
@@ -114,12 +139,16 @@ class GameOfLife < Live::View
 		@grid.set(0, 2)
 		@grid.set(1, 2)
 		@grid.set(2, 2)
-		
-		# 12.times do |i|
+		# 
+		# 18.times do |i|
 		# 	@grid.set(@grid.width/2, @grid.height/2 + i)
 		# 	@grid.set(@grid.width/2 + i, @grid.height/2)
 		# 	@grid.set(@grid.width/2 + i, @grid.height/2 + i)
 		# end
+		
+		200.times do
+			@grid.set(rand(1...100), rand(1...100))
+		end
 		
 		@update = nil
 	end
@@ -129,7 +158,7 @@ class GameOfLife < Live::View
 		
 		@update = Async do |task|
 			while true
-				task.sleep(1.0/60.0)
+				task.sleep(1.0/30.0)
 				@grid = @grid.step
 				
 				self.replace!
@@ -150,8 +179,8 @@ class GameOfLife < Live::View
 					row.count.times do |x|
 						style = []
 						
-						if @grid.get(x, y)
-							style << "background-color: green"
+						if color = @grid.get(x, y)
+							style << "background-color: #{color}"
 						end
 						
 						builder.inline('td', style: style.join(';'))
