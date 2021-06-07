@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>#{self.title}</title>
+		
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		
+		<link rel="icon" type="image/png" href="/_static/icon.png" />
+		<link rel="stylesheet" href="/_static/site.css" type="text/css" media="screen" />
+		
+		<script src="/_components/morphdom/morphdom-umd.js"></script>
+		<script src="/_components/@socketry/live/live.js"></script>
+	</head>
+
+	<body>
+		#{self.body&.to_html || "No body specified!"}
+	</body>
+</html>

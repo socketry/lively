@@ -1,0 +1,99 @@
+PATH
+  remote: ../../falcon
+  specs:
+    falcon (0.39.1)
+      async (~> 1.13)
+      async-container (~> 0.16.0)
+      async-http (~> 0.56.0)
+      async-http-cache (~> 0.4.0)
+      async-io (~> 1.22)
+      build-environment (~> 1.13)
+      bundler
+      localhost (~> 1.1)
+      process-metrics (~> 0.2.0)
+      rack (>= 1.0)
+      samovar (~> 2.1)
+
+PATH
+  remote: ../../protocol-http
+  specs:
+    protocol-http (0.22.2)
+
+PATH
+  remote: ..
+  specs:
+    lively (0.1.0)
+      async-io
+      falcon
+      live
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    async (1.29.0)
+      console (~> 1.10)
+      nio4r (~> 2.3)
+      timers (~> 4.1)
+    async-container (0.16.11)
+      async (~> 1.0)
+      async-io (~> 1.26)
+    async-http (0.56.3)
+      async (~> 1.25)
+      async-io (~> 1.28)
+      async-pool (~> 0.2)
+      protocol-http (~> 0.22.0)
+      protocol-http1 (~> 0.14.0)
+      protocol-http2 (~> 0.14.0)
+    async-http-cache (0.4.2)
+      async-http (~> 0.56)
+    async-io (1.32.0)
+      async (~> 1.14)
+    async-pool (0.3.7)
+      async (~> 1.25)
+    async-websocket (0.19.0)
+      async-http (~> 0.54)
+      async-io (~> 1.23)
+      protocol-websocket (~> 0.7.0)
+    build-environment (1.13.0)
+    console (1.12.0)
+      fiber-local
+    fiber-local (1.0.0)
+    live (0.3.0)
+      async-websocket
+      trenni
+    localhost (1.1.8)
+    mapping (1.1.1)
+    nio4r (2.5.7)
+    process-metrics (0.2.1)
+      console (~> 1.8)
+      samovar (~> 2.1)
+    protocol-hpack (1.4.2)
+    protocol-http1 (0.14.1)
+      protocol-http (~> 0.22)
+    protocol-http2 (0.14.2)
+      protocol-hpack (~> 1.4)
+      protocol-http (~> 0.18)
+    protocol-websocket (0.7.5)
+      protocol-http (~> 0.2)
+      protocol-http1 (~> 0.2)
+    rack (2.2.3)
+    rake (13.0.3)
+    rake-compiler (1.1.1)
+      rake
+    samovar (2.1.4)
+      console (~> 1.0)
+      mapping (~> 1.0)
+    timers (4.3.3)
+    trenni (3.13.1)
+      rake-compiler
+
+PLATFORMS
+  x86_64-darwin-20
+
+DEPENDENCIES
+  falcon!
+  lively!
+  protocol-http!
+
+BUNDLED WITH
+   2.3.0.dev
