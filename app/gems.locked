@@ -25,7 +25,7 @@ PATH
     lively (0.1.0)
       async-io
       falcon
-      live
+      live (~> 0.4.0)
 
 GEM
   remote: https://rubygems.org/
@@ -58,7 +58,7 @@ GEM
     console (1.12.0)
       fiber-local
     fiber-local (1.0.0)
-    live (0.3.0)
+    live (0.4.0)
       async-websocket
       trenni
     localhost (1.1.8)

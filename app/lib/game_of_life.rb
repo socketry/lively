@@ -23,25 +23,32 @@
 require 'live/view'
 
 class GameOfLife < Live::View
-	class Color < Struct.new(:r, :g, :b)
+	class Color < Struct.new(:h, :s, :l)
 		def to_s
-			"rgb(#{r}, #{g}, #{b})"
+			# h 0...360
+			# s 0...100%
+			# l 0...100%
+			"hsl(#{h}, #{s}%, #{l}%)"
 		end
 		
 		def self.mix(*colors)
-			result = Color.new(0.0, 0.0, 0.0)
+			result = Color.new(rand(60.0), 0.0, 0.0)
 			
 			colors.each do |color|
-				result.r += color.r
-				result.g += color.g
-				result.b += color.b
+				result.h += color.h
+				result.s += color.s
+				result.l += color.l
 			end
 			
-			result.r = (result.r / colors.size).round
-			result.g = (result.g / colors.size).round
-			result.b = (result.b / colors.size).round
+			result.h = (result.h / colors.size).round
+			result.s = (result.s / colors.size).round
+			result.l = (result.l / colors.size).round
 			
 			return result
+		end
+		
+		def self.generate
+			self.new(rand(360.0), 80, 80)
 		end
 	end
 	
@@ -63,8 +70,16 @@ class GameOfLife < Live::View
 			@values[@width * (y % @height) + (x % @width)]
 		end
 		
-		def set(x, y, value = Color.new(0, 255, 0))
+		def set(x, y, value = Color.generate)
 			@values[@width * (y % @height) + (x % @width)] = value
+		end
+		
+		def toggle(x, y)
+			if get(x, y)
+				set(x, y, nil)
+			else
+				set(x, y)
+			end
 		end
 		
 		def neighbours(x, y)
@@ -90,12 +105,10 @@ class GameOfLife < Live::View
 			neighbours = self.neighbours(x, y)
 			count = neighbours.size
 			
-			initial = Color.new(rand(255), rand(255), rand(255))
-			
 			if current && (count == 2 || count == 3)
-				Color.mix(initial, current, *neighbours)
+				Color.mix(current, *neighbours)
 			elsif !current && count == 3
-				Color.mix(initial, *neighbours)
+				Color.mix(*neighbours)
 			else
 				nil
 			end
@@ -132,48 +145,93 @@ class GameOfLife < Live::View
 		
 		super
 		
-		@grid = Grid.new(data[:width].to_i, data[:height].to_i)
-		
-		@grid.set(1, 0)
-		@grid.set(2, 1)
-		@grid.set(0, 2)
-		@grid.set(1, 2)
-		@grid.set(2, 2)
-		# 
-		# 18.times do |i|
-		# 	@grid.set(@grid.width/2, @grid.height/2 + i)
-		# 	@grid.set(@grid.width/2 + i, @grid.height/2)
-		# 	@grid.set(@grid.width/2 + i, @grid.height/2 + i)
-		# end
-		
-		200.times do
-			@grid.set(rand(1...100), rand(1...100))
-		end
+		self.reset
 		
 		@update = nil
 	end
 	
 	def bind(page)
 		super(page)
+	end
+	
+	def close
+		self.stop
 		
-		@update = Async do |task|
+		super
+	end
+	
+	def start
+		@update ||= Async do |task|
 			while true
 				task.sleep(1.0/30.0)
-				@grid = @grid.step
 				
+				@grid = @grid.step
 				self.replace!
 			end
 		end
 	end
 	
-	def close
-		@update.stop
-		
-		super
+	def stop
+		if @update
+			@update.stop
+			@update = nil
+		end
+	end
+	
+	def step
+		unless @update
+			@grid = @grid.step
+			self.replace!
+		end
+	end
+	
+	def reset
+		@grid = Grid.new(@data[:width].to_i, @data[:height].to_i)
+	end
+	
+	def handle(event)
+		case event.dig(:details, :action)
+		when 'start'
+			self.start
+		when 'stop'
+			self.stop
+		when 'step'
+			self.step
+		when 'reset'
+			self.reset
+			self.replace!
+		when 'set'
+			x = event.dig(:details, :x).to_i
+			y = event.dig(:details, :y).to_i
+			@grid.toggle(x, y)
+			self.replace!
+		end
+	end
+	
+	def forward_coordinate
+		"live.forward(#{JSON.dump(@id)}, event, {action: 'set', x: event.target.cellIndex, y: event.target.parentNode.rowIndex})"
 	end
 	
 	def render(builder)
-		builder.tag('table') do
+		builder.tag('p') do
+			builder.inline('button', onclick: forward(action: 'start')) do
+				builder.text("Start")
+			end
+			
+			builder.inline('button', onclick: forward(action: 'stop')) do
+				builder.text("Stop")
+			end
+			
+			builder.inline('button', onclick: forward(action: 'step')) do
+				builder.text("Step")
+			end
+			
+			builder.inline('button', onclick: forward(action: 'reset')) do
+				builder.text("Reset")
+			end
+		end
+		
+		builder.tag('table', onclick: forward_coordinate) do
 			@grid.rows do |y, row|
 				builder.tag('tr') do
 					row.count.times do |x|
