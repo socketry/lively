@@ -140,8 +140,8 @@ class GameOfLife < Live::View
 	end
 	
 	def initialize(id, **data)
-		data[:width] ||= 32
-		data[:height] ||= 32
+		data[:width] ||= 33
+		data[:height] ||= 33
 		
 		super
 		
@@ -189,6 +189,31 @@ class GameOfLife < Live::View
 		@grid = Grid.new(@data[:width].to_i, @data[:height].to_i)
 	end
 	
+	def randomize
+		@grid = @grid.map do |x, y|
+			if rand > 0.8
+				Color.generate
+			end
+		end
+	end
+	
+	def love(number_of_points: 128, scale: 0.95)
+		dt = (2.0 * Math::PI) / number_of_points
+		t = 0.0
+		
+		while t <= (2.0 * Math::PI)
+			t += dt
+			
+			x = 16*Math.sin(t)**3
+			y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t)
+			
+			x = (x * scale).round
+			y = (-1.0 * y * scale).round
+			
+			@grid.set(@grid.width/2 + x, @grid.height/2 + y)
+		end
+	end
+	
 	def handle(event)
 		case event.dig(:details, :action)
 		when 'start'
@@ -204,6 +229,12 @@ class GameOfLife < Live::View
 			x = event.dig(:details, :x).to_i
 			y = event.dig(:details, :y).to_i
 			@grid.toggle(x, y)
+			self.replace!
+		when 'randomize'
+			self.randomize
+			self.replace!
+		when 'love'
+			self.love
 			self.replace!
 		end
 	end
@@ -228,6 +259,14 @@ class GameOfLife < Live::View
 			
 			builder.inline('button', onclick: forward(action: 'reset')) do
 				builder.text("Reset")
+			end
+			
+			builder.inline('button', onclick: forward(action: 'randomize')) do
+				builder.text("Randomize")
+			end
+			
+			builder.inline('button', onclick: forward(action: 'love')) do
+				builder.text("Love")
 			end
 		end
 		

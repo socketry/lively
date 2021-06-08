@@ -31,6 +31,7 @@ module Lively
 					# @attribute [Protocol::HTTP::Middleware]
 					middleware do
 						::Protocol::HTTP::Middleware.build do |builder|
+							builder.use Assets, root: File.expand_path('public', @root)
 							builder.use Assets, root: File.expand_path('../../../public', __dir__)
 							builder.use ::Application
 						end

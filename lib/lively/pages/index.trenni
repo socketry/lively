@@ -8,6 +8,7 @@
 		
 		<link rel="icon" type="image/png" href="/_static/icon.png" />
 		<link rel="stylesheet" href="/_static/site.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="/_static/index.css" type="text/css" media="screen" />
 		
 		<script src="/_components/morphdom/morphdom-umd.js"></script>
 		<script src="/_components/@socketry/live/live.js"></script>
