@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
 	
 	spec.add_dependency "async-io"
 	spec.add_dependency "falcon"
-	spec.add_dependency "live", "~> 0.4.0"
+	spec.add_dependency "live", "~> 0.5.0"
 	
 	spec.add_development_dependency "async-rspec", "~> 1.1"
 	spec.add_development_dependency "bundler"
