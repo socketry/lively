@@ -25,6 +25,7 @@ We welcome contributions to this project.
 ## See Also
 
   - [live](https://github.com/socketry/live) — Provides client-server communication using websockets.
+  - [mayu](https://github.com/mayu-live/framework) — A live streaming server-side component-based VirtualDOM rendering framework.
 
 ## License
 
