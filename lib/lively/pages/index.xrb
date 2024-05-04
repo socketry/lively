@@ -10,10 +10,22 @@
 		<link rel="stylesheet" href="/_static/site.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="/_static/index.css" type="text/css" media="screen" />
 		
-		<script src="/_components/morphdom/morphdom-umd.js"></script>
-		<script src="/_components/@socketry/live/live.js"></script>
+		<script type="importmap">
+		{
+			"imports": {
+				"live": "/_components/@socketry/live/Live.js",
+				"morphdom": "/_components/morphdom/dist/morphdom-esm.js"
+			}
+		}
+		</script>
+		
+		<script type="module">
+			import {Live} from 'live';
+			// Use the Live module here
+			let live = Live.start();
+		</script>
 	</head>
-
+	
 	<body>
 		#{self.body&.to_html || "No body specified!"}
 	</body>

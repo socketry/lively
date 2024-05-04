@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+# Released under the MIT License.
+# Copyright, 2021-2024, by Samuel Williams.
 
 require 'trenni/template'
 
@@ -8,7 +12,7 @@ module Lively
 				@title = title
 				@body = body
 				
-				path = File.expand_path("index.trenni", __dir__)
+				path = File.expand_path("index.xrb", __dir__)
 				@template = Trenni::Template.load_file(path)
 			end
 			
