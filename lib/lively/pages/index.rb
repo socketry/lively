@@ -3,7 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2021-2024, by Samuel Williams.
 
-require 'trenni/template'
+require 'xrb/template'
 
 module Lively
 	module Pages
@@ -13,7 +13,7 @@ module Lively
 				@body = body
 				
 				path = File.expand_path("index.xrb", __dir__)
-				@template = Trenni::Template.load_file(path)
+				@template = XRB::Template.load_file(path)
 			end
 			
 			attr :title

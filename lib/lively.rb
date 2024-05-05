@@ -8,4 +8,4 @@ require_relative 'lively/version'
 require_relative 'lively/assets'
 require_relative 'lively/application'
 
-require_relative 'lively/environments/application'
+require_relative 'lively/environment/application'
