@@ -4,5 +4,5 @@
 # Copyright, 2021-2024, by Samuel Williams.
 
 module Lively
-	VERSION = "0.2.1"
+	VERSION = "0.3.0"
 end
