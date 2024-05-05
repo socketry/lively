@@ -1,6 +1,6 @@
 {
 	"dependencies": {
-		"@socketry/live": "^0.7.0"
+		"@socketry/live": "^0.8"
 	},
 	"scripts": {
 		"postinstall": "bundle exec bake utopia:node:update"
