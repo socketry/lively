@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+
+require 'async/service'
+require_relative '../lib/application'
+
+configuration = Async::Service::Configuration.build do
+	service "lively" do
+		include Lively::Environment::Application
+	end	
+end
+
+Async::Service::Controller.run(configuration)
