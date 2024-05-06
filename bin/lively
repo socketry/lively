@@ -1,7 +1,11 @@
 #!/usr/bin/env ruby
 
 require 'async/service'
-require_relative '../lib/application'
+require_relative '../lib/lively/environment/application'
+
+ARGV.each do |path|
+	require(path)
+end
 
 configuration = Async::Service::Configuration.build do
 	service "lively" do

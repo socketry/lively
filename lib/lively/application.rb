@@ -4,12 +4,32 @@
 # Copyright, 2021-2024, by Samuel Williams.
 
 require 'live'
+require 'protocol/http/middleware'
 require 'async/websocket/adapters/http'
 
 require_relative 'pages/index'
+require_relative 'hello_world'
 
 module Lively
 	class Application < Protocol::HTTP::Middleware
+		def self.[](tag)
+			klass = Class.new(self)
+			
+			klass.define_singleton_method(:resolver) do
+				Live::Resolver.allow(tag)
+			end
+			
+			klass.define_method(:body) do
+				tag.new
+			end
+			
+			return klass
+		end
+		
+		def self.resolver
+			Live::Resolver.allow(HelloWorld)
+		end
+		
 		def initialize(delegate, resolver: self.class.resolver)
 			super(delegate)
 			
@@ -25,7 +45,7 @@ module Lively
 		end
 		
 		def body
-			"Hello World"
+			HelloWorld.new
 		end
 		
 		def index

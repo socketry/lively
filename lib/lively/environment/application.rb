@@ -3,13 +3,18 @@
 # Released under the MIT License.
 # Copyright, 2021-2024, by Samuel Williams.
 
+require_relative '../application'
+require_relative '../assets'
+
+require 'falcon/environment/server'
+
 module Lively
 	module Environment
 		module Application
 			include Falcon::Environment::Server
 			
 			def application
-				if Object.const_defined?(:Application, false)
+				if Object.const_defined?(:Application)
 					::Application
 				else
 					Console.warn(self, "No Application class defined, using default.")
