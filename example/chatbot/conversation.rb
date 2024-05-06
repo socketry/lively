@@ -5,6 +5,7 @@
 # Copyright, 2024, by Samuel Williams.
 
 require "active_record"
+require "console"
 require "console/compatible/logger"
 
 ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: "conversation.sqlite3")
@@ -31,4 +32,8 @@ end
 
 class Conversation < ActiveRecord::Base
 	has_many :conversation_messages
+	
+	def context
+		self.conversation_messages.order(created_at: :desc).first&.context
+	end
 end

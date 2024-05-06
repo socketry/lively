@@ -6,3 +6,11 @@
 	width: 100%;
 	box-sizing: border-box;
 }
+
+.conversation .prompt {
+	font-weight: bold;
+}
+
+.conversation .response {
+	margin-left: 2rem;
+}

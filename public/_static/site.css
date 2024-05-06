@@ -1,6 +1,6 @@
 
 html {
-	font-family: Monaco, monospace;
+	font-family: Arial, sans-serif;
 	font-size: 16px;
 	
 	/* Fix odd text-size in `display: flex` elements on Safari iOS */

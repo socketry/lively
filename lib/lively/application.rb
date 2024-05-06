@@ -44,19 +44,23 @@ module Lively
 			self.class.name
 		end
 		
-		def body
-			HelloWorld.new
+		def body(...)
+			HelloWorld.new(...)
 		end
 		
-		def index
-			Pages::Index.new(title: self.title, body: self.body)
+		def index(...)
+			Pages::Index.new(title: self.title, body: self.body(...))
+		end
+		
+		def handle(request, ...)
+			return Protocol::HTTP::Response[200, [], [self.index(...).call]]
 		end
 		
 		def call(request)
 			if request.path == '/live'
 				return Async::WebSocket::Adapters::HTTP.open(request, &self.method(:live)) || Protocol::HTTP::Response[400]
 			else
-				return Protocol::HTTP::Response[200, [], [self.index.call]]
+				return handle(request)
 			end
 		end
 	end

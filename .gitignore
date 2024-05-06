@@ -5,3 +5,4 @@
 /external
 
 /.github/workflows/test-external.yaml
+/example/*/*.sqlite3*
