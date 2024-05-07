@@ -1,16 +1,20 @@
 # Lively
 
-A high level framework for building live HTML applications with Ruby.
+A Ruby framework for building interactive web applications for creative coding.
 
 [![Development Status](https://github.com/socketry/lively/workflows/Test/badge.svg)](https://github.com/socketry/lively/actions?workflow=Test)
 
-## Features
-
-  - Simple high level interface for server-side SPAs.
-
 ## Usage
 
-See the example app in `app/`.
+See the various examples in the `examples/` directory.
+
+### Live Coding
+
+You can use `entr` to reload the server when files change:
+
+``` bash
+$ ls **/*.rb | entr -r bundle exec ./application.rb
+```
 
 ## Contributing
 

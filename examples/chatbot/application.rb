@@ -80,7 +80,7 @@ class ChatbotView < Live::View
 				end
 			end
 			
-			builder.tag(:input, type: "text", class: "prompt", value: @data[:prompt], onkeypress: forward_keypress, autofocus: true, placeholder: "Type here...")
+			builder.tag(:input, type: "text", class: "prompt", value: @data[:prompt], onkeypress: forward_keypress, autofocus: true, placeholder: "Type prompt here...")
 		end
 	end
 end
