@@ -19,13 +19,15 @@ class ChatbotView < Live::View
 		Console.info(self, "Updating conversation", id: conversation.id, prompt: prompt)
 		
 		Async::Ollama::Client.open do |client|
+			previous_context = conversation.context
+			
 			conversation_message = conversation.conversation_messages.create!(prompt: prompt, response: String.new)
 			
 			self.append(".conversation .messages") do |builder|
 				self.render_message(builder, conversation_message)
 			end
 			
-			generate = client.generate(prompt, context: conversation.context) do |response|
+			generate = client.generate(prompt, context: previous_context) do |response|
 				response.body.each do |token|
 					conversation_message.response += token
 					
