@@ -108,7 +108,7 @@ export class Live {
 			// Explicit disconnect will clear `this.#server`:
 			if (this.#server && !this.#reconnectTimer) {
 				// We need a minimum delay otherwise this can end up immediately invoking the callback:
-				const delay = Math.max(100 * (this.#failures + 1) ** 2, 60000);
+				const delay = Math.min(100 * (this.#failures ** 2), 60000);
 				this.#reconnectTimer = setTimeout(() => {
 					this.#reconnectTimer = null;
 					this.connect();
