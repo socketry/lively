@@ -6,6 +6,10 @@
 
 require_relative 'highscore'
 
+WIDTH = 420
+HEIGHT = 640
+GRAVITY = -9.8 * 50.0
+
 class BoundingBox
 	def initialize(x, y, width, height)
 		@x = x
@@ -146,10 +150,6 @@ class Pipe
 end
 
 class FlappyBirdView < Live::View
-	WIDTH = 420
-	HEIGHT = 640
-	GRAVITY = -9.8 * 50.0
-	
 	def initialize(...)
 		super
 		
@@ -230,8 +230,6 @@ class FlappyBirdView < Live::View
 	end
 	
 	def run!(dt = 1.0/20.0)
-		Console.info(self, "run!")
-		
 		Async do
 			while true
 				self.step(dt)
