@@ -177,6 +177,8 @@ class FlappyBirdView < Live::View
 			if @game.nil?
 				start_game!
 			elsif event.dig(:detail, :key) == " "
+				play_sound("quack") if rand > 0.5
+				
 				@bird&.jump
 			end
 		end
