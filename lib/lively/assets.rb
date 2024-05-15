@@ -5,7 +5,7 @@
 
 module Lively
 	class Assets < Protocol::HTTP::Middleware
-		DEFAULT_CACHE_CONTROL = 'public, max-age=3600'
+		DEFAULT_CACHE_CONTROL = 'no-store, no-cache, must-revalidate, max-age=0'
 		
 		DEFAULT_CONTENT_TYPES = {
 			".html" => "text/html",
