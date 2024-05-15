@@ -14,6 +14,7 @@ module Lively
 			".png" => "image/png",
 			".jpeg" => "image/jpeg",
 			".gif" => "image/gif",
+			".mp3" => "audio/mpeg",
 		}
 		
 		def initialize(delegate, root: Dir.pwd, content_types: DEFAULT_CONTENT_TYPES, cache_control: DEFAULT_CACHE_CONTROL)
