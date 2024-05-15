@@ -181,7 +181,7 @@ class GameOfLifeView < Live::View
 		end
 	end
 	
-	def love(number_of_points: 128, scale: 0.95)
+	def heart(number_of_points: 128, scale: 0.95)
 		dt = (2.0 * Math::PI) / number_of_points
 		t = 0.0
 		
@@ -218,8 +218,8 @@ class GameOfLifeView < Live::View
 		when 'randomize'
 			self.randomize
 			self.update!
-		when 'love'
-			self.love
+		when 'heart'
+			self.heart
 			self.update!
 		end
 	end
@@ -250,8 +250,8 @@ class GameOfLifeView < Live::View
 				builder.text("Randomize")
 			end
 			
-			builder.tag('button', onclick: forward_event(action: 'ruby')) do
-				builder.text("Ruby")
+			builder.tag('button', onclick: forward_event(action: 'heart')) do
+				builder.text("Heart")
 			end
 		end
 		
