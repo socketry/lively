@@ -70,6 +70,20 @@ class Bird < BoundingBox
 	end
 end
 
+class Gemstone < BoundingBox
+	def initialize(x, y, width: 148, height: 116)
+		super(x, y - height / 2, width, height)
+	end
+	
+	def step(dt)
+		@x -= 100 * dt
+	end
+	
+	def render(builder)
+		builder.inline_tag(:div, class: 'gemstone', style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px;")
+	end
+end
+
 class Pipe
 	def initialize(x, y, offset = 100, width: 44, height: 700)
 		@x = x
@@ -150,6 +164,7 @@ class FlappyBirdView < Live::View
 		@game = nil
 		@bird = nil
 		@pipes = nil
+		@bonus = nil
 		
 		# Defaults:
 		@score = 0
@@ -181,7 +196,7 @@ class FlappyBirdView < Live::View
 	end
 	
 	def game_over!
-		Highscore.create!("Anonymous", @score)
+		Highscore.create!(ENV.fetch("PLAYER", "Anonymous"), @score)
 		
 		@prompt = "Game Over! Score: #{@score}. Press Space to Restart"
 		@game = nil
@@ -216,6 +231,19 @@ class FlappyBirdView < Live::View
 			end
 		end
 		
+		@bonus&.step(dt)
+		
+		if @bonus&.intersect?(@bird)
+			@score = @score * 2
+			@bonus = nil
+		elsif @bonus and @bonus.right < 0
+			@bonus = nil
+		end
+		
+		if @score > 0 and (@score % 5).zero?
+			@bonus = Gemstone.new(WIDTH, HEIGHT/2)
+		end
+		
 		if @bird.top < 0
 			return game_over!
 		end
@@ -233,7 +261,7 @@ class FlappyBirdView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag(:div, class: "flappy", tabIndex: 0, autofocus: true, onKeyPress: forward_keypress) do
+		builder.tag(:div, class: "flappy", tabIndex: 0, onKeyPress: forward_keypress) do
 			if @game
 				builder.inline_tag(:div, class: "score") do
 					builder.text(@score)
@@ -257,6 +285,8 @@ class FlappyBirdView < Live::View
 			@pipes&.each do |pipe|
 				pipe.render(builder)
 			end
+			
+			@bonus&.render(builder)
 		end
 	end
 end

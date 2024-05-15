@@ -61,3 +61,12 @@ body {
 	
 	transition: all 0.05s linear 0s;
 }
+
+.flappy .gemstone {
+	z-index: 0;
+	background-image: url('/_static/gemstone.gif');
+	position: absolute;
+	background-size: contain;
+	
+	transition: all 0.05s linear 0s;
+}

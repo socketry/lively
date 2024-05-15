@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    lively (0.7.0)
+    lively (0.8.0)
       falcon (~> 0.47)
       live (~> 0.9)
       xrb
