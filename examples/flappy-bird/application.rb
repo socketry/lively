@@ -194,12 +194,22 @@ class FlappyBirdView < Live::View
 			Pipe.new(WIDTH * 1/2, HEIGHT/2),
 			Pipe.new(WIDTH * 2/2, HEIGHT/2)
 		]
+		@bonus = nil
 		@score = 0
 	end
 	
 	def play_sound(name)
-		path = "/_static/#{name}.mp3"
-		self.script("new Audio(#{JSON.dump(path)}).play()")
+		self.script(<<~JAVASCRIPT)
+			if (!this.sounds) {
+				this.sounds = {};
+			}
+			
+			if (!this.sounds[#{JSON.dump(name)}]) {
+				this.sounds[#{JSON.dump(name)}] = new Audio('/_static/#{name}.mp3');
+			}
+			
+			this.sounds[#{JSON.dump(name)}].play();
+		JAVASCRIPT
 	end
 	
 	def play_music
