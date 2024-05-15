@@ -43,14 +43,8 @@ GEM
       traces (>= 0.10.0)
     async-http-cache (0.4.3)
       async-http (~> 0.56)
-    async-ollama (0.1.0)
-      async
-      async-rest (~> 0.13.0)
     async-pool (0.6.1)
       async (>= 1.25)
-    async-rest (0.13.0)
-      async-http (~> 0.42)
-      protocol-http (~> 0.7)
     async-service (0.12.0)
       async
       async-container (~> 0.16)
@@ -120,7 +114,7 @@ GEM
       mapping (~> 1.0)
     sqlite3 (1.7.3)
       mini_portile2 (~> 2.8.0)
-    sqlite3 (1.7.3-x86_64-linux)
+    sqlite3 (1.7.3-arm64-darwin)
     timeout (0.4.1)
     timers (4.3.5)
     traces (0.11.1)
@@ -129,12 +123,12 @@ GEM
     xrb (0.6.1)
 
 PLATFORMS
+  arm64-darwin-23
   ruby
-  x86_64-linux
 
 DEPENDENCIES
   activerecord (~> 7.1)
-  async-ollama
+  base64
   live
   lively!
   markly

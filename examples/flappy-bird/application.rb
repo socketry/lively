@@ -18,11 +18,7 @@ class BoundingBox
 		@height = height
 	end
 	
-	attr :x
-	attr :y
-	
-	attr :width
-	attr :height
+	attr_accessor :x, :y, :width, :height
 	
 	def right
 		@x + @width
@@ -86,9 +82,7 @@ class Pipe
 		@scored = false
 	end
 	
-	attr_accessor :x
-	attr_accessor :y
-	attr_accessor :offset
+	attr_accessor :x, :y, :offset
 	
 	# Whether the bird has passed through the pipe.
 	attr_accessor :scored
@@ -165,18 +159,16 @@ class FlappyBirdView < Live::View
 	def handle(event)
 		case event[:type]
 		when "keypress"
-			detail = event[:detail]
-			
 			if @game.nil?
 				start_game!
-			elsif detail[:key] == " "
+			elsif event.dig(:detail, :key) == " "
 				@bird&.jump
 			end
 		end
 	end
 	
 	def forward_keypress
-		"live.forwardEvent(#{JSON.dump(@id)}, event, {value: event.target.value, key: event.key})"
+		"live.forwardEvent(#{JSON.dump(@id)}, event, {key: event.key})"
 	end
 	
 	def reset!
