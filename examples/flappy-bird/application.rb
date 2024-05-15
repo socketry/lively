@@ -171,6 +171,15 @@ class FlappyBirdView < Live::View
 		@prompt = "Press Space to Start"
 	end
 	
+	def close
+		if @game
+			@game.stop
+			@game = nil
+		end
+		
+		super
+	end
+	
 	def handle(event)
 		case event[:type]
 		when "keypress"
@@ -252,6 +261,8 @@ class FlappyBirdView < Live::View
 		end
 		
 		self.reset!
+		self.update!
+		self.script("this.querySelector('.flappy').focus()")
 		@game = self.run!
 	end
 	
