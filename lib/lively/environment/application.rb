@@ -13,6 +13,10 @@ module Lively
 		module Application
 			include Falcon::Environment::Server
 			
+			def url
+				"http://localhost:9292"
+			end
+			
 			def application
 				if Object.const_defined?(:Application)
 					::Application
