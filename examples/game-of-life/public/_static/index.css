@@ -1,0 +1,38 @@
+table {
+	margin: 1rem;
+	margin: auto;
+	border-collapse: collapse;
+	border: 1px solid var(--main-color);
+}
+
+table td {
+	border: 1px solid var(--main-color);
+	width: 1rem;
+	height: 1rem;
+}
+
+table thead {
+	background-color: var(--header-color);
+	border-bottom: 0.2rem solid var(--accent-color);
+}
+
+table tr:hover {
+	background-color: var(--header-color);
+}
+
+.toolbar {
+	text-align: center;
+}
+
+.equation {
+	text-align: center;
+	font-size: 4rem;
+}
+
+input {
+	font-size: inherit;
+}
+
+.equation input {
+	width: 5rem;
+}

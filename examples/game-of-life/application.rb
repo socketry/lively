@@ -229,29 +229,29 @@ class GameOfLifeView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag('p', {style: 'text-align: center'}) do
-			builder.inline('button', onclick: forward_event(action: 'start')) do
+		builder.tag('div', style: 'text-align: center') do
+			builder.tag('button', onclick: forward_event(action: 'start')) do
 				builder.text("Start")
 			end
 			
-			builder.inline('button', onclick: forward_event(action: 'stop')) do
+			builder.tag('button', onclick: forward_event(action: 'stop')) do
 				builder.text("Stop")
 			end
 			
-			builder.inline('button', onclick: forward_event(action: 'step')) do
+			builder.tag('button', onclick: forward_event(action: 'step')) do
 				builder.text("Step")
 			end
 			
-			builder.inline('button', onclick: forward_event(action: 'reset')) do
+			builder.tag('button', onclick: forward_event(action: 'reset')) do
 				builder.text("Reset")
 			end
 			
-			builder.inline('button', onclick: forward_event(action: 'randomize')) do
+			builder.tag('button', onclick: forward_event(action: 'randomize')) do
 				builder.text("Randomize")
 			end
 			
-			builder.inline('button', onclick: forward_event(action: 'love')) do
-				builder.text("Love")
+			builder.tag('button', onclick: forward_event(action: 'ruby')) do
+				builder.text("Ruby")
 			end
 		end
 		

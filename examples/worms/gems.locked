@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    lively (0.7.0)
+    lively (0.8.0)
       falcon (~> 0.47)
       live (~> 0.9)
       xrb
@@ -9,22 +9,6 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    activemodel (7.1.3.2)
-      activesupport (= 7.1.3.2)
-    activerecord (7.1.3.2)
-      activemodel (= 7.1.3.2)
-      activesupport (= 7.1.3.2)
-      timeout (>= 0.4.0)
-    activesupport (7.1.3.2)
-      base64
-      bigdecimal
-      concurrent-ruby (~> 1.0, >= 1.0.2)
-      connection_pool (>= 2.2.5)
-      drb
-      i18n (>= 1.6, < 2)
-      minitest (>= 5.1)
-      mutex_m
-      tzinfo (~> 2.0)
     async (2.11.0)
       console (~> 1.25, >= 1.25.2)
       fiber-annotation
@@ -43,14 +27,8 @@ GEM
       traces (>= 0.10.0)
     async-http-cache (0.4.3)
       async-http (~> 0.56)
-    async-ollama (0.1.0)
-      async
-      async-rest (~> 0.13.0)
     async-pool (0.6.1)
       async (>= 1.25)
-    async-rest (0.13.0)
-      async-http (~> 0.42)
-      protocol-http (~> 0.7)
     async-service (0.12.0)
       async
       async-container (~> 0.16)
@@ -58,15 +36,10 @@ GEM
       async-http (~> 0.54)
       protocol-rack (~> 0.5)
       protocol-websocket (~> 0.11)
-    base64 (0.2.0)
-    bigdecimal (3.1.8)
-    concurrent-ruby (1.2.3)
-    connection_pool (2.4.1)
     console (1.25.2)
       fiber-annotation
       fiber-local (~> 1.1)
       json
-    drb (2.2.1)
     falcon (0.47.6)
       async
       async-container (~> 0.18)
@@ -83,8 +56,6 @@ GEM
     fiber-local (1.1.0)
       fiber-storage
     fiber-storage (0.1.0)
-    i18n (1.14.5)
-      concurrent-ruby (~> 1.0)
     io-endpoint (0.10.3)
     io-event (1.5.1)
     io-stream (0.4.0)
@@ -94,10 +65,6 @@ GEM
       xrb
     localhost (1.3.1)
     mapping (1.1.1)
-    markly (0.10.0)
-    mini_portile2 (2.8.6)
-    minitest (5.22.3)
-    mutex_m (0.2.0)
     openssl (3.2.0)
     process-metrics (0.2.1)
       console (~> 1.8)
@@ -118,14 +85,8 @@ GEM
     samovar (2.3.0)
       console (~> 1.0)
       mapping (~> 1.0)
-    sqlite3 (1.7.3)
-      mini_portile2 (~> 2.8.0)
-    sqlite3 (1.7.3-arm64-darwin)
-    timeout (0.4.1)
     timers (4.3.5)
     traces (0.11.1)
-    tzinfo (2.0.6)
-      concurrent-ruby (~> 1.0)
     xrb (0.6.1)
 
 PLATFORMS
@@ -133,12 +94,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  activerecord (~> 7.1)
-  async-ollama
   live
   lively!
-  markly
-  sqlite3 (~> 1.4)
 
 BUNDLED WITH
    2.5.5
