@@ -195,7 +195,34 @@ class FlappyBirdView < Live::View
 		@score = 0
 	end
 	
+	def play_sound(name)
+		path = "/_static/#{name}.mp3"
+		self.script("new Audio(#{JSON.dump(path)}).play()")
+	end
+	
+	def play_music
+		self.script(<<~JAVASCRIPT)
+			if (!this.music) {
+				this.music = new Audio('/_static/music.mp3');
+				this.music.loop = true;
+				this.music.play();
+			}
+		JAVASCRIPT
+	end
+	
+	def stop_music
+		self.script(<<~JAVASCRIPT)
+			if (this.music) {
+				this.music.pause();
+				this.music = null;
+			}
+		JAVASCRIPT
+	end
+	
 	def game_over!
+		play_sound("death")
+		stop_music
+		
 		Highscore.create!(ENV.fetch("PLAYER", "Anonymous"), @score)
 		
 		@prompt = "Game Over! Score: #{@score}. Press Space to Restart"
@@ -224,6 +251,10 @@ class FlappyBirdView < Live::View
 			if pipe.right < @bird.x && !pipe.scored
 				@score += 1
 				pipe.scored = true
+				
+				if @score == 3
+					play_music
+				end
 			end
 			
 			if pipe.intersect?(@bird)
@@ -234,6 +265,7 @@ class FlappyBirdView < Live::View
 		@bonus&.step(dt)
 		
 		if @bonus&.intersect?(@bird)
+			play_sound("clink")
 			@score = @score * 2
 			@bonus = nil
 		elsif @bonus and @bonus.right < 0
