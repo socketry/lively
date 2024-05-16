@@ -53,6 +53,11 @@ body {
 	transition: all 0.05s linear 0s;
 }
 
+.flappy .bird.remote {
+	opacity: 50%;
+	filter: grayscale(100%);
+}
+
 .flappy .pipe {
 	z-index: 5;
 	background-image: url('/_static/flappy-pipe.png');
