@@ -85,7 +85,7 @@ class Gemstone < BoundingBox
 end
 
 class Pipe
-	def initialize(x, y, offset = 100, width: 44, height: 700)
+	def initialize(x, y, offset = 100, random: 0, width: 44, height: 700)
 		@x = x
 		@y = y
 		@offset = offset
@@ -94,6 +94,8 @@ class Pipe
 		@height = height
 		@difficulty = 0.0
 		@scored = false
+		
+		@random = random
 	end
 	
 	attr_accessor :x, :y, :offset
@@ -102,11 +104,11 @@ class Pipe
 	attr_accessor :scored
 	
 	def scaled_random
-		rand(-1.0..1.0) * [@difficulty, 1.0].min
+		@random.rand(-1.0..1.0) * [@difficulty, 1.0].min
 	end
 	
 	def reset!
-		@x = WIDTH + (rand * 10)
+		@x = WIDTH + (@random.rand * 10)
 		@y = HEIGHT/2 + (HEIGHT/2 * scaled_random)
 		
 		if @offset > 50
@@ -169,6 +171,8 @@ class FlappyBirdView < Live::View
 		# Defaults:
 		@score = 0
 		@prompt = "Press Space to Start"
+		
+		@random = nil
 	end
 	
 	def close
@@ -198,10 +202,12 @@ class FlappyBirdView < Live::View
 	end
 	
 	def reset!
+		@random = Random.new(1)
+		
 		@bird = Bird.new
 		@pipes = [
-			Pipe.new(WIDTH * 1/2, HEIGHT/2),
-			Pipe.new(WIDTH * 2/2, HEIGHT/2)
+			Pipe.new(WIDTH * 1/2, HEIGHT/2, random: @random),
+			Pipe.new(WIDTH * 2/2, HEIGHT/2, random: @random)
 		]
 		@bonus = nil
 		@score = 0
@@ -306,11 +312,20 @@ class FlappyBirdView < Live::View
 	
 	def run!(dt = 1.0/20.0)
 		Async do
+			start_time = Async::Clock.now
+			
 			while true
 				self.step(dt)
 				
 				self.update!
-				sleep(dt)
+				
+				duration = Async::Clock.now - start_time
+				if duration < dt
+					sleep(dt - duration)
+				else
+					Console.info(self, "Running behind by #{duration - dt} seconds")
+				end
+				start_time = Async::Clock.now
 			end
 		end
 	end
