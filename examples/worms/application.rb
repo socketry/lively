@@ -160,7 +160,7 @@ class WormsView < Live::View
 	end
 	
 	def forward_keypress
-		"live.forwardEvent(#{JSON.dump(@id)}, event, {value: event.target.value, key: event.key})"
+		"live.forwardEvent(#{JSON.dump(@id)}, event, {key: event.key})"
 	end
 	
 	def render(builder)
