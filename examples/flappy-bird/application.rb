@@ -160,8 +160,10 @@ class Pipe
 end
 
 class FlappyBirdView < Live::View
-	def initialize(...)
-		super
+	def initialize(*arguments, multiplayer_state: nil, **options)
+		super(*arguments, **options)
+		
+		@multiplayer_state = multiplayer_state
 		
 		@game = nil
 		@bird = nil
@@ -175,11 +177,21 @@ class FlappyBirdView < Live::View
 		@random = nil
 	end
 	
+	attr :bird
+	
+	def bind(page)
+		super
+		
+		@multiplayer_state.add_player(self)
+	end
+	
 	def close
 		if @game
 			@game.stop
 			@game = nil
 		end
+		
+		@multiplayer_state.remove_player(self)
 		
 		super
 	end
@@ -357,8 +369,58 @@ class FlappyBirdView < Live::View
 			end
 			
 			@bonus&.render(builder)
+			
+			if @multiplayer_state
+				@multiplayer_state.players.each do |player|
+					if player != self
+						player.bird&.render(builder)
+					end
+				end
+			end
 		end
 	end
 end
 
-Application = Lively::Application[FlappyBirdView]
+class Resolver < Live::Resolver
+	def initialize(**state)
+		super()
+		
+		@state = state
+	end
+	
+	def call(id, data)
+		if klass = @allowed[data[:class]]
+			return klass.new(id, **data, **@state)
+		end
+	end
+end
+
+class MultiplayerState
+	def initialize
+		@players = Set.new
+	end
+	
+	attr :players
+	
+	def add_player(player)
+		# Console.info(self, "Adding player: #{player}")
+		@players << player
+	end
+	
+	def remove_player(player)
+		# Console.info(self, "Removing player: #{player}")
+		@players.delete(player)
+	end
+end
+
+class Application < Lively::Application
+	def self.resolver
+		Resolver.new(multiplayer_state: MultiplayerState.new).tap do |resolver|
+			resolver.allow(FlappyBirdView)
+		end
+	end
+	
+	def body(...)
+		FlappyBirdView.new(...)
+	end
+end
