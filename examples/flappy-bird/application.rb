@@ -278,6 +278,11 @@ class FlappyBirdView < Live::View
 		raise Async::Stop
 	end
 	
+	def preparing(message)
+		@prompt = message
+		self.update!
+	end
+	
 	def start_game!
 		if @game
 			@game.stop
@@ -404,6 +409,8 @@ class Resolver < Live::Resolver
 end
 
 class MultiplayerState
+	GAME_START_TIMEOUT = 5
+	
 	def initialize
 		@joined = Set.new
 		@players = nil
@@ -419,12 +426,17 @@ class MultiplayerState
 		Async do
 			while true
 				Console.info(self, "Waiting for players...")
-				while @joined.empty?
+				while @joined.size < 2
 					@player_joined.wait
 				end
 				
 				Console.info(self, "Starting game...")
-				sleep(3)
+				GAME_START_TIMEOUT.downto(0).each do |i|
+					@joined.each do |player|
+						player.preparing("Starting game in #{i}...")
+					end
+					sleep 1
+				end
 				
 				@players = @joined.to_a
 				Console.info(self, "Game started with #{@players.size} players")
@@ -446,6 +458,7 @@ class MultiplayerState
 	def add_player(player)
 		# Console.info(self, "Adding player: #{player}")
 		@joined << player
+		player.preparing("Waiting for other players...")
 		@player_joined.signal
 	end
 	
