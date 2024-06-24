@@ -5,6 +5,7 @@
 # Copyright, 2024, by Samuel Williams.
 
 require_relative 'highscore'
+require 'async/variable'
 
 WIDTH = 420
 HEIGHT = 640
@@ -62,11 +63,13 @@ class Bird < BoundingBox
 		@velocity = 300.0
 	end
 	
-	def render(builder)
+	def render(builder, remote: false)
 		rotation = (@velocity / 20.0).clamp(-40.0, 40.0)
 		rotate = "rotate(#{-rotation}deg)";
 		
-		builder.inline_tag(:div, class: 'bird', style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px; transform: #{rotate};")
+		class_name = remote ? 'bird remote' : 'bird'
+		
+		builder.inline_tag(:div, class: class_name, style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px; transform: #{rotate};")
 	end
 end
 
@@ -160,8 +163,10 @@ class Pipe
 end
 
 class FlappyBirdView < Live::View
-	def initialize(...)
-		super
+	def initialize(*arguments, multiplayer_state: nil, **options)
+		super(*arguments, **options)
+		
+		@multiplayer_state = multiplayer_state
 		
 		@game = nil
 		@bird = nil
@@ -173,6 +178,15 @@ class FlappyBirdView < Live::View
 		@prompt = "Press Space to Start"
 		
 		@random = nil
+		@dead = nil
+	end
+	
+	attr :bird
+	
+	def bind(page)
+		super
+		
+		@multiplayer_state.add_player(self)
 	end
 	
 	def close
@@ -181,15 +195,15 @@ class FlappyBirdView < Live::View
 			@game = nil
 		end
 		
+		@multiplayer_state.remove_player(self)
+		
 		super
 	end
 	
 	def handle(event)
 		case event[:type]
 		when "keypress"
-			if @game.nil?
-				start_game!
-			elsif event.dig(:detail, :key) == " "
+			if event.dig(:detail, :key) == " "
 				play_sound("quack") if rand > 0.5
 				
 				@bird&.jump
@@ -202,12 +216,13 @@ class FlappyBirdView < Live::View
 	end
 	
 	def reset!
+		@dead = Async::Variable.new
 		@random = Random.new(1)
 		
 		@bird = Bird.new
 		@pipes = [
-			Pipe.new(WIDTH * 1/2, HEIGHT/2, random: @random),
-			Pipe.new(WIDTH * 2/2, HEIGHT/2, random: @random)
+			Pipe.new(WIDTH + WIDTH * 1/2, HEIGHT/2, random: @random),
+			Pipe.new(WIDTH + WIDTH * 2/2, HEIGHT/2, random: @random)
 		]
 		@bonus = nil
 		@score = 0
@@ -247,17 +262,25 @@ class FlappyBirdView < Live::View
 	end
 	
 	def game_over!
+		Console.info(self, "Player has died.")
+		@dead.resolve(true)
+		
 		play_sound("death")
 		stop_music
 		
 		Highscore.create!(ENV.fetch("PLAYER", "Anonymous"), @score)
 		
-		@prompt = "Game Over! Score: #{@score}. Press Space to Restart"
+		@prompt = "Game Over! Score: #{@score}."
 		@game = nil
 		
 		self.update!
 		
 		raise Async::Stop
+	end
+	
+	def preparing(message)
+		@prompt = message
+		self.update!
 	end
 	
 	def start_game!
@@ -270,6 +293,10 @@ class FlappyBirdView < Live::View
 		self.update!
 		self.script("this.querySelector('.flappy').focus()")
 		@game = self.run!
+	end
+	
+	def wait_until_dead
+		@dead.wait
 	end
 	
 	def step(dt)
@@ -310,7 +337,7 @@ class FlappyBirdView < Live::View
 		end
 	end
 	
-	def run!(dt = 1.0/20.0)
+	def run!(dt = 1.0/10.0)
 		Async do
 			start_time = Async::Clock.now
 			
@@ -357,8 +384,99 @@ class FlappyBirdView < Live::View
 			end
 			
 			@bonus&.render(builder)
+			
+			@multiplayer_state&.players&.each do |player|
+				if player != self
+					player.bird&.render(builder, remote: true)
+				end
+			end
 		end
 	end
 end
 
-Application = Lively::Application[FlappyBirdView]
+class Resolver < Live::Resolver
+	def initialize(**state)
+		super()
+		
+		@state = state
+	end
+	
+	def call(id, data)
+		if klass = @allowed[data[:class]]
+			return klass.new(id, **data, **@state)
+		end
+	end
+end
+
+class MultiplayerState
+	MINIMUM_PLAYERS = 1
+	GAME_START_TIMEOUT = 5
+	
+	def initialize
+		@joined = Set.new
+		@players = nil
+		
+		@player_joined = Async::Condition.new
+		
+		@game = self.run!
+	end
+	
+	attr :players
+	
+	def run!
+		Async do
+			while true
+				Console.info(self, "Waiting for players...")
+				while @joined.size < MINIMUM_PLAYERS
+					@player_joined.wait
+				end
+				
+				Console.info(self, "Starting game...")
+				GAME_START_TIMEOUT.downto(0).each do |i|
+					@joined.each do |player|
+						player.preparing("Starting game in #{i}...")
+					end
+					sleep 1
+				end
+				
+				@players = @joined.to_a
+				Console.info(self, "Game started with #{@players.size} players")
+				
+				@players.each do |player|
+					player.start_game!
+				end
+				
+				@players.each do |player|
+					player.wait_until_dead
+				end
+				
+				Console.info(self, "Game over")
+				@players = nil
+			end
+		end
+	end
+	
+	def add_player(player)
+		# Console.info(self, "Adding player: #{player}")
+		@joined << player
+		player.preparing("Waiting for other players...")
+		@player_joined.signal
+	end
+	
+	def remove_player(player)
+		# Console.info(self, "Removing player: #{player}")
+		@joined.delete(player)
+	end
+end
+
+class Application < Lively::Application
+	def self.resolver
+		Resolver.new(multiplayer_state: MultiplayerState.new).tap do |resolver|
+			resolver.allow(FlappyBirdView)
+		end
+	end
+	
+	def body(...)
+		FlappyBirdView.new(...)
+	end
+end

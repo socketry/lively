@@ -15,6 +15,8 @@ body {
 	
 	position: relative;
 	overflow: hidden;
+	
+	transform: translate3d(0,0,0);
 }
 
 .flappy .score {
@@ -50,7 +52,13 @@ body {
 	position: absolute;
 	background-size: contain;
 	
-	transition: all 0.05s linear 0s;
+	transform: translate3d(0,0,0);
+	transition: all 0.1s linear 0s;
+}
+
+.flappy .bird.remote {
+	opacity: 50%;
+	filter: grayscale(100%);
 }
 
 .flappy .pipe {
@@ -59,7 +67,8 @@ body {
 	position: absolute;
 	background-size: contain;
 	
-	transition: all 0.05s linear 0s;
+	transform: translate3d(0,0,0);
+	transition: all 0.1s linear 0s;
 }
 
 .flappy .gemstone {
@@ -68,5 +77,6 @@ body {
 	position: absolute;
 	background-size: contain;
 	
-	transition: all 0.05s linear 0s;
+	transform: translate3d(0,0,0);
+	transition: all 0.1s linear 0s;
 }
