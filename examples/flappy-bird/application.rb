@@ -337,7 +337,7 @@ class FlappyBirdView < Live::View
 		end
 	end
 	
-	def run!(dt = 1.0/20.0)
+	def run!(dt = 1.0/10.0)
 		Async do
 			start_time = Async::Clock.now
 			
@@ -409,6 +409,7 @@ class Resolver < Live::Resolver
 end
 
 class MultiplayerState
+	MINIMUM_PLAYERS = 1
 	GAME_START_TIMEOUT = 5
 	
 	def initialize
@@ -426,7 +427,7 @@ class MultiplayerState
 		Async do
 			while true
 				Console.info(self, "Waiting for players...")
-				while @joined.size < 2
+				while @joined.size < MINIMUM_PLAYERS
 					@player_joined.wait
 				end
 				
