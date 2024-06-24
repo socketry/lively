@@ -200,13 +200,19 @@ class FlappyBirdView < Live::View
 		super
 	end
 	
+	def jump
+		play_sound("quack") if rand > 0.5
+				
+		@bird&.jump
+	end
+	
 	def handle(event)
 		case event[:type]
+		when "touchstart"
+			self.jump
 		when "keypress"
 			if event.dig(:detail, :key) == " "
-				play_sound("quack") if rand > 0.5
-				
-				@bird&.jump
+				self.jump
 			end
 		end
 	end
@@ -358,7 +364,7 @@ class FlappyBirdView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag(:div, class: "flappy", tabIndex: 0, onKeyPress: forward_keypress) do
+		builder.tag(:div, class: "flappy", tabIndex: 0, onKeyPress: forward_keypress, onTouchStart: forward_keypress) do
 			if @game
 				builder.inline_tag(:div, class: "score") do
 					builder.text(@score)
