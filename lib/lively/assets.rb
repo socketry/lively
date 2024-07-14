@@ -17,7 +17,9 @@ module Lively
 			".mp3" => "audio/mpeg",
 		}
 		
-		def initialize(delegate, root: Dir.pwd, content_types: DEFAULT_CONTENT_TYPES, cache_control: DEFAULT_CACHE_CONTROL)
+		PUBLIC_ROOT = File.expand_path('../../public', __dir__)
+		
+		def initialize(delegate, root: PUBLIC_ROOT, content_types: DEFAULT_CONTENT_TYPES, cache_control: DEFAULT_CACHE_CONTROL)
 			super(delegate)
 			
 			@root = root
