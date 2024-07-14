@@ -3,6 +3,9 @@
 # Released under the MIT License.
 # Copyright, 2021-2024, by Samuel Williams.
 
+require 'protocol/http/middleware'
+require 'protocol/http/body/file'
+
 module Lively
 	class Assets < Protocol::HTTP::Middleware
 		DEFAULT_CACHE_CONTROL = 'no-store, no-cache, must-revalidate, max-age=0'
