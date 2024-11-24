@@ -4,7 +4,7 @@
 # Released under the MIT License.
 # Copyright, 2024, by Samuel Williams.
 
-require 'sqlite3'
+require "sqlite3"
 
 class Highscore
 	def self.database

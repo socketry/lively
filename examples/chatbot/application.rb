@@ -4,11 +4,11 @@
 # Released under the MIT License.
 # Copyright, 2024, by Samuel Williams.
 
-require 'async/ollama'
-require 'markly'
-require 'xrb/reference'
+require "async/ollama"
+require "markly"
+require "xrb/reference"
 
-require_relative 'conversation'
+require_relative "conversation"
 
 class ChatbotView < Live::View
 	def conversation
@@ -77,7 +77,7 @@ class ChatbotView < Live::View
 	def render(builder)
 		builder.tag(:div, class: "conversation") do
 			builder.tag(:div, class: "messages") do
-				conversation.conversation_messages.each do |message|
+				conversation&.conversation_messages&.each do |message|
 					render_message(builder, message)
 				end
 			end
@@ -93,7 +93,7 @@ class Application < Lively::Application
 	end
 	
 	def body(...)
-		ChatbotView.new(...)
+		ChatbotView.root(...)
 	end
 	
 	def handle(request)
@@ -106,9 +106,9 @@ class Application < Lively::Application
 		end
 		
 		unless conversation_id
-			reference.query[:conversation_id] = Conversation.create!(model: 'llama3').id
+			reference.query[:conversation_id] = Conversation.create!(model: "llama3").id
 			
-			return ::Protocol::HTTP::Response[302, {'location' => reference.to_s}]
+			return ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
 		else
 			return super(request, conversation_id: conversation_id)
 		end

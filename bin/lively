@@ -1,7 +1,8 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
-require 'async/service'
-require_relative '../lib/lively/environment/application'
+require "async/service"
+require_relative "../lib/lively/environment/application"
 
 ARGV.each do |path|
 	require(path)

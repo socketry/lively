@@ -1,4 +1,7 @@
 #!/usr/bin/env lively
+# frozen_string_literal: true
+# Released under the MIT License.
+# Copyright, 2024, by Samuel Williams.
 
 class Board
 	FRUITS = ["🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒"]
@@ -164,19 +167,19 @@ class WormsView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag('table', tabIndex: 0, autofocus: true, onKeyPress: forward_keypress) do
+		builder.tag("table", tabIndex: 0, autofocus: true, onKeyPress: forward_keypress) do
 			@board.grid.each do |row|
-				builder.tag('tr') do
+				builder.tag("tr") do
 					row.each do |cell|
 						if cell.is_a?(Integer)
 							style = "background-color: hsl(#{cell * 10}, 100%, 50%)"
-							builder.tag('td', style: style)
+							builder.tag("td", style: style)
 						elsif cell.is_a?(String)
-							builder.tag('td') do
+							builder.tag("td") do
 								builder.text(cell)
 							end
 						else
-							builder.tag('td')
+							builder.tag("td")
 						end
 					end
 				end

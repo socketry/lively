@@ -3,12 +3,12 @@
 # Released under the MIT License.
 # Copyright, 2021-2024, by Samuel Williams.
 
-require 'protocol/http/middleware'
-require 'protocol/http/body/file'
+require "protocol/http/middleware"
+require "protocol/http/body/file"
 
 module Lively
 	class Assets < Protocol::HTTP::Middleware
-		DEFAULT_CACHE_CONTROL = 'no-store, no-cache, must-revalidate, max-age=0'
+		DEFAULT_CACHE_CONTROL = "no-store, no-cache, must-revalidate, max-age=0"
 		
 		DEFAULT_CONTENT_TYPES = {
 			".html" => "text/html",
@@ -20,7 +20,7 @@ module Lively
 			".mp3" => "audio/mpeg",
 		}
 		
-		PUBLIC_ROOT = File.expand_path('../../public', __dir__)
+		PUBLIC_ROOT = File.expand_path("../../public", __dir__)
 		
 		def initialize(delegate, root: PUBLIC_ROOT, content_types: DEFAULT_CONTENT_TYPES, cache_control: DEFAULT_CACHE_CONTROL)
 			super(delegate)
@@ -43,8 +43,8 @@ module Lively
 		
 		def response_for(path, content_type)
 			headers = [
-				['content-type', content_type],
-				['cache-control', @cache_control],
+				["content-type", content_type],
+				["cache-control", @cache_control],
 			]
 			
 			return Protocol::HTTP::Response[200, headers, Protocol::HTTP::Body::File.open(path)]

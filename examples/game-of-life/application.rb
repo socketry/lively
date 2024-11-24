@@ -200,25 +200,25 @@ class GameOfLifeView < Live::View
 	
 	def handle(event)
 		case event.dig(:detail, :action)
-		when 'start'
+		when "start"
 			self.start
-		when 'stop'
+		when "stop"
 			self.stop
-		when 'step'
+		when "step"
 			self.step
-		when 'reset'
+		when "reset"
 			self.reset
 			self.update!
-		when 'set'
+		when "set"
 			self.stop
 			x = event.dig(:detail, :x).to_i
 			y = event.dig(:detail, :y).to_i
 			@grid.toggle(x, y)
 			self.update!
-		when 'randomize'
+		when "randomize"
 			self.randomize
 			self.update!
-		when 'heart'
+		when "heart"
 			self.heart
 			self.update!
 		end
@@ -229,35 +229,35 @@ class GameOfLifeView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag('div', style: 'text-align: center') do
-			builder.tag('button', onclick: forward_event(action: 'start')) do
+		builder.tag("div", style: "text-align: center") do
+			builder.tag("button", onclick: forward_event(action: "start")) do
 				builder.text("Start")
 			end
 			
-			builder.tag('button', onclick: forward_event(action: 'stop')) do
+			builder.tag("button", onclick: forward_event(action: "stop")) do
 				builder.text("Stop")
 			end
 			
-			builder.tag('button', onclick: forward_event(action: 'step')) do
+			builder.tag("button", onclick: forward_event(action: "step")) do
 				builder.text("Step")
 			end
 			
-			builder.tag('button', onclick: forward_event(action: 'reset')) do
+			builder.tag("button", onclick: forward_event(action: "reset")) do
 				builder.text("Reset")
 			end
 			
-			builder.tag('button', onclick: forward_event(action: 'randomize')) do
+			builder.tag("button", onclick: forward_event(action: "randomize")) do
 				builder.text("Randomize")
 			end
 			
-			builder.tag('button', onclick: forward_event(action: 'heart')) do
+			builder.tag("button", onclick: forward_event(action: "heart")) do
 				builder.text("Heart")
 			end
 		end
 		
-		builder.tag('table', onclick: forward_coordinate) do
+		builder.tag("table", onclick: forward_coordinate) do
 			@grid.rows do |y, row|
-				builder.tag('tr') do
+				builder.tag("tr") do
 					row.count.times do |x|
 						style = []
 						
@@ -265,7 +265,7 @@ class GameOfLifeView < Live::View
 							style << "background-color: #{color}"
 						end
 						
-						builder.inline('td', style: style.join(';'))
+						builder.inline("td", style: style.join(";"))
 					end
 				end
 			end

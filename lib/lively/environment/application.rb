@@ -3,10 +3,10 @@
 # Released under the MIT License.
 # Copyright, 2021-2024, by Samuel Williams.
 
-require_relative '../application'
-require_relative '../assets'
+require_relative "../application"
+require_relative "../assets"
 
-require 'falcon/environment/server'
+require "falcon/environment/server"
 
 module Lively
 	module Environment
@@ -32,8 +32,8 @@ module Lively
 			
 			def middleware
 				::Protocol::HTTP::Middleware.build do |builder|
-					builder.use Lively::Assets, root: File.expand_path('public', self.root)
-					builder.use Lively::Assets, root: File.expand_path('../../../public', __dir__)
+					builder.use Lively::Assets, root: File.expand_path("public", self.root)
+					builder.use Lively::Assets, root: File.expand_path("../../../public", __dir__)
 					builder.use self.application
 				end
 			end

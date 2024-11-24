@@ -3,7 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2021-2024, by Samuel Williams.
 
-require 'xrb/template'
+require "xrb/template"
 
 module Lively
 	module Pages

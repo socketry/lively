@@ -92,11 +92,11 @@ class MathQuestView < Live::View
 	end
 	
 	def score
-		@data['score'].to_i
+		@data["score"].to_i
 	end
 	
 	def score= score
-		@data['score'] = score
+		@data["score"] = score
 	end
 	
 	def reset
@@ -120,15 +120,15 @@ class MathQuestView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag('p', class: 'toolbar') do
+		builder.tag("p", class: "toolbar") do
 			builder.text "Score: #{self.score}"
 		end
 		
-		builder.tag('p', class: 'equation') do
+		builder.tag("p", class: "equation") do
 			if @equation
 				builder.text @equation.to_s
-				builder.text ' = '
-				builder.inline('input', type: 'text', value: @answer, oninput: forward_value)
+				builder.text " = "
+				builder.inline("input", type: "text", value: @answer, oninput: forward_value)
 			else
 				builder.text "Preparing..."
 			end

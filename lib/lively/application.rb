@@ -3,12 +3,12 @@
 # Released under the MIT License.
 # Copyright, 2021-2024, by Samuel Williams.
 
-require 'live'
-require 'protocol/http/middleware'
-require 'async/websocket/adapters/http'
+require "live"
+require "protocol/http/middleware"
+require "async/websocket/adapters/http"
 
-require_relative 'pages/index'
-require_relative 'hello_world'
+require_relative "pages/index"
+require_relative "hello_world"
 
 module Lively
 	class Application < Protocol::HTTP::Middleware
@@ -57,7 +57,7 @@ module Lively
 		end
 		
 		def call(request)
-			if request.path == '/live'
+			if request.path == "/live"
 				return Async::WebSocket::Adapters::HTTP.open(request, &self.method(:live)) || Protocol::HTTP::Response[400]
 			else
 				return handle(request)

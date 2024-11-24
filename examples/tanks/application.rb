@@ -1,7 +1,10 @@
 #!/usr/bin/env lively
+# frozen_string_literal: true
+# Released under the MIT License.
+# Copyright, 2024, by Samuel Williams.
 
-require_relative 'png'
-require 'base64'
+require_relative "png"
+require "base64"
 
 class Map
 	def initialize(width = 128, height = 128)
@@ -63,7 +66,7 @@ class TanksView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag('img', src: map_data)
+		builder.tag("img", src: map_data)
 	end
 end
 

@@ -4,8 +4,8 @@
 # Released under the MIT License.
 # Copyright, 2024, by Samuel Williams.
 
-require_relative 'highscore'
-require 'async/variable'
+require_relative "highscore"
+require "async/variable"
 
 WIDTH = 420
 HEIGHT = 640
@@ -67,7 +67,7 @@ class Bird < BoundingBox
 		rotation = (@velocity / 20.0).clamp(-40.0, 40.0)
 		rotate = "rotate(#{-rotation}deg)";
 		
-		class_name = remote ? 'bird remote' : 'bird'
+		class_name = remote ? "bird remote" : "bird"
 		
 		builder.inline_tag(:div, class: class_name, style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px; transform: #{rotate};")
 	end
@@ -83,7 +83,7 @@ class Gemstone < BoundingBox
 	end
 	
 	def render(builder)
-		builder.inline_tag(:div, class: 'gemstone', style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px;")
+		builder.inline_tag(:div, class: "gemstone", style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px;")
 	end
 end
 
@@ -157,8 +157,8 @@ class Pipe
 	def render(builder)
 		display = "display: none;" if @x > WIDTH
 		
-		builder.inline_tag(:div, class: 'pipe', style: "left: #{@x}px; bottom: #{self.bottom}px; width: #{@width}px; height: #{@height}px; #{display}")
-		builder.inline_tag(:div, class: 'pipe', style: "left: #{@x}px; bottom: #{self.top}px; width: #{@width}px; height: #{@height}px; #{display}")
+		builder.inline_tag(:div, class: "pipe", style: "left: #{@x}px; bottom: #{self.bottom}px; width: #{@width}px; height: #{@height}px; #{display}")
+		builder.inline_tag(:div, class: "pipe", style: "left: #{@x}px; bottom: #{self.top}px; width: #{@width}px; height: #{@height}px; #{display}")
 	end
 end
 
