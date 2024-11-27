@@ -9,37 +9,69 @@ require "markly"
 require "xrb/reference"
 
 require_relative "conversation"
+require_relative "toolbox"
 
 class ChatbotView < Live::View
+	def initialize(...)
+		super
+		
+		@conversation = nil
+		@toolbox ||= Toolbox.default
+	end
+	
 	def conversation
 		@conversation ||= Conversation.find_by(id: @data[:conversation_id])
+	end
+	
+	def append_prompt(client, prompt)
+		previous_context = conversation.context
+			
+		conversation_message = conversation.conversation_messages.create!(prompt: prompt, response: String.new)
+		
+		self.append(".conversation .messages") do |builder|
+			self.render_message(builder, conversation_message)
+		end
+		
+		generate = client.generate(prompt, context: previous_context) do |response|
+			response.body.each do |token|
+				conversation_message.response += token
+				
+				self.replace(".message.id#{conversation_message.id}") do |builder|
+					self.render_message(builder, conversation_message)
+				end
+			end
+		end
+		
+		conversation_message.response = generate.response
+		conversation_message.context = generate.context
+		conversation_message.save!
+		
+		return conversation_message
 	end
 	
 	def update_conversation(prompt)
 		Console.info(self, "Updating conversation", id: conversation.id, prompt: prompt)
 		
+		if prompt.start_with? "/explain"
+			prompt = @toolbox.explain
+		end
+		
 		Async::Ollama::Client.open do |client|
-			previous_context = conversation.context
+			conversation_message = append_prompt(client, prompt)
 			
-			conversation_message = conversation.conversation_messages.create!(prompt: prompt, response: String.new)
-			
-			self.append(".conversation .messages") do |builder|
-				self.render_message(builder, conversation_message)
-			end
-			
-			generate = client.generate(prompt, context: previous_context) do |response|
-				response.body.each do |token|
-					conversation_message.response += token
-					
-					self.replace(".message.id#{conversation_message.id}") do |builder|
-						self.render_message(builder, conversation_message)
-					end
+			while conversation_message
+				messages = @toolbox.each(conversation_message.response).to_a
+				break if messages.empty?
+				
+				results = []
+				
+				messages.each do |message|
+					result = @toolbox.call(message)
+					results << result.to_json
 				end
+				
+				conversation_message = append_prompt(client, results.join("\n"))
 			end
-			
-			conversation_message.response = generate.response
-			conversation_message.context = generate.context
-			conversation_message.save!
 		end
 	end
 	
