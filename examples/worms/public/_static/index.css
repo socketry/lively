@@ -1,5 +1,4 @@
 /* Center the table in the page */
-
 body {
 	display: flex;
 	justify-content: center;
@@ -8,21 +7,30 @@ body {
 	margin: 0;
 }
 
-/* Make a table display as a regular size 10px x 10px per cell */
-
+/* Table styling */
 table {
-	border-collapse: collapse;
+	table-layout: fixed;
 	border-spacing: 0;
+
+	border-collapse: collapse;
+
+	width: 100vmin;
+	height: 100vmin;
 }
 
+/* Cell styling */
 td {
-	width: 2rem;
-	height: 2rem;
+	width: 4vmin;
+	height: 4vmin;
+
 	padding: 0;
 	margin: 0;
-	border: 1px solid black;
 	
-	/* Center the character in the cell */
+	/* Center the content in the cell */
 	text-align: center;
 	vertical-align: middle;
+	
+	/* Scale the font size with the viewport */
+	font-size: 3vmin;
+	line-height: 1;
 }
