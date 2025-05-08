@@ -13,5 +13,3 @@ gem "sqlite3", "~> 1.4"
 gem "markly"
 
 gem "async-ollama"
-gem "async-http"
-
