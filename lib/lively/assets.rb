@@ -18,6 +18,7 @@ module Lively
 			".jpeg" => "image/jpeg",
 			".gif" => "image/gif",
 			".mp3" => "audio/mpeg",
+			".wav" => "audio/wav",
 		}
 		
 		PUBLIC_ROOT = File.expand_path("../../public", __dir__)
