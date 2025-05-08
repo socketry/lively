@@ -17,7 +17,7 @@ Between each step, waiting for further input. Don't implement the entire game wi
 
 The application will be running live in a browser, with restart on save enabled.
 
-I need to implement the following code as part of the presentation:
+I need to implement the following code as part of the presentation, in the file `application.rb`:
 
 ```ruby
 #!/usr/bin/env lively
