@@ -19,3 +19,9 @@ end
 
 Application = Lively::Application[WormsView]
 ```
+
+## Usage
+
+``` bash
+$ io-watch . -- bundle exec lively ./application.rb
+```
