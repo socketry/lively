@@ -9,7 +9,7 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    async (2.23.1)
+    async (2.24.0)
       console (~> 1.29)
       fiber-annotation
       io-event (~> 1.9)
@@ -22,7 +22,7 @@ GEM
       async-service
       io-endpoint
       memory-leak (~> 0.5)
-    async-http (0.88.0)
+    async-http (0.89.0)
       async (>= 2.10.2)
       async-pool (~> 0.9)
       io-endpoint (~> 0.14)
@@ -79,18 +79,18 @@ GEM
     metrics (0.12.2)
     openssl (3.3.0)
     protocol-hpack (1.5.1)
-    protocol-http (0.49.0)
+    protocol-http (0.50.1)
     protocol-http1 (0.34.0)
       protocol-http (~> 0.22)
     protocol-http2 (0.22.1)
       protocol-hpack (~> 1.4)
       protocol-http (~> 0.47)
-    protocol-rack (0.11.2)
+    protocol-rack (0.12.0)
       protocol-http (~> 0.43)
       rack (>= 1.0)
     protocol-websocket (0.20.2)
       protocol-http (~> 0.2)
-    rack (3.1.13)
+    rack (3.1.14)
     samovar (2.3.0)
       console (~> 1.0)
       mapping (~> 1.0)
@@ -103,7 +103,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  live
   lively!
   thread-local
 
