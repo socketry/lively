@@ -427,6 +427,10 @@ In order to incrememntally and organically progress through the implementation, 
 
 ## Playing a sound
 
-Use `@page.script(javascript)` to run arbitrary javascript on the client.
+Use `self.script(javascript)` (`Live::View#script(code)`) to run arbitrary javascript on the client.
 
 There is a sound file located at `_static/pickupCoin.wav` if you need to use it.
+
+## Translations
+
+Please explain what you are doing (briefly) in both English and Japanese. I'm presenting to a Japanese audience and I want them to be able to follow along even if they don't understand what I'm taking about.
