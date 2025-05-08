@@ -1,0 +1,28 @@
+/* Center the table in the page */
+
+body {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100vh;
+	margin: 0;
+}
+
+/* Make a table display as a regular size 10px x 10px per cell */
+
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+td {
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	margin: 0;
+	border: 1px solid black;
+	
+	/* Center the character in the cell */
+	text-align: center;
+	vertical-align: middle;
+}
