@@ -332,7 +332,7 @@ class WormsView < Live::View
 	# Generate the JavaScript code to handle touch start events.
 	# @returns [String] The JavaScript code to handle touch start events.
 	private def forward_touchstart
-		"this.touchStart = {x: event.touches[0].clientX, y: event.touches[0].clientY};"
+		"event.preventDefault(); this.touchStart = {x: event.touches[0].clientX, y: event.touches[0].clientY};"
 	end
 	
 	# Generate the JavaScript code to handle touch end events.
