@@ -15,6 +15,8 @@ The goal is to incrementally and organically implement this code as part of a li
 
 Stop between each step and wait for further input. Don't implement the entire game without me prompting you for each step / feature.
 
+Please explain what you are doing in both English and Japanese. I'm presenting to a Japanese audience and I want them to be able to follow along even if they don't understand what I'm taking about.
+
 The application will be running live in a browser, with restart on save enabled.
 
 I need to implement the following code as part of the presentation, in the file `application.rb`:
@@ -637,10 +639,6 @@ The mistakes should only be omissions, not deliberate errors in the code.
 Use `self.script(javascript)` (`Live::View#script(code)`) to run arbitrary javascript on the client.
 
 There is a sound file located at `_static/pickupCoin.wav` if you need to use it.
-
-## Translations
-
-Please explain what you are doing (briefly) in both English and Japanese. I'm presenting to a Japanese audience and I want them to be able to follow along even if they don't understand what I'm taking about.
 
 ## Worms Example
 
