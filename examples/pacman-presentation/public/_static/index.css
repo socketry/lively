@@ -1,0 +1,37 @@
+/* Center the table in the page */
+body {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100vh;
+}
+
+/* Table styling */
+table {
+	table-layout: fixed;
+	border-spacing: 0;
+
+	border-collapse: collapse;
+
+	width: 100vmin;
+	height: 100vmin;
+}
+
+/* Cell styling */
+td {
+	width: 4vmin;
+	height: 4vmin;
+
+	padding: 0;
+	margin: 0;
+	
+	/* Center the content in the cell */
+	text-align: center;
+	vertical-align: middle;
+	
+	/* Scale the font size with the viewport */
+	font-size: 3vmin;
+	line-height: 1;
+	
+	border: 1px solid rgba(0, 0, 0, 0.5);
+}
