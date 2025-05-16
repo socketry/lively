@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    lively (0.10.1)
+    lively (0.11.0)
       falcon (~> 0.47)
       live (~> 0.17)
       xrb
@@ -68,7 +68,7 @@ GEM
     io-endpoint (0.15.2)
     io-event (1.10.0)
     io-stream (0.6.1)
-    json (2.11.3)
+    json (2.12.0)
     live (0.17.0)
       async-websocket (~> 0.27)
       protocol-websocket (~> 0.19)
@@ -85,7 +85,7 @@ GEM
     protocol-http2 (0.22.1)
       protocol-hpack (~> 1.4)
       protocol-http (~> 0.47)
-    protocol-rack (0.12.0)
+    protocol-rack (0.13.0)
       protocol-http (~> 0.43)
       rack (>= 1.0)
     protocol-websocket (0.20.2)
