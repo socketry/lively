@@ -1,0 +1,1024 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Presentation
+
+I am giving a live coding presentation.
+
+As this is a presentation, don't say something like "I see we have a complete implementation plan in the presentation rules". This document will be our little secret to ensure the succcess of the presentation without giving too much away.
+
+There are CSS rules stored in `public/_static/index.css` that you can use to style the game, but don't modify that file as it's secondary to the presentation.
+
+The goal is to incrementally and organically implement this code as part of a live coding presentation. There is a 5 minute limit in total for the presentation, so we need to be efficient. We should also take care to add features in a way that grows naturally from the previous steps, taking into account the prompts, so that the audience can follow along easily.
+
+Stop between each step and wait for further input. Don't implement the entire game without me prompting you for each step / feature.
+
+The application will be running live in a browser, with restart on save enabled.
+
+I need to implement the following code as part of the presentation, in the file `application.rb`:
+
+```ruby
+#!/usr/bin/env lively
+# frozen_string_literal: true
+
+# Released under the MIT License.
+# Copyright, 2025, by Samuel Williams.
+
+require_relative 'ghost'
+
+class Player
+	attr_reader :position, :direction, :score, :lives
+	attr_accessor :direction
+	
+	# Initialize a new player.
+	# @parameter board [Board] The game board.
+	def initialize(board)
+		@board = board
+		@position = [board.height/2, board.width/2]
+		@direction = :right
+		@score = 0
+		@lives = 3
+		@on_fruit_eaten = nil
+		@on_ghost_collision = nil
+		@invulnerable = false
+		@invulnerable_time = 0
+	end
+	
+	# Set the callback for when a fruit is eaten.
+	# The callback will receive a boolean indicating if it was a power fruit.
+	def on_fruit_eaten(&block)
+		@on_fruit_eaten = block
+	end
+	
+	# Set the callback for when a ghost is encountered.
+	# The callback will receive the ghost that was encountered.
+	def on_ghost_collision(&block)
+		@on_ghost_collision = block
+	end
+	
+	# Make the player temporarily invulnerable.
+	# @parameter duration [Integer] The duration in steps.
+	def make_invulnerable(duration = 10)
+		@invulnerable = true
+		@invulnerable_time = duration
+	end
+	
+	# Check if the player is invulnerable.
+	def invulnerable?
+		@invulnerable
+	end
+	
+	# Advance the player one step in their current direction.
+	def step
+		# Update invulnerability timer
+		if @invulnerable
+			@invulnerable_time -= 1
+			@invulnerable = false if @invulnerable_time <= 0
+		end
+		
+		new_y, new_x = @position.dup
+		
+		case @direction
+		when :up
+			new_y -= 1
+		when :down
+			new_y += 1
+		when :left
+			new_x -= 1
+		when :right
+			new_x += 1
+		end
+		
+		# Ensure we stay within bounds and don't hit walls
+		if new_y >= 0 && new_y < @board.height && 
+		   new_x >= 0 && new_x < @board.width &&
+		   @board.grid[new_y][new_x] != "🧱"
+			@position = [new_y, new_x]
+			
+			# Check if we ate a pill or power fruit
+			cell = @board.grid[@position[0]][@position[1]]
+			if cell == "•"
+				@score += 1
+				@board.remove_pill!(@position[0], @position[1])
+				@on_fruit_eaten&.call(false)
+			elsif cell.is_a?(String) && Board::FRUITS.include?(cell)
+				@score += 10  # Power fruits are worth more
+				@board.remove_pill!(@position[0], @position[1])
+				@on_fruit_eaten&.call(true)
+				
+				# Power fruits make ghosts frightened
+				@board.frighten_ghosts!
+			end
+			
+			# Check for ghost collision
+			if ghost = @board.ghost_at?(@position)
+				if ghost.frightened?
+					# Eat the frightened ghost
+					ghost.reset!
+					@score += 50
+				elsif !@invulnerable
+					# Player gets caught by ghost
+					lose_life
+					@on_ghost_collision&.call(ghost)
+				end
+			end
+		end
+	end
+	
+	# Player loses a life.
+	def lose_life
+		@lives -= 1
+		make_invulnerable
+		reset! if @lives > 0
+	end
+	
+	# Reset the player to their initial state.
+	def reset!
+		@position = [@board.height/2, @board.width/2]
+		@direction = :right
+		make_invulnerable
+	end
+	
+	# Full reset for a new game.
+	def full_reset!
+		@position = [@board.height/2, @board.width/2]
+		@direction = :right
+		@score = 0
+		@lives = 3
+		make_invulnerable
+	end
+end
+
+class Board
+	FRUITS = ["🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒"]
+	
+	# Initialize a new game board.
+	# @parameter width [Integer] The width of the board.
+	# @parameter height [Integer] The height of the board.
+	def initialize(width = 20, height = 20)
+		@width = width
+		@height = height
+		@pill_count = 0
+		@ghosts = []
+		
+		reset!
+	end
+	
+	attr :grid, :width, :height, :pill_count, :ghosts
+	
+	# Reset the board to its initial state.
+	def reset!
+		@grid = Array.new(@height) {Array.new(@width)}
+		@pill_count = 0
+		
+		# Reset ghosts
+		@ghosts = []
+		
+		# Add some walls
+		add_walls!
+		
+		# Add pills to all empty cells
+		add_pills!
+		
+		# Add ghosts
+		add_ghosts!
+	end
+	
+	# Add walls to the board.
+	private def add_walls!
+		# Add some simple wall patterns
+		(2..4).each do |x|
+			@grid[2][x] = "🧱"
+			@grid[7][x] = "🧱"
+		end
+		
+		(2..7).each do |y|
+			@grid[y][7] = "🧱"
+		end
+	end
+	
+	# Add pills to all empty cells
+	private def add_pills!
+		@grid.each_with_index do |row, y|
+			row.each_with_index do |cell, x|
+				if cell.nil?
+					@grid[y][x] = "•"
+					@pill_count += 1
+				end
+			end
+		end
+		
+		# Add a few special fruits by replacing regular pills
+		# The total count stays the same since we're just replacing pills
+		3.times { add_power_fruit! }
+	end
+	
+	# Add ghosts to the board.
+	private def add_ghosts!
+		ghost_colors = ["red", "pink", "cyan", "orange"]
+		
+		# Create ghosts in different corners
+		positions = [[1, 1], [1, @width-2], [@height-2, 1], [@height-2, @width-2]]
+		
+		positions.each_with_index do |pos, i|
+			ghost = Ghost.new(self, pos[0], pos[1], ghost_colors[i])
+			@ghosts << ghost
+		end
+	end
+	
+	# Add power fruits to random pill cells.
+	# @parameter count [Integer] The number of power fruits to add.
+	def add_power_fruit!
+		5.times do
+			y = rand(@height)
+			x = rand(@width)
+			
+			if @grid[y][x] == "•"
+				@grid[y][x] = FRUITS.sample
+				# We've already counted this as a pill, so don't increment pill_count
+				return [y, x]
+			end
+		end
+		
+		return nil
+	end
+	
+	# Remove a pill from the specified coordinates.
+	# @parameter y [Integer] The y coordinate.
+	# @parameter x [Integer] The x coordinate.
+	def remove_pill!(y, x)
+		if @grid[y][x] == "•"
+			@grid[y][x] = nil
+			@pill_count -= 1
+		elsif @grid[y][x].is_a?(String) && FRUITS.include?(@grid[y][x])
+			@grid[y][x] = nil
+			@pill_count -= 1  # Power fruits also count toward total pills
+		end
+		
+		return @pill_count
+	end
+	
+	# Move all ghosts one step.
+	def move_ghosts!
+		@ghosts.each(&:step)
+	end
+	
+	# Check if any ghost is at the given position.
+	# @parameter position [Array<Integer>] The position to check.
+	# @returns [Ghost, nil] The ghost at the position, or nil if none.
+	def ghost_at?(position)
+		@ghosts.find { |ghost| ghost.position == position }
+	end
+	
+	# Make all ghosts frightened for a duration.
+	# @parameter duration [Integer] The duration in steps.
+	def frighten_ghosts!(duration = 20)
+		@ghosts.each { |ghost| ghost.frighten(duration) }
+	end
+	
+	# Verify and fix the pill count if necessary
+	def verify_pill_count!
+		actual_count = 0
+		
+		@grid.each do |row|
+			row.each do |cell|
+				if cell == "•" || (cell.is_a?(String) && FRUITS.include?(cell))
+					actual_count += 1
+				end
+			end
+		end
+		
+		if actual_count != @pill_count
+			@pill_count = actual_count
+		end
+		
+		return @pill_count
+	end
+end
+
+class PacmanView < Live::View
+	# Initialize a new view.
+	def initialize(...)
+		super
+		
+		@board = Board.new(10, 10)
+		@player = Player.new(@board)
+		@player.on_fruit_eaten { |power_fruit| play_pickup_sound(power_fruit) }
+		@player.on_ghost_collision { |ghost| play_ghost_collision_sound }
+		@game_over = false
+	end
+	
+	def bind(page)
+		super
+		
+		@task ||= Async do
+			# Update the game state every 0.2 seconds:
+			loop do
+				unless @game_over
+					@player.step
+					@board.move_ghosts!
+					
+					# Periodically verify pill count to ensure accuracy
+					@board.verify_pill_count!
+					
+					# Check for game over conditions
+					if @player.lives <= 0
+						@game_over = true
+						self.script("alert('Game Over! Score: #{@player.score}');")
+					elsif @board.pill_count == 0
+						@game_over = true
+						self.script("alert('You win! All pills collected. Score: #{@player.score}');")
+					end
+				end
+				
+				sleep 0.2
+				self.update!
+			end
+		end
+	end
+	
+	def close
+		if task = @task
+			@task = nil
+			task.stop
+		end
+		
+		super
+	end
+	
+	# Play the pickup sound effect.
+	# @parameter power_fruit [Boolean] Whether a power fruit was eaten.
+	private def play_pickup_sound(power_fruit = false)
+		# Play a different sound for power fruits
+		if power_fruit
+			self.script("new Audio('_static/pickupCoin.wav').play();")
+		else
+			self.script("new Audio('_static/pickupCoin.wav').play();")
+		end
+	end
+	
+	# Play the ghost collision sound effect.
+	private def play_ghost_collision_sound
+		self.script("new Audio('_static/pickupCoin.wav').play();")
+	end
+	
+	# Handle input events.
+	# @parameter event [Hash] The event to handle.
+	def handle(event)
+		case event[:type]
+		when "keypress"
+			handle_keypress(event[:detail])
+		when "touchend"
+			handle_touch(event[:detail])
+		end
+	end
+	
+	# Handle keyboard input.
+	# @parameter detail [Hash] The key press details.
+	private def handle_keypress(detail)
+		if @game_over && detail[:key] == "r"
+			@board.reset!
+			@player.full_reset!
+			@game_over = false
+			return
+		end
+		
+		unless @game_over
+			case detail[:key]
+			when "w", "ArrowUp"
+				@player.direction = :up
+			when "s", "ArrowDown"
+				@player.direction = :down
+			when "a", "ArrowLeft"
+				@player.direction = :left
+			when "d", "ArrowRight"
+				@player.direction = :right
+			when "r"
+				# Reset the game
+				@board.reset!
+				@player.full_reset!
+			end
+		end
+	end
+	
+	# Handle touch input.
+	# @parameter detail [Hash] The touch details.
+	private def handle_touch(detail)
+		if detail[:direction]
+			@player.direction = detail[:direction].to_sym
+		end
+	end
+	
+	# Generate the JavaScript code to handle key press events.
+	# @returns [String] The JavaScript code to handle key press events.
+	private def forward_keypress
+		"live.forwardEvent(#{JSON.dump(@id)}, event, {key: event.key});"
+	end
+	
+	# Generate the JavaScript code to handle touch start events.
+	# @returns [String] The JavaScript code to handle touch start events.
+	private def forward_touchstart
+		"this.touchStart = {x: event.touches[0].clientX, y: event.touches[0].clientY};"
+	end
+	
+	# Generate the JavaScript code to handle touch end events.
+	# @returns [String] The JavaScript code to handle touch end events.
+	private def forward_touchend
+		<<~JS
+			if (this.touchStart) {
+				const dx = event.changedTouches[0].clientX - this.touchStart.x;
+				const dy = event.changedTouches[0].clientY - this.touchStart.y;
+				
+				let direction;
+				if (Math.abs(dx) > Math.abs(dy)) {
+					direction = dx > 0 ? 'right' : 'left';
+				} else {
+					direction = dy > 0 ? 'down' : 'up';
+				}
+				
+				live.forwardEvent(#{JSON.dump(@id)}, event, {direction});
+				this.touchStart = null;
+			}
+		JS
+	end
+
+	def render(builder)
+		builder.tag("div", class: "game-container") do
+			builder.tag("div", class: "score") do
+				builder.text("Score: #{@player.score}")
+			end
+			
+			builder.tag("div", class: "lives") do
+				builder.text("Lives: #{@player.lives > 0 ? '❤️' * @player.lives : 'Game Over'}")
+			end
+			
+			builder.tag("div", class: "pills-remaining") do
+				builder.text("Pills remaining: #{@board.pill_count}")
+			end
+			
+			builder.tag("div", class: "instructions") do
+				builder.text("Use WASD or arrow keys to move. Swipe on mobile. Press R to reset.")
+			end
+			
+			builder.tag("table", 
+				class: "game-board",
+				tabIndex: 0, 
+				autofocus: true, 
+				onKeyPress: forward_keypress,
+				onTouchStart: forward_touchstart,
+				onTouchEnd: forward_touchend
+			) do
+				@board.grid.each_with_index do |row, y|
+					builder.tag("tr") do
+						row.each_with_index do |cell, x|
+							pos = [y, x]
+							
+							# Check if a ghost is at this position
+							ghost = @board.ghost_at?(pos)
+							
+							if pos == @player.position
+								direction_class = "pacman-#{@player.direction}"
+								invulnerable_class = @player.invulnerable? ? " invulnerable" : ""
+								builder.tag("td", class: "pacman #{direction_class}#{invulnerable_class}") do
+									builder.text("😮")
+								end
+							elsif ghost
+								ghost_class = ghost.frightened? ? "frightened-ghost" : "ghost"
+								builder.tag("td", class: "#{ghost_class} ghost-#{ghost.color}") do
+									builder.text(ghost.frightened? ? "👻" : "👹")
+								end
+							elsif cell == "🧱"
+								builder.tag("td", class: "wall") do
+									builder.text(cell)
+								end
+							elsif cell == "•"
+								builder.tag("td", class: "pill") do
+									builder.text(cell)
+								end
+							elsif cell.is_a?(String) && Board::FRUITS.include?(cell)
+								builder.tag("td", class: "power-fruit") do
+									builder.text(cell)
+								end
+							else
+								builder.tag("td", class: "empty")
+							end
+						end
+					end
+				end
+			end
+			
+			if @game_over
+				builder.tag("div", class: "game-over") do
+					builder.text("Game Over! Press 'R' to restart.")
+				end
+			end
+		end
+	end
+end
+
+Application = Lively::Application[PacmanView]
+```
+
+And `ghost.rb`:
+
+```ruby
+class Ghost
+  attr_reader :position, :direction, :color
+  
+  # Initialize a new ghost.
+  # @parameter board [Board] The game board.
+  # @parameter start_y [Integer] The initial y position.
+  # @parameter start_x [Integer] The initial x position.
+  # @parameter color [String] The ghost's color.
+  def initialize(board, start_y, start_x, color)
+    @board = board
+    @position = [start_y, start_x]
+    @direction = [:up, :down, :left, :right].sample
+    @color = color
+    @frightened = false
+    @frightened_time = 0
+  end
+  
+  # Make ghost frightened for a certain duration.
+  # @parameter duration [Integer] The duration in steps.
+  def frighten(duration = 20)
+    @frightened = true
+    @frightened_time = duration
+  end
+  
+  # Check if the ghost is frightened.
+  def frightened?
+    @frightened
+  end
+  
+  # Move the ghost one step.
+  def step
+    # If frightened, decrease timer
+    if @frightened
+      @frightened_time -= 1
+      @frightened = false if @frightened_time <= 0
+    end
+    
+    # Sometimes change direction randomly
+    if rand < 0.2
+      possible_directions = []
+      
+      # Check which directions are valid moves
+      [[0, -1, :up], [0, 1, :down], [-1, 0, :left], [1, 0, :right]].each do |dy, dx, dir|
+        y = @position[0] + dy
+        x = @position[1] + dx
+        
+        if y >= 0 && y < @board.height && 
+           x >= 0 && x < @board.width &&
+           @board.grid[y][x] != "🧱"
+          possible_directions << dir
+        end
+      end
+      
+      # Only change if there are valid directions
+      @direction = possible_directions.sample if possible_directions.any?
+    end
+    
+    # Move in the current direction
+    new_y, new_x = @position.dup
+    
+    case @direction
+    when :up
+      new_y -= 1
+    when :down
+      new_y += 1
+    when :left
+      new_x -= 1
+    when :right
+      new_x += 1
+    end
+    
+    # Check if the new position is valid
+    if new_y >= 0 && new_y < @board.height && 
+       new_x >= 0 && new_x < @board.width &&
+       @board.grid[new_y][new_x] != "🧱"
+      @position = [new_y, new_x]
+    else
+      # If not valid, try a different direction
+      @direction = [:up, :down, :left, :right].sample
+    end
+  end
+  
+  # Reset the ghost to its starting position.
+  def reset!
+    @position = [1, 1]
+    @direction = [:up, :down, :left, :right].sample
+    @frightened = false
+    @frightened_time = 0
+  end
+end
+```
+
+## Process
+
+1. Implement the `PacmanView` class, rendering some placeholder content.
+2. Add the `Board` class, and render it in the view.
+3. Add the `GameState` class, which contains the board.
+4. Add then `Player` class, and wire up event handling.
+
+## Deliberate Mistakes
+
+In order to have a slightly predictable but meaningful demonstration, let's consider introducing the following mistakes:
+
+- Missing collision detection.
+- Missing player reset on collision.
+
+The mistakes should only be omissions, not deliberate errors in the code.
+
+## Playing a sound
+
+Use `self.script(javascript)` (`Live::View#script(code)`) to run arbitrary javascript on the client.
+
+There is a sound file located at `_static/pickupCoin.wav` if you need to use it.
+
+## Translations
+
+Please explain what you are doing (briefly) in both English and Japanese. I'm presenting to a Japanese audience and I want them to be able to follow along even if they don't understand what I'm taking about.
+
+## Worms Example
+
+Here is another working example of a worms-style game for your reference:
+
+```ruby
+#!/usr/bin/env lively
+# frozen_string_literal: true
+
+# Released under the MIT License.
+# Copyright, 2025, by Samuel Williams.
+
+require 'thread/local'
+
+class GameState
+	extend Thread::Local
+	
+	# Initialize a new game state with a board.
+	def initialize
+		@board = Board.new
+		@game = nil
+	end
+	
+	attr :board
+	
+	# Add a new player to the game.
+	# @returns [Player] The newly created player.
+	def add_player
+		player = @board.add_player
+		Console.info(self, "Player joined", player: player)
+		
+		self.run!
+		
+		return player
+	end
+	
+	# Remove a player from the game.
+	# @parameter player [Player] The player to remove.
+	def remove_player(player)
+		@board.remove_player(player)
+		Console.info(self, "Player left", player: player)
+		
+		if @board.players.empty?
+			self.close
+		end
+	end
+	
+	# Start or resume the game loop.
+	# @parameter dt [Float] The time interval between steps in seconds.
+	def run!(dt = 0.2)
+		@game ||= Async do
+			while true
+				@board.step
+				sleep(dt)
+			end
+		end
+	end
+	
+	# Stops the game loop if it is running and sets the game instance to nil.
+	private def close
+		if game = @game
+			@game = nil
+			game.stop
+		end
+	end
+end
+
+class Player
+	attr_reader :head, :count, :color
+	attr_accessor :direction
+	
+	# Initialize a new player.
+	# @parameter board [Board] The game board.
+	# @parameter start_y [Integer] The initial y position.
+	# @parameter start_x [Integer] The initial x position.
+	# @parameter color [String] The player's color in HSL format.
+	def initialize(board, start_y, start_x, color)
+		@board = board
+		@head = [start_y, start_x]
+		@count = 1
+		@direction = :up
+		@color = color
+		@on_updated = nil
+	end
+	
+	# Set or get the update callback.
+	# @parameter block [Proc] Optional block to set as the callback.
+	# @returns [Proc] The current callback.
+	def on_updated(&block)
+		if block_given?
+			@on_updated = block
+		end
+		
+		return @on_updated
+	end
+	
+	# Advance the player one step in their current direction.
+	# Handles movement, collision detection, and fruit collection.
+	def step
+		case @direction
+		when :up
+			@head[0] -= 1
+		when :down
+			@head[0] += 1
+		when :left
+			@head[1] -= 1
+		when :right
+			@head[1] += 1
+		end
+		
+		if @head[0] < 0 || @head[0] >= @board.height || @head[1] < 0 || @head[1] >= @board.width
+			reset!
+			return
+		end
+		
+		case @board.grid[@head[0]][@head[1]]
+		when String
+			@count += 1
+			@board.remove_fruit!(@head[0], @head[1])
+			@board.add_fruit!
+		when Integer, Hash
+			reset!
+			return
+		end
+		
+		@board.grid[@head[0]][@head[1]] = {count: @count, color: @color}
+		@on_updated&.call
+	end
+	
+	# Reset the player to their initial state.
+	def reset!
+		# Convert segments into fruit before resetting
+		@board.grid.each_with_index do |row, y|
+			row.each_with_index do |cell, x|
+				if cell.is_a?(Hash) && cell[:color] == @color
+					@board.convert_to_fruit!(y, x)
+				end
+			end
+		end
+		
+		@head = [@board.height/2, @board.width/2]
+		@count = 1
+		@direction = :up
+	end
+end
+
+class Board
+	FRUITS = ["🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒"]
+	COLOR_OFFSET = 23
+	
+	# Initialize a new game board.
+	# @parameter width [Integer] The width of the board.
+	# @parameter height [Integer] The height of the board.
+	def initialize(width = 20, height = 20)
+		@width = width
+		@height = height
+		@players = []
+		@fruit_count = 0
+		
+		reset!
+	end
+	
+	attr :grid, :width, :height, :players
+	
+	# Add a new player to the board.
+	# @returns [Player] The newly created player.
+	def add_player
+		hue = (@players.size * COLOR_OFFSET) % 360
+		color = "hsl(#{hue}, 100%, 50%)"
+		player = Player.new(self, @height/2, @width/2, color)
+		@players << player
+		
+		# Add a fruit when a new player joins
+		add_fruit!
+		
+		return player
+	end
+	
+	# Remove a player from the board.
+	# @parameter player [Player] The player to remove.
+	def remove_player(player)
+		@players.delete(player)
+	end
+	
+	# Add a fruit to a random empty cell.
+	# @returns [Array(Integer, Integer) | Nil] The coordinates of the added fruit, or nil if no space was found.
+	def add_fruit!
+		Console.info(self, "Adding fruit", fruit_count: @fruit_count, players: @players.size)
+		# Only add fruit if we have fewer than one per player
+		if @fruit_count < @players.size
+			5.times do
+				y = rand(@height)
+				x = rand(@width)
+				
+				if @grid[y][x].nil?
+					@grid[y][x] = FRUITS.sample
+					@fruit_count += 1
+					return y, x
+				end
+			end
+		end
+		
+		return nil
+	end
+	
+	# Remove a fruit from the specified coordinates.
+	# @parameter y [Integer] The y coordinate.
+	# @parameter x [Integer] The x coordinate.
+	def remove_fruit!(y, x)
+		if @grid[y][x].is_a?(String)
+			@grid[y][x] = nil
+			@fruit_count -= 1
+		end
+	end
+
+	# Convert a cell to fruit.
+	# @parameter y [Integer] The y coordinate.
+	# @parameter x [Integer] The x coordinate.
+	def convert_to_fruit!(y, x)
+		unless @grid[y][x].is_a?(String)
+			@grid[y][x] = FRUITS.sample
+			@fruit_count += 1
+		end
+	end
+	
+	# Reset the board to its initial state.
+	def reset!
+		@grid = Array.new(@height) {Array.new(@width)}
+		@players.each(&:reset!)
+		@fruit_count = 0
+		add_fruit!
+	end
+	
+	# Decrement the count of all player segments.
+	def decrement
+		@grid.each do |row|
+			row.map! do |cell|
+				if cell.is_a?(Hash)
+					cell[:count] -= 1
+					cell[:count] == 0 ? nil : cell
+				else
+					cell
+				end
+			end
+		end
+	end
+	
+	# Advance the game state by one step.
+	def step
+		decrement
+		@players.each(&:step)
+	end
+end
+
+class WormsView < Live::View
+	# Initialize a new view.
+	def initialize(...)
+		super
+		
+		@game_state = GameState.instance
+		@player = nil
+	end
+	
+	# Bind the view to a page and set up the player.
+	# @parameter page [Object] The page to bind to.
+	def bind(page)
+		super
+		
+		@player = @game_state.add_player
+		@player.on_updated{self.update!}
+	end
+	
+	# Clean up resources when the view is closed.
+	def close
+		if @player
+			@game_state.remove_player(@player)
+			@player = nil
+		end
+		
+		super
+	end
+	
+	# Handle input events.
+	# @parameter event [Hash] The event to handle.
+	def handle(event)
+		Console.info(self, event)
+		
+		case event[:type]
+		when "keypress"
+			handle_keypress(event[:detail])
+		when "touchend"
+			handle_swipe(event[:detail])
+		end
+	end
+	
+	# Handle keyboard input.
+	# @parameter detail [Hash] The key press details.
+	private def handle_keypress(detail)
+		case detail[:key]
+		when "w"
+			@player.direction = :up
+		when "s"
+			@player.direction = :down
+		when "a"
+			@player.direction = :left
+		when "d"
+			@player.direction = :right
+		end
+	end
+	
+	# Handle swipe input.
+	# @parameter detail [Hash] The swipe details.
+	private def handle_swipe(detail)
+		@player.direction = detail[:direction].to_sym
+	end
+	
+	# Generate the JavaScript code to handle key press events.
+	# @returns [String] The JavaScript code to handle key press events.
+	private def forward_keypress
+		"live.forwardEvent(#{JSON.dump(@id)}, event, {key: event.key});"
+	end
+	
+	# Generate the JavaScript code to handle touch start events.
+	# @returns [String] The JavaScript code to handle touch start events.
+	private def forward_touchstart
+		"this.touchStart = {x: event.touches[0].clientX, y: event.touches[0].clientY};"
+	end
+	
+	# Generate the JavaScript code to handle touch end events.
+	# @returns [String] The JavaScript code to handle touch end events.
+	private def forward_touchend
+		<<~JS
+			if (this.touchStart) {
+				const dx = event.changedTouches[0].clientX - this.touchStart.x;
+				const dy = event.changedTouches[0].clientY - this.touchStart.y;
+				
+				let direction;
+				if (Math.abs(dx) > Math.abs(dy)) {
+					direction = dx > 0 ? 'right' : 'left';
+				} else {
+					direction = dy > 0 ? 'down' : 'up';
+				}
+				
+				live.forwardEvent(#{JSON.dump(@id)}, event, {direction});
+				this.touchStart = null;
+			}
+		JS
+	end
+	
+	# Render the game board.
+	# @parameter builder [Object] The builder to use for rendering.
+	def render(builder)
+		builder.tag("table", 
+			tabIndex: 0, 
+			autofocus: true, 
+			onKeyPress: forward_keypress,
+			onTouchStart: forward_touchstart,
+			onTouchEnd: forward_touchend
+		) do
+			@game_state.board.grid.each do |row|
+				builder.tag("tr") do
+					row.each do |cell|
+						if cell.is_a?(Hash)
+							style = "background-color: #{cell[:color]}"
+							builder.tag("td", style: style)
+						elsif cell.is_a?(String)
+							builder.tag("td") do
+								builder.text(cell)
+							end
+						else
+							builder.tag("td")
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+Application = Lively::Application[WormsView]
+```
