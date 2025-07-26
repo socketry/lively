@@ -1,16 +1,35 @@
 .conversation {
-	margin: 1rem;
+  margin: 1rem;
 }
 
 .conversation input[type="text"] {
-	width: 100%;
-	box-sizing: border-box;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .conversation .prompt {
-	font-weight: bold;
+  font-weight: bold;
 }
 
 .conversation .response {
-	margin-left: 2rem;
+  margin-left: 2rem;
 }
+
+/* Table styling */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+th, td {
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+th {
+  background-color: rgba(128, 128, 128, 0.08);
+  font-weight: bold;
+}
+

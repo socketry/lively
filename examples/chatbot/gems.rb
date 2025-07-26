@@ -12,4 +12,4 @@ gem "activerecord", "~> 7.1"
 gem "sqlite3", "~> 1.4"
 gem "markly"
 
-gem "async-ollama"
+gem "async-ollama", ">= 0.5.1"

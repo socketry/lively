@@ -24,43 +24,39 @@ class ChatbotView < Live::View
 	end
 	
 	def append_prompt(client, prompt)
-		previous_context = conversation.context
-			
-		conversation_message = conversation.conversation_messages.create!(prompt: prompt, response: String.new)
+		conversation_prompt = conversation.conversation_messages.create!(role: "user", content: prompt)
+		conversation_reply = conversation.conversation_messages.create!(role: "assistant", content: "")
 		
 		self.append(".conversation .messages") do |builder|
-			self.render_message(builder, conversation_message)
+			self.render_message(builder, conversation_prompt)
+			self.render_message(builder, conversation_reply)
 		end
 		
-		generate = client.generate(prompt, context: previous_context) do |response|
+		agent_conversation = conversation.agent_conversation(client)
+		chat = agent_conversation.call(prompt) do |response|
 			response.body.each do |token|
-				conversation_message.response += token
+				conversation_reply.content += token
 				
-				self.replace(".message.id#{conversation_message.id}") do |builder|
-					self.render_message(builder, conversation_message)
+				self.replace(".message.id#{conversation_reply.id}") do |builder|
+					self.render_message(builder, conversation_reply)
 				end
 			end
 		end
 		
-		conversation_message.response = generate.response
-		conversation_message.context = generate.context
-		conversation_message.save!
+		conversation_reply.content = chat.response
+		conversation_reply.save!
 		
-		return conversation_message
+		return conversation_reply
 	end
 	
 	def update_conversation(prompt)
 		Console.info(self, "Updating conversation", id: conversation.id, prompt: prompt)
 		
-		if prompt.start_with? "/explain"
-			prompt = @toolbox.explain
-		end
-		
 		Async::Ollama::Client.open do |client|
 			conversation_message = append_prompt(client, prompt)
 			
 			while conversation_message
-				messages = @toolbox.each(conversation_message.response).to_a
+				messages = @toolbox.each(conversation_message.content).to_a
 				break if messages.empty?
 				
 				results = []
@@ -96,12 +92,14 @@ class ChatbotView < Live::View
 	
 	def render_message(builder, message)
 		builder.tag(:div, class: "message id#{message.id}") do
-			builder.inline_tag(:p, class: "prompt") do
-				builder.text(message.prompt)
-			end
-			
-			builder.inline_tag(:div, class: "response") do
-				builder.raw(Markly.render_html(message.response))
+			if message.role == "user"
+				builder.inline_tag(:p, class: "prompt") do
+					builder.text(message.content)
+				end
+			else
+				builder.inline_tag(:div, class: "response") do
+					builder.raw(Markly.render_html(message.content, extensions: %i[autolink table]))
+				end
 			end
 		end
 	end
@@ -138,7 +136,9 @@ class Application < Lively::Application
 		end
 		
 		unless conversation_id
-			reference.query[:conversation_id] = Conversation.create!(model: "llama3").id
+			reference.query[:conversation_id] = Conversation.create!(model: "llama3.1:latest").id
+			
+			Console.info(self, "Redirecting to new conversation", reference: reference)
 			
 			return ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
 		else

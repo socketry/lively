@@ -20,9 +20,8 @@ ActiveRecord::Schema.define do
 	create_table :conversation_messages, if_not_exists: true do |table|
 		table.belongs_to :conversation, null: false, foreign_key: true
 		
-		table.json :context
-		table.text :prompt
-		table.text :response
+		table.text :role
+		table.text :content
 		table.timestamps
 	end
 end
@@ -33,7 +32,16 @@ end
 class Conversation < ActiveRecord::Base
 	has_many :conversation_messages
 	
-	def context
-		self.conversation_messages.order(created_at: :desc).first&.context
+	def messages
+		self.conversation_messages.order(created_at: :asc).map do |message|
+			{
+				role: message.role,
+				content: message.content,
+			}
+		end
+	end
+	
+	def agent_conversation(client)
+		Async::Ollama::Conversation.new(client, model: self.model, messages: self.messages)
 	end
 end
