@@ -6,7 +6,11 @@ A Ruby framework for building interactive web applications for creative coding.
 
 ## Usage
 
-See the various examples in the `examples/` directory.
+Please see the [project documentation](https://socketry.github.io/lively/) for more details.
+
+  - [Getting Started](https://socketry.github.io/lively/guides/getting-started/index) - This guide will help you get started with Lively, a framework for building real-time applications in Ruby.
+
+  - [Building a Worms Game with Lively](https://socketry.github.io/lively/guides/worms-tutorial/index) - This tutorial will guide you through creating a Worms-style game using Lively, a Ruby framework for building real-time applications. We'll build the game step by step, starting with simple concepts and gradually adding complexity.
 
 ### Live Coding
 
