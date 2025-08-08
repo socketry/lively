@@ -12,14 +12,6 @@ Please see the [project documentation](https://socketry.github.io/lively/) for m
 
   - [Building a Worms Game with Lively](https://socketry.github.io/lively/guides/worms-tutorial/index) - This tutorial will guide you through creating a Worms-style game using Lively, a Ruby framework for building real-time applications. We'll build the game step by step, starting with simple concepts and gradually adding complexity.
 
-### Live Coding
-
-You can use `entr` to reload the server when files change:
-
-``` bash
-$ ls **/*.rb | entr -r bundle exec ./application.rb
-```
-
 ## Contributing
 
 We welcome contributions to this project.
