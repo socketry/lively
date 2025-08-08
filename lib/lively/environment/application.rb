@@ -13,9 +13,9 @@ module Lively
 		module Application
 			include Falcon::Environment::Server
 			
-			# def url
-			# 	"http://localhost:9292"
-			# end
+			def url
+				"http://localhost:9292"
+			end
 			
 			def count
 				1
