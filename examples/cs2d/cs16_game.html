@@ -309,7 +309,8 @@ animation: fadeOut 2s forwards;
     Buy Menu: B<br>
     Quick Buy: 1-5<br>
     <br>
-    <small>💡 Tip: Press V to toggle auto-aim</small>
+    <small>💡 Tip: Press V to toggle auto-aim</small><br>
+    <small>🔊 Sound effects activate on first shot</small>
   </div>
   
   <div id="buy-menu">
@@ -398,6 +399,9 @@ constructor() {
   this.autoAim = false;  // 預設關閉，不會自動瞄準
   this.lastShootTime = 0;
   
+  // Audio system
+  this.initAudio();
+  
   // 敵人 (單機模式)
   this.enemies = [];
   this.spawnEnemies();
@@ -421,6 +425,246 @@ setupCanvas() {
   });
 }
 
+initAudio() {
+  this.audioEnabled = false;
+  this.sounds = {
+    shoot: [],
+    reload: null,
+    empty: null
+  };
+  
+  // Create multiple shoot sound instances for overlapping sounds
+  for (let i = 0; i < 5; i++) {
+    const audio = new Audio();
+    // Using a free sound effect URL (you can replace with your own)
+    // This is a placeholder - replace with actual gun sound URL
+    audio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoAAAAAAAAAAAAAAAAAAAAAAAA=';
+    audio.volume = 0.3;
+    this.sounds.shoot.push(audio);
+  }
+  
+  // Reload sound
+  this.sounds.reload = new Audio();
+  this.sounds.reload.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoAAAAAAAAAAAAAAAAAAAAAAAA=';
+  this.sounds.reload.volume = 0.5;
+  
+  // Empty clip sound
+  this.sounds.empty = new Audio();
+  this.sounds.empty.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoAAAAAAAAAAAAAAAAAAAAAAAA=';
+  this.sounds.empty.volume = 0.4;
+}
+
+enableAudio() {
+  if (this.audioEnabled) return;
+  this.audioEnabled = true;
+  
+  // Load real sounds after user interaction
+  this.loadRealSounds();
+  console.log('Audio enabled - sound effects activated');
+  this.showNotification('🔊 Sound effects activated!');
+}
+
+loadRealSounds() {
+  // Try to load free sound effects from online sources
+  // These are example URLs - replace with actual free sound effect URLs
+  
+  // Example: Using freesound.org or other free sources
+  // Note: These are placeholder URLs - you need to get actual sound file URLs
+  const soundUrls = {
+    pistol: 'https://www.soundjay.com/misc/bell-ringing-05.wav',
+    reload: 'https://www.soundjay.com/misc/bell-ringing-04.wav',
+    empty: 'https://www.soundjay.com/misc/bell-ringing-01.wav'
+  };
+  
+  // For now, we'll use generated sounds
+  this.createGeneratedSounds();
+}
+
+createGeneratedSounds() {
+  // Create simple generated sound effects using Web Audio API
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  
+  // Generate realistic gunshot sound
+  this.sounds.shoot.forEach(audio => {
+    const duration = 0.15;  // Slightly longer for more realistic sound
+    const sampleRate = audioContext.sampleRate;
+    const numSamples = duration * sampleRate;
+    
+    // Create buffer
+    const buffer = audioContext.createBuffer(1, numSamples, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    // Generate complex gunshot sound
+    for (let i = 0; i < numSamples; i++) {
+      let sample = 0;
+      
+      // Initial bang (0-10ms)
+      if (i < numSamples * 0.01) {
+        // Sharp attack with mixed frequencies
+        const attack = 1 - (i / (numSamples * 0.01));
+        sample += (Math.random() * 2 - 1) * attack;
+        sample += Math.sin(2 * Math.PI * 200 * i / sampleRate) * attack * 0.5;
+        sample += Math.sin(2 * Math.PI * 400 * i / sampleRate) * attack * 0.3;
+      }
+      
+      // Main blast (10-50ms)
+      else if (i < numSamples * 0.05) {
+        const blastEnv = Math.exp(-(i - numSamples * 0.01) / (numSamples * 0.02));
+        sample += (Math.random() * 2 - 1) * blastEnv * 0.8;
+        // Add some bass frequencies
+        sample += Math.sin(2 * Math.PI * 80 * i / sampleRate) * blastEnv * 0.4;
+        sample += Math.sin(2 * Math.PI * 120 * i / sampleRate) * blastEnv * 0.3;
+      }
+      
+      // Tail/echo (50ms+)
+      else {
+        const tailEnv = Math.exp(-(i - numSamples * 0.05) / (numSamples * 0.3));
+        sample += (Math.random() * 2 - 1) * tailEnv * 0.2;
+      }
+      
+      // Clamp and apply master envelope
+      const masterEnv = i < numSamples * 0.005 ? i / (numSamples * 0.005) : 1;
+      data[i] = Math.max(-1, Math.min(1, sample * masterEnv));
+    }
+    
+    // Convert to audio element
+    const blob = this.bufferToWave(buffer);
+    audio.src = URL.createObjectURL(blob);
+    audio.volume = 0.25;  // Adjust volume
+  });
+  
+  // Generate reload sound (mechanical click)
+  const reloadDuration = 0.3;
+  const reloadSamples = reloadDuration * audioContext.sampleRate;
+  const reloadBuffer = audioContext.createBuffer(1, reloadSamples, audioContext.sampleRate);
+  const reloadData = reloadBuffer.getChannelData(0);
+  
+  for (let i = 0; i < reloadSamples; i++) {
+    let sample = 0;
+    
+    // Click sound at start
+    if (i < reloadSamples * 0.02) {
+      sample += Math.sin(2 * Math.PI * 800 * i / audioContext.sampleRate) * (1 - i / (reloadSamples * 0.02));
+    }
+    // Mechanical sound in middle
+    if (i > reloadSamples * 0.1 && i < reloadSamples * 0.15) {
+      sample += Math.sin(2 * Math.PI * 400 * i / audioContext.sampleRate) * 0.3;
+      sample += (Math.random() * 2 - 1) * 0.1;
+    }
+    // Click at end
+    if (i > reloadSamples * 0.28 && i < reloadSamples * 0.3) {
+      sample += Math.sin(2 * Math.PI * 600 * i / audioContext.sampleRate) * (1 - (i - reloadSamples * 0.28) / (reloadSamples * 0.02));
+    }
+    
+    reloadData[i] = sample;
+  }
+  
+  const reloadBlob = this.bufferToWave(reloadBuffer);
+  this.sounds.reload.src = URL.createObjectURL(reloadBlob);
+  this.sounds.reload.volume = 0.4;
+  
+  // Generate empty clip sound (click)
+  const emptyDuration = 0.05;
+  const emptySamples = emptyDuration * audioContext.sampleRate;
+  const emptyBuffer = audioContext.createBuffer(1, emptySamples, audioContext.sampleRate);
+  const emptyData = emptyBuffer.getChannelData(0);
+  
+  for (let i = 0; i < emptySamples; i++) {
+    const env = Math.exp(-i / (emptySamples * 0.3));
+    emptyData[i] = Math.sin(2 * Math.PI * 1000 * i / audioContext.sampleRate) * env * 0.5;
+  }
+  
+  const emptyBlob = this.bufferToWave(emptyBuffer);
+  this.sounds.empty.src = URL.createObjectURL(emptyBlob);
+  this.sounds.empty.volume = 0.3;
+}
+
+bufferToWave(buffer) {
+  const length = buffer.length * buffer.numberOfChannels * 2;
+  const arrayBuffer = new ArrayBuffer(44 + length);
+  const view = new DataView(arrayBuffer);
+  const channels = [];
+  let offset = 0;
+  let pos = 0;
+  
+  // Write WAV header
+  const setUint32 = (data) => {
+    view.setUint32(pos, data, true);
+    pos += 4;
+  };
+  const setUint16 = (data) => {
+    view.setUint16(pos, data, true);
+    pos += 2;
+  };
+  
+  // RIFF identifier
+  setUint32(0x46464952);
+  // File length
+  setUint32(36 + length);
+  // RIFF type
+  setUint32(0x45564157);
+  // Format chunk identifier
+  setUint32(0x20746d66);
+  // Format chunk length
+  setUint32(16);
+  // Sample format (raw PCM)
+  setUint16(1);
+  // Channel count
+  setUint16(buffer.numberOfChannels);
+  // Sample rate
+  setUint32(buffer.sampleRate);
+  // Byte rate
+  setUint32(buffer.sampleRate * 2 * buffer.numberOfChannels);
+  // Block align
+  setUint16(buffer.numberOfChannels * 2);
+  // Bits per sample
+  setUint16(16);
+  // Data chunk identifier
+  setUint32(0x61746164);
+  // Data chunk length
+  setUint32(length);
+  
+  // Write PCM samples
+  for (let i = 0; i < buffer.numberOfChannels; i++) {
+    channels.push(buffer.getChannelData(i));
+  }
+  
+  while (offset < buffer.length) {
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+      let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+      sample = sample * 0x7FFF;
+      view.setInt16(pos, sample, true);
+      pos += 2;
+    }
+    offset++;
+  }
+  
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
+playShootSound() {
+  // Find an available sound instance
+  const sound = this.sounds.shoot.find(s => s.paused || s.ended);
+  if (sound) {
+    sound.currentTime = 0;
+    sound.play().catch(e => console.log('Sound play failed:', e));
+  }
+}
+
+playReloadSound() {
+  if (this.sounds.reload) {
+    this.sounds.reload.currentTime = 0;
+    this.sounds.reload.play().catch(e => console.log('Reload sound failed:', e));
+  }
+}
+
+playEmptySound() {
+  if (this.sounds.empty) {
+    this.sounds.empty.currentTime = 0;
+    this.sounds.empty.play().catch(e => console.log('Empty sound failed:', e));
+  }
+}
+
 setupInput() {
   // Mouse tracking
   this.canvas.addEventListener('mousemove', (e) => {
@@ -435,6 +679,10 @@ setupInput() {
   // Mouse click to shoot
   this.canvas.addEventListener('mousedown', (e) => {
     if (e.button === 0) { // Left click
+      // Enable audio on first interaction (browser requirement)
+      if (!this.audioEnabled) {
+        this.enableAudio();
+      }
       this.shoot();
     }
   });
@@ -456,6 +704,10 @@ setupInput() {
     // 空白鍵射擊
     if (e.key === ' ') {
       e.preventDefault();
+      // Enable audio on first interaction
+      if (!this.audioEnabled) {
+        this.enableAudio();
+      }
       this.shoot();
     }
     
@@ -650,11 +902,15 @@ shoot() {
   if (now - this.lastShootTime < this.localPlayer.weapon.firerate) return;
   if (this.localPlayer.weapon.ammo.clip <= 0) {
     this.showNotification('Need to reload!');
+    this.playEmptySound();  // Play empty clip sound
     return;
   }
   
   this.lastShootTime = now;
   this.localPlayer.weapon.ammo.clip--;
+  
+  // Play shooting sound effect
+  this.playShootSound();
   
   // 創建子彈
   this.gameState.bullets.push({
@@ -680,6 +936,9 @@ reload() {
   
   this.localPlayer.weapon.ammo.clip += available;
   this.localPlayer.weapon.ammo.reserve -= available;
+  
+  // Play reload sound
+  this.playReloadSound();
   
   this.updateAmmoDisplay();
   this.showNotification('Reload complete!');
