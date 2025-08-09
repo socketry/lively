@@ -312,20 +312,22 @@ class CS16Server < WEBrick::HTTPServlet::AbstractServlet
   </div>
   
   <div id="controls">
-    <h3>🎮 Mac 優化控制</h3>
-    <b>移動:</b> WASD (Shift 加速)<br>
-    <b>瞄準:</b> 方向鍵 或 IJKL<br>
-    <b>射擊:</b> 空白鍵 或 點擊<br>
-    <b>換彈:</b> R<br>
-    <b>互動:</b> E (安裝/拆彈)<br>
-    <b>購買:</b> B 或 數字鍵 1-5<br>
-    <b>轉身:</b> Q (180°)<br>
-    <b>自動瞄準:</b> V<br>
+    <h3>🎮 Mac 觸控板優化</h3>
+    <b>主要控制 (推薦):</b><br>
+    🖱️ 雙指橫滑 - 精準旋轉瞄準<br>
+    🖱️ 雙指縱滑 - 調整瞄準距離<br>
+    🖱️ 單指點擊 - 射擊<br>
+    🖱️ 雙指點擊 - 快速射擊<br>
     <br>
-    <b>觸控板手勢:</b><br>
-    雙指橫滑 - 旋轉瞄準<br>
-    雙指縱滑 - 調整距離<br>
-    雙指點擊 - 射擊
+    <b>鍵盤控制:</b><br>
+    移動: WASD (Shift 跑)<br>
+    瞄準: 方向鍵/IJKL<br>
+    射擊: 空白鍵<br>
+    換彈: R | 互動: E<br>
+    購買: B 或 數字鍵 1-5<br>
+    快速轉身: Q (180°)<br>
+    <br>
+    <small>💡 提示: V 鍵可開啟輔助瞄準</small>
   </div>
   
   <div id="buy-menu">
@@ -404,7 +406,7 @@ class CS16Server < WEBrick::HTTPServlet::AbstractServlet
         this.keys = {};
         this.aimAngle = 0;
         this.aimDistance = 150;
-        this.autoAim = false;
+        this.autoAim = false;  // 預設關閉，不會自動瞄準
         this.lastShootTime = 0;
         
         // 敵人 (單機模式)
@@ -450,10 +452,10 @@ class CS16Server < WEBrick::HTTPServlet::AbstractServlet
           // Q 快速轉身
           if (e.key === 'q') this.aimAngle += Math.PI;
           
-          // V 自動瞄準
+          // V 切換輔助瞄準（選擇性使用）
           if (e.key === 'v') {
             this.autoAim = !this.autoAim;
-            this.showNotification(this.autoAim ? '自動瞄準: 開啟' : '自動瞄準: 關閉');
+            this.showNotification(this.autoAim ? '輔助瞄準: 開啟' : '輔助瞄準: 關閉');
           }
           
           // B 購買選單
@@ -482,18 +484,38 @@ class CS16Server < WEBrick::HTTPServlet::AbstractServlet
           this.keys[e.key.toLowerCase()] = false;
         });
         
-        // 觸控板支援
+        // 觸控板精準控制
+        this.touchpadSensitivity = 0.005;  // 可調整靈敏度
+        this.touchpadSmoothing = 0.3;     // 平滑係數
+        this.lastTouchpadX = 0;
+        this.lastTouchpadY = 0;
+        
         this.canvas.addEventListener('wheel', (e) => {
           e.preventDefault();
+          
+          // 更精準的觸控板控制
           if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-            this.aimAngle += e.deltaX * 0.01;
+            // 水平滑動 - 旋轉瞄準
+            const smoothedDelta = e.deltaX * this.touchpadSensitivity;
+            this.aimAngle += smoothedDelta;
           } else {
-            this.aimDistance = Math.max(50, Math.min(250, this.aimDistance - e.deltaY));
+            // 垂直滑動 - 調整瞄準距離
+            const smoothedDelta = e.deltaY * 0.5;
+            this.aimDistance = Math.max(80, Math.min(200, this.aimDistance - smoothedDelta));
           }
+          
+          // 角度正規化
+          while (this.aimAngle < 0) this.aimAngle += Math.PI * 2;
+          while (this.aimAngle > Math.PI * 2) this.aimAngle -= Math.PI * 2;
         });
         
-        // 點擊射擊
-        this.canvas.addEventListener('click', () => this.shoot());
+        // 點擊射擊 - 增加精準度檢查
+        this.canvas.addEventListener('click', (e) => {
+          // 防止誤觸
+          if (e.button === 0) {  // 左鍵
+            this.shoot();
+          }
+        });
         this.canvas.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           this.shoot();
@@ -840,6 +862,7 @@ class CS16Server < WEBrick::HTTPServlet::AbstractServlet
       }
       
       updateAutoAim() {
+        // 輔助瞄準 - 只在主動開啟時生效
         if (!this.autoAim || !this.localPlayer.alive) return;
         
         let closest = null;
@@ -1066,8 +1089,8 @@ class CS16Server < WEBrick::HTTPServlet::AbstractServlet
         const aimX = centerX + Math.cos(this.aimAngle) * this.aimDistance;
         const aimY = centerY + Math.sin(this.aimAngle) * this.aimDistance;
         
-        // 瞄準線
-        this.ctx.strokeStyle = this.autoAim ? 'rgba(255,0,0,0.3)' : 'rgba(0,255,0,0.3)';
+        // 瞄準線 - 更清晰的視覺提示
+        this.ctx.strokeStyle = this.autoAim ? 'rgba(255,100,100,0.4)' : 'rgba(100,255,100,0.4)';
         this.ctx.lineWidth = 1;
         this.ctx.setLineDash([5, 5]);
         this.ctx.beginPath();
@@ -1076,8 +1099,9 @@ class CS16Server < WEBrick::HTTPServlet::AbstractServlet
         this.ctx.stroke();
         this.ctx.setLineDash([]);
         
-        // 準心
-        this.ctx.strokeStyle = this.autoAim ? '#ff4444' : '#00ff00';
+        // 動態準心 - 根據狀態變化
+        const crosshairColor = this.autoAim ? '#ff9999' : '#99ff99';
+        this.ctx.strokeStyle = crosshairColor;
         this.ctx.lineWidth = 2;
         
         this.ctx.beginPath();
