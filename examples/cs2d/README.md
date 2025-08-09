@@ -1,130 +1,138 @@
 # CS2D - 2D Counter Strike
 
-一個使用 Lively 框架開發的 2D 版 Counter Strike 多人對戰遊戲。
+A 2D multiplayer Counter-Strike game built with the Lively framework for Ruby.
 
-## 功能特色
+## Features
 
-- 即時多人對戰
-- 恐怖分子 vs 反恐小組團隊模式
-- 武器購買系統
-- 回合制遊戲機制
-- 經濟系統
-- 即時聊天功能
+- Real-time multiplayer combat
+- Terrorists vs Counter-Terrorists team mode
+- Weapon purchase system
+- Round-based gameplay mechanics
+- Economy system with money management
+- Real-time chat functionality
+- Mac touchpad gesture support
 
-## 快速開始
+## Quick Start
 
-### 安裝依賴
+### Install Dependencies
 
 ```bash
 cd examples/cs2d
 bundle install
 ```
 
-### 啟動遊戲伺服器
+### Start Game Server
 
 ```bash
 bundle exec lively application.rb
 ```
 
-然後在瀏覽器開啟 http://localhost:9292
+Then open your browser and navigate to http://localhost:9292
 
-## 遊戲控制 (Mac 觸控板優化)
+## Game Controls (Mac Touchpad Optimized)
 
-### 移動與戰鬥
-- **WASD** - 移動 (按住 Shift 加速跑)
-- **方向鍵/IJKL** - 控制瞄準方向
-  - 左右鍵/JL - 旋轉瞄準
-  - 上下鍵/IK - 調整瞄準距離
-- **空白鍵** - 射擊 (或單指點擊)
-- **R** - 換彈
-- **Q** - 快速 180° 轉身
-- **V** - 切換自動瞄準輔助
+### Movement & Combat
+- **WASD** - Move (hold Shift to run)
+- **Arrow Keys/IJKL** - Control aiming direction
+  - Left/Right or J/L - Rotate aim
+  - Up/Down or I/K - Adjust aim distance
+- **Spacebar** - Shoot (or single finger tap)
+- **R** - Reload
+- **Q** - Quick 180° turn
+- **V** - Toggle auto-aim assist
 
-### 觸控板手勢
-- **雙指橫向滑動** - 旋轉瞄準角度
-- **雙指縱向滑動** - 調整瞄準距離
-- **雙指點擊** - 射擊（右鍵）
-- **單指點擊** - 射擊
+### Touchpad Gestures
+- **Two-finger horizontal swipe** - Rotate aim angle
+- **Two-finger vertical swipe** - Adjust aim distance
+- **Two-finger tap** - Secondary fire
+- **Single-finger tap** - Primary fire
 
-### 介面控制
-- **B** - 開啟購買選單
-- **1-5** - 快速購買武器
+### Interface Controls
+- **B** - Open buy menu
+- **1-5** - Quick buy weapons
   - 1: AK-47
   - 2: M4A1
   - 3: AWP
   - 4: Desert Eagle
-  - 5: 護甲
-- **Tab** - 查看計分板
-- **T** - 開啟聊天
+  - 5: Armor
+- **Tab** - View scoreboard
+- **T** - Open chat
 
-## 遊戲規則
+## Game Rules
 
-### 回合制
-- 每回合 2 分鐘
-- 消滅對方隊伍獲勝
-- 先贏得 16 回合的隊伍獲得最終勝利
+### Round System
+- 2 minutes per round
+- Eliminate opposing team to win
+- First team to win 16 rounds wins the match
 
-### 經濟系統
-- 起始金錢：$800
-- 擊殺獎勵：$300
-- 回合勝利：$3250
-- 回合失敗：$1400
+### Economy System
+- Starting money: $800
+- Kill reward: $300
+- Round win: $3250
+- Round loss: $1400 (+ loss bonus)
 
-### 武器價格
-- **手槍**
-  - Glock-18：預設 (T)
-  - USP-S：預設 (CT)
-  - Desert Eagle：$700
+### Weapon Prices
+- **Pistols**
+  - Glock-18: Default (T)
+  - USP-S: Default (CT)
+  - Desert Eagle: $700
 
-- **步槍**
-  - AK-47：$2700
-  - M4A1：$3100
-  - AWP：$4750
+- **Rifles**
+  - AK-47: $2700
+  - M4A1: $3100
+  - AWP: $4750
 
-- **衝鋒槍**
-  - MP5：$1500
-  - P90：$2350
+- **SMGs**
+  - MP5: $1500
+  - P90: $2350
 
-- **裝備**
-  - 防彈衣：$650
-  - 頭盔+防彈衣：$1000
+- **Equipment**
+  - Kevlar Vest: $650
+  - Kevlar + Helmet: $1000
 
-## 開發架構
+## Architecture
 
-### 後端 (Ruby/Lively)
-- `application.rb` - 主應用程式入口
-- `game/game_room.rb` - 遊戲房間邏輯
-- `game/player.rb` - 玩家類別
-- `game/bullet.rb` - 子彈物理
-- `game/game_state.rb` - 遊戲狀態管理
+### Backend (Ruby/Lively)
+- `application.rb` - Main application entry point
+- `game/game_room.rb` - Game room logic
+- `game/player.rb` - Player class
+- `game/bullet.rb` - Bullet physics
+- `game/game_state.rb` - Game state management
 
-### 前端 (JavaScript)
-- Canvas 2D 渲染
-- WebSocket 即時通訊
-- 客戶端預測與插值
+### Frontend (JavaScript)
+- Canvas 2D rendering
+- WebSocket real-time communication
+- Client-side prediction and interpolation
 
-## 待實作功能
+## Roadmap
 
-- [ ] 炸彈模式
-- [ ] 人質救援模式
-- [ ] 地圖系統
-- [ ] 手榴彈系統
-- [ ] 語音通訊
-- [ ] 戰績統計
-- [ ] 排行榜
-- [ ] 自訂房間
+- [ ] Bomb defusal mode
+- [ ] Hostage rescue mode
+- [ ] Map system with multiple layouts
+- [ ] Grenade system (smoke, flash, HE)
+- [ ] Voice communication
+- [ ] Match statistics tracking
+- [ ] Leaderboards and rankings
+- [ ] Custom room creation
 
-## 效能優化
+## Performance Optimizations
 
-- 使用物件池管理子彈
-- 視野裁剪優化渲染
-- 狀態壓縮減少網路傳輸
-- 客戶端預測減少延遲感
+- Object pooling for bullet management
+- Viewport culling for optimized rendering
+- State compression to reduce network traffic
+- Client-side prediction to minimize perceived latency
 
-## 貢獻
+## Documentation
 
-歡迎提交 Issue 和 Pull Request！
+For detailed documentation, see the [docs](./docs/) directory:
+- [Quick Start Guide](./docs/QUICK_START.md) - Get playing in 5 minutes
+- [Gameplay Guide](./docs/GAMEPLAY_GUIDE.md) - Complete controls and strategies
+- [Technical Documentation](./docs/TECHNICAL.md) - Architecture and development
 
-## 授權
+## Contributing
+
+Contributions are welcome! Please feel free to submit Issues and Pull Requests.
+
+## License
 
 MIT License
