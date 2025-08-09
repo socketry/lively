@@ -2,9 +2,10 @@
 
 class Bullet
   attr_accessor :x, :y, :hit
-  attr_reader :owner_id, :angle, :damage, :speed, :penetration
+  attr_reader :id, :owner_id, :angle, :damage, :speed, :penetration
   
-  def initialize(owner_id:, x:, y:, angle:, damage:, speed:, penetration:)
+  def initialize(id: nil, owner_id:, x:, y:, angle:, damage:, speed:, penetration:)
+    @id = id || "#{Time.now.to_i}_#{owner_id}_#{rand(1000)}"
     @owner_id = owner_id
     @x = x
     @y = y

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS2D Client-Side Tests</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Courier New', monospace; 
+            background: #1a1a1a; 
+            color: white; 
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .pass { background: #2d5a2d; color: #90ee90; }
+        .fail { background: #5a2d2d; color: #ff6b6b; }
+        .pending { background: #5a5a2d; color: #ffeb3b; }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        #performance-chart {
+            width: 100%;
+            height: 200px;
+            background: #333;
+            border: 1px solid #555;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>CS2D Client-Side Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>Browser Compatibility Tests</h2>
+        <button onclick="runCompatibilityTests()">Run Compatibility Tests</button>
+        <div id="compatibility-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Performance Tests</h2>
+        <button onclick="runPerformanceTests()">Run Performance Tests</button>
+        <canvas id="performance-chart"></canvas>
+        <div id="performance-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Game Logic Tests</h2>
+        <button onclick="runGameLogicTests()">Run Game Logic Tests</button>
+        <div id="game-logic-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Network Simulation Tests</h2>
+        <button onclick="runNetworkTests()">Run Network Tests</button>
+        <div id="network-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Stress Tests</h2>
+        <button onclick="runStressTests()">Run Stress Tests</button>
+        <div id="stress-results"></div>
+    </div>
+
+    <script>
+        class ClientTestSuite {
+            constructor() {
+                this.results = {};
+                this.performanceData = [];
+            }
+            
+            logResult(testName, passed, message = '') {
+                this.results[testName] = { passed, message, timestamp: Date.now() };
+            }
+            
+            displayResult(containerId, testName, passed, message = '') {
+                const container = document.getElementById(containerId);
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+                resultDiv.innerHTML = `
+                    <strong>${testName}:</strong> ${passed ? 'PASS' : 'FAIL'}
+                    ${message ? `<br><small>${message}</small>` : ''}
+                `;
+                container.appendChild(resultDiv);
+            }
+            
+            runCompatibilityTests() {
+                const container = document.getElementById('compatibility-results');
+                container.innerHTML = '';
+                
+                // Test WebSocket support
+                const hasWebSocket = typeof WebSocket !== 'undefined';
+                this.displayResult('compatibility-results', 'WebSocket Support', hasWebSocket);
+                
+                // Test Canvas support
+                const hasCanvas = typeof HTMLCanvasElement !== 'undefined' && 
+                                 HTMLCanvasElement.prototype.getContext;
+                this.displayResult('compatibility-results', 'Canvas Support', hasCanvas);
+                
+                // Test RequestAnimationFrame
+                const hasRAF = typeof requestAnimationFrame !== 'undefined';
+                this.displayResult('compatibility-results', 'RequestAnimationFrame', hasRAF);
+                
+                // Test Performance API
+                const hasPerformance = typeof performance !== 'undefined' && 
+                                      typeof performance.now === 'function';
+                this.displayResult('compatibility-results', 'Performance API', hasPerformance);
+                
+                // Test ES6 Classes
+                let hasES6Classes = false;
+                try {
+                    eval('class TestClass {}');
+                    hasES6Classes = true;
+                } catch (e) {
+                    hasES6Classes = false;
+                }
+                this.displayResult('compatibility-results', 'ES6 Classes', hasES6Classes);
+                
+                // Test LocalStorage
+                let hasLocalStorage = false;
+                try {
+                    localStorage.setItem('test', 'test');
+                    localStorage.removeItem('test');
+                    hasLocalStorage = true;
+                } catch (e) {
+                    hasLocalStorage = false;
+                }
+                this.displayResult('compatibility-results', 'LocalStorage', hasLocalStorage);
+            }
+            
+            runPerformanceTests() {
+                const container = document.getElementById('performance-results');
+                container.innerHTML = '';
+                
+                // Test Canvas rendering performance
+                this.testCanvasPerformance();
+                
+                // Test object creation performance
+                this.testObjectPoolPerformance();
+                
+                // Test array operations performance
+                this.testArrayPerformance();
+                
+                // Test mathematical operations
+                this.testMathPerformance();
+            }
+            
+            testCanvasPerformance() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                const ctx = canvas.getContext('2d');
+                
+                const start = performance.now();
+                
+                // Draw 1000 circles
+                for (let i = 0; i < 1000; i++) {
+                    ctx.beginPath();
+                    ctx.arc(Math.random() * 800, Math.random() * 600, 10, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsl(${i % 360}, 50%, 50%)`;
+                    ctx.fill();
+                }
+                
+                const end = performance.now();
+                const time = end - start;
+                
+                const passed = time < 100; // Should complete in under 100ms
+                this.displayResult('performance-results', 'Canvas Rendering (1000 circles)', 
+                                 passed, `${time.toFixed(2)}ms`);
+            }
+            
+            testObjectPoolPerformance() {
+                // Simple object pool implementation for testing
+                class SimpleObjectPool {
+                    constructor(createFn) {
+                        this.createFn = createFn;
+                        this.pool = [];
+                        this.used = [];
+                    }
+                    
+                    get() {
+                        let obj = this.pool.pop();
+                        if (!obj) obj = this.createFn();
+                        this.used.push(obj);
+                        return obj;
+                    }
+                    
+                    release(obj) {
+                        const index = this.used.indexOf(obj);
+                        if (index > -1) {
+                            this.used.splice(index, 1);
+                            this.pool.push(obj);
+                        }
+                    }
+                }
+                
+                const pool = new SimpleObjectPool(() => ({ x: 0, y: 0, life: 100 }));
+                
+                const start = performance.now();
+                
+                // Get and release 10000 objects
+                const objects = [];
+                for (let i = 0; i < 10000; i++) {
+                    objects.push(pool.get());
+                }
+                
+                for (const obj of objects) {
+                    pool.release(obj);
+                }
+                
+                const end = performance.now();
+                const time = end - start;
+                
+                const passed = time < 50; // Should complete in under 50ms
+                this.displayResult('performance-results', 'Object Pooling (10000 objects)', 
+                                 passed, `${time.toFixed(2)}ms`);
+            }
+            
+            testArrayPerformance() {
+                const largeArray = Array.from({ length: 10000 }, (_, i) => ({ 
+                    id: i, 
+                    x: Math.random() * 800, 
+                    y: Math.random() * 600 
+                }));
+                
+                const start = performance.now();
+                
+                // Filter and map operations
+                const filtered = largeArray
+                    .filter(obj => obj.x > 400)
+                    .map(obj => ({ ...obj, distance: Math.sqrt(obj.x * obj.x + obj.y * obj.y) }))
+                    .sort((a, b) => a.distance - b.distance);
+                
+                const end = performance.now();
+                const time = end - start;
+                
+                const passed = time < 20; // Should complete in under 20ms
+                this.displayResult('performance-results', 'Array Operations (10000 items)', 
+                                 passed, `${time.toFixed(2)}ms, ${filtered.length} results`);
+            }
+            
+            testMathPerformance() {
+                const start = performance.now();
+                
+                // Perform 100000 mathematical calculations
+                let result = 0;
+                for (let i = 0; i < 100000; i++) {
+                    const angle = (i / 1000) * Math.PI * 2;
+                    result += Math.sin(angle) * Math.cos(angle) + Math.sqrt(i);
+                }
+                
+                const end = performance.now();
+                const time = end - start;
+                
+                const passed = time < 100; // Should complete in under 100ms
+                this.displayResult('performance-results', 'Math Operations (100000 calculations)', 
+                                 passed, `${time.toFixed(2)}ms`);
+            }
+            
+            runGameLogicTests() {
+                const container = document.getElementById('game-logic-results');
+                container.innerHTML = '';
+                
+                // Test collision detection
+                this.testCollisionDetection();
+                
+                // Test weapon damage calculation
+                this.testWeaponDamage();
+                
+                // Test movement validation
+                this.testMovementValidation();
+                
+                // Test LOD system
+                this.testLODSystem();
+            }
+            
+            testCollisionDetection() {
+                // Simple AABB collision test
+                function checkCollision(a, b) {
+                    return a.x < b.x + b.width &&
+                           a.x + a.width > b.x &&
+                           a.y < b.y + b.height &&
+                           a.y + a.height > b.y;
+                }
+                
+                const obj1 = { x: 10, y: 10, width: 20, height: 20 };
+                const obj2 = { x: 25, y: 15, width: 20, height: 20 };
+                const obj3 = { x: 50, y: 50, width: 20, height: 20 };
+                
+                const collision1 = checkCollision(obj1, obj2); // Should collide
+                const collision2 = checkCollision(obj1, obj3); // Should not collide
+                
+                const passed = collision1 && !collision2;
+                this.displayResult('game-logic-results', 'Collision Detection', 
+                                 passed, `Overlapping: ${collision1}, Separate: ${!collision2}`);
+            }
+            
+            testWeaponDamage() {
+                // Simple damage calculation
+                function calculateDamage(baseDamage, distance, armor) {
+                    let damage = baseDamage;
+                    
+                    // Distance falloff
+                    if (distance > 300) {
+                        damage *= 0.8;
+                    }
+                    if (distance > 500) {
+                        damage *= 0.6;
+                    }
+                    
+                    // Armor reduction
+                    if (armor > 0) {
+                        damage *= 0.75;
+                    }
+                    
+                    return Math.round(damage);
+                }
+                
+                const closeShot = calculateDamage(36, 100, 0);  // Should be 36
+                const farShot = calculateDamage(36, 600, 0);    // Should be ~17
+                const armorShot = calculateDamage(36, 100, 100); // Should be 27
+                
+                const passed = closeShot === 36 && farShot <= 20 && armorShot <= 30;
+                this.displayResult('game-logic-results', 'Weapon Damage Calculation', 
+                                 passed, `Close: ${closeShot}, Far: ${farShot}, Armor: ${armorShot}`);
+            }
+            
+            testMovementValidation() {
+                // Simple movement bounds checking
+                function validateMovement(x, y, dx, dy, bounds) {
+                    const newX = Math.max(bounds.minX, Math.min(bounds.maxX, x + dx));
+                    const newY = Math.max(bounds.minY, Math.min(bounds.maxY, y + dy));
+                    return { x: newX, y: newY, valid: newX !== x || newY !== y };
+                }
+                
+                const bounds = { minX: 0, minY: 0, maxX: 800, maxY: 600 };
+                
+                const move1 = validateMovement(400, 300, 10, 0, bounds);  // Valid
+                const move2 = validateMovement(790, 300, 20, 0, bounds);  // Should clamp
+                const move3 = validateMovement(10, 10, -20, -20, bounds); // Should clamp
+                
+                const passed = move1.valid && move1.x === 410 && 
+                              move2.x === 800 && move3.x === 0 && move3.y === 0;
+                this.displayResult('game-logic-results', 'Movement Validation', 
+                                 passed, `Normal: (${move1.x},${move1.y}), Clamped: (${move2.x},${move3.y})`);
+            }
+            
+            testLODSystem() {
+                // Simple LOD distance calculation
+                function getLOD(distance) {
+                    if (distance < 200) return 'high';
+                    if (distance < 500) return 'medium';
+                    if (distance < 1000) return 'low';
+                    return 'minimal';
+                }
+                
+                const lod1 = getLOD(100);  // high
+                const lod2 = getLOD(350);  // medium
+                const lod3 = getLOD(750);  // low
+                const lod4 = getLOD(1200); // minimal
+                
+                const passed = lod1 === 'high' && lod2 === 'medium' && 
+                              lod3 === 'low' && lod4 === 'minimal';
+                this.displayResult('game-logic-results', 'LOD System', 
+                                 passed, `100px: ${lod1}, 350px: ${lod2}, 750px: ${lod3}, 1200px: ${lod4}`);
+            }
+            
+            runNetworkTests() {
+                const container = document.getElementById('network-results');
+                container.innerHTML = '';
+                
+                // Test message encoding/decoding
+                this.testMessageSerialization();
+                
+                // Test client prediction
+                this.testClientPrediction();
+                
+                // Test lag simulation
+                this.testLagSimulation();
+            }
+            
+            testMessageSerialization() {
+                const testMessage = {
+                    type: 'player_move',
+                    playerId: 'test-123',
+                    position: { x: 100, y: 200 },
+                    timestamp: Date.now()
+                };
+                
+                try {
+                    const encoded = JSON.stringify(testMessage);
+                    const decoded = JSON.parse(encoded);
+                    
+                    const passed = decoded.type === testMessage.type &&
+                                  decoded.playerId === testMessage.playerId &&
+                                  decoded.position.x === testMessage.position.x;
+                    
+                    this.displayResult('network-results', 'Message Serialization', 
+                                     passed, `Size: ${encoded.length} bytes`);
+                } catch (error) {
+                    this.displayResult('network-results', 'Message Serialization', 
+                                     false, `Error: ${error.message}`);
+                }
+            }
+            
+            testClientPrediction() {
+                // Simple client prediction test
+                class SimplePrediction {
+                    constructor() {
+                        this.position = { x: 100, y: 100 };
+                        this.pendingInputs = [];
+                        this.inputSequence = 0;
+                    }
+                    
+                    addInput(input) {
+                        input.sequence = ++this.inputSequence;
+                        this.pendingInputs.push(input);
+                        
+                        // Apply locally
+                        this.position.x += input.dx;
+                        this.position.y += input.dy;
+                        
+                        return input.sequence;
+                    }
+                    
+                    confirmInput(sequence) {
+                        this.pendingInputs = this.pendingInputs.filter(i => i.sequence > sequence);
+                    }
+                }
+                
+                const prediction = new SimplePrediction();
+                
+                const seq1 = prediction.addInput({ dx: 10, dy: 0 });
+                const seq2 = prediction.addInput({ dx: 5, dy: 10 });
+                
+                prediction.confirmInput(seq1);
+                
+                const passed = prediction.position.x === 115 && 
+                              prediction.position.y === 110 &&
+                              prediction.pendingInputs.length === 1;
+                
+                this.displayResult('network-results', 'Client Prediction', 
+                                 passed, `Position: (${prediction.position.x}, ${prediction.position.y}), Pending: ${prediction.pendingInputs.length}`);
+            }
+            
+            testLagSimulation() {
+                // Test with simulated network delay
+                function simulateNetworkDelay(callback, delay = 50) {
+                    setTimeout(callback, delay);
+                }
+                
+                const start = performance.now();
+                
+                simulateNetworkDelay(() => {
+                    const end = performance.now();
+                    const actualDelay = end - start;
+                    
+                    const passed = actualDelay >= 45 && actualDelay <= 60; // Allow some variance
+                    this.displayResult('network-results', 'Lag Simulation', 
+                                     passed, `Expected: 50ms, Actual: ${actualDelay.toFixed(2)}ms`);
+                }, 50);
+            }
+            
+            runStressTests() {
+                const container = document.getElementById('stress-results');
+                container.innerHTML = '';
+                
+                // Test with many objects
+                this.testManyObjects();
+                
+                // Test rapid updates
+                this.testRapidUpdates();
+                
+                // Test memory usage
+                this.testMemoryUsage();
+            }
+            
+            testManyObjects() {
+                const objects = [];
+                const start = performance.now();
+                
+                // Create 1000 game objects
+                for (let i = 0; i < 1000; i++) {
+                    objects.push({
+                        id: i,
+                        x: Math.random() * 800,
+                        y: Math.random() * 600,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        life: 100
+                    });
+                }
+                
+                // Update all objects
+                for (const obj of objects) {
+                    obj.x += obj.vx;
+                    obj.y += obj.vy;
+                    obj.life--;
+                    
+                    // Bounds checking
+                    if (obj.x < 0 || obj.x > 800) obj.vx *= -1;
+                    if (obj.y < 0 || obj.y > 600) obj.vy *= -1;
+                }
+                
+                const end = performance.now();
+                const time = end - start;
+                
+                const passed = time < 10; // Should complete in under 10ms
+                this.displayResult('stress-results', 'Many Objects (1000 objects)', 
+                                 passed, `${time.toFixed(2)}ms`);
+            }
+            
+            testRapidUpdates() {
+                let updateCount = 0;
+                const start = performance.now();
+                
+                function rapidUpdate() {
+                    updateCount++;
+                    
+                    // Simulate game update
+                    const dummy = Math.sin(updateCount) * Math.cos(updateCount);
+                    
+                    if (updateCount < 1000) {
+                        requestAnimationFrame(rapidUpdate);
+                    } else {
+                        const end = performance.now();
+                        const time = end - start;
+                        const fps = 1000 / (time / 1000);
+                        
+                        const passed = fps > 30; // Should maintain at least 30 FPS
+                        testSuite.displayResult('stress-results', 'Rapid Updates (1000 frames)', 
+                                              passed, `${time.toFixed(2)}ms, ${fps.toFixed(1)} FPS`);
+                    }
+                }
+                
+                rapidUpdate();
+            }
+            
+            testMemoryUsage() {
+                if (!performance.memory) {
+                    this.displayResult('stress-results', 'Memory Usage Test', 
+                                     false, 'Performance.memory API not available');
+                    return;
+                }
+                
+                const initialMemory = performance.memory.usedJSHeapSize;
+                
+                // Create and destroy many objects
+                const objects = [];
+                for (let i = 0; i < 10000; i++) {
+                    objects.push({ id: i, data: new Array(100).fill(Math.random()) });
+                }
+                
+                const peakMemory = performance.memory.usedJSHeapSize;
+                
+                // Clear objects
+                objects.length = 0;
+                
+                // Force garbage collection if available
+                if (window.gc) {
+                    window.gc();
+                }
+                
+                setTimeout(() => {
+                    const finalMemory = performance.memory.usedJSHeapSize;
+                    const memoryIncrease = (finalMemory - initialMemory) / 1024 / 1024; // MB
+                    
+                    const passed = memoryIncrease < 10; // Should not leak more than 10MB
+                    this.displayResult('stress-results', 'Memory Usage Test', 
+                                     passed, `Memory increase: ${memoryIncrease.toFixed(2)}MB`);
+                }, 1000);
+            }
+        }
+        
+        const testSuite = new ClientTestSuite();
+        
+        // Global functions for button clicks
+        function runCompatibilityTests() {
+            testSuite.runCompatibilityTests();
+        }
+        
+        function runPerformanceTests() {
+            testSuite.runPerformanceTests();
+        }
+        
+        function runGameLogicTests() {
+            testSuite.runGameLogicTests();
+        }
+        
+        function runNetworkTests() {
+            testSuite.runNetworkTests();
+        }
+        
+        function runStressTests() {
+            testSuite.runStressTests();
+        }
+        
+        // Auto-run compatibility tests on load
+        window.addEventListener('load', () => {
+            setTimeout(runCompatibilityTests, 500);
+        });
+    </script>
+</body>
+</html>

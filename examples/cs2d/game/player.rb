@@ -205,6 +205,23 @@ class Player
     true
   end
   
+  def ammo_info
+    {
+      magazine: @ammo[:magazine],
+      reserve: @ammo[:reserve],
+      magazine_size: current_weapon[:magazine_size] || current_weapon[:magazine]
+    }
+  end
+  
+  def can_reload?
+    !@is_reloading && @ammo[:magazine] < current_weapon[:magazine_size] && @ammo[:reserve] > 0
+  end
+  
+  def has_defuse_kit
+    # For now, CT players have 50% chance of having defuse kit
+    @team == :ct && rand < 0.5
+  end
+  
   private
   
   def ct_spawn_points
