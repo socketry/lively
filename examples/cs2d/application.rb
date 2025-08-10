@@ -3,7 +3,6 @@
 
 require 'securerandom'
 require 'json'
-require_relative "game/multiplayer_game_room"
 
 class CS2DView < Live::View
   # Game constants
@@ -38,7 +37,6 @@ class CS2DView < Live::View
   
   def initialize(...)
     super
-    @room = nil
     @player_id = nil
     @game_state = {
       round: 1,
@@ -53,13 +51,11 @@ class CS2DView < Live::View
       kill_feed: []
     }
     @game_running = false
-    @round_timer = nil
   end
   
   def bind(page)
     super
     @player_id = SecureRandom.uuid
-    @room = MultiplayerGameRoom.new("room_#{@player_id}", {})
     
     # Initialize player with full state
     player_team = ['ct', 't'].sample
@@ -86,7 +82,6 @@ class CS2DView < Live::View
       score: 0
     }
     
-    @room.add_player(@player_id, self)
     @game_running = true
     
     # Simplified: Start in buy time without async timer
@@ -98,14 +93,12 @@ class CS2DView < Live::View
   
   def close
     @game_running = false
-    @round_timer = nil
-    @room&.remove_player(@player_id)
-    @game_state[:players].delete(@player_id)
+    @game_state[:players].delete(@player_id) if @player_id
     super
   end
   
   def handle(event)
-    return unless @room && @player_id && @game_running
+    return unless @player_id && @game_running
     
     case event[:type]
     when "player_move"
@@ -543,7 +536,8 @@ class CS2DView < Live::View
   end
   
   def render_game_container(builder)
-    builder.tag(:div, id: "cs2d-container", style: "width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden; background: #000; position: relative;") do
+    builder.tag(:div, id: "cs2d-container", data: { live: @id }, 
+                style: "width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden; background: #000; position: relative;") do
       # Game canvas
       builder.tag(:canvas, id: "game-canvas", width: 1280, height: 720,
                  style: "display: block; margin: 0 auto; cursor: crosshair;",
@@ -729,7 +723,14 @@ class CS2DView < Live::View
   
   def render_game_scripts(builder)
     builder.tag(:script, type: "text/javascript") do
-      builder.raw(client_game_script)
+      # Combine all game scripts into one
+      combined_script = [
+        client_game_script,
+        # Initialize the game
+        "window.initCS2DGame('#{@id}', '#{@player_id}');"
+      ].join("\n\n")
+      
+      builder.raw(combined_script)
     end
   end
   
@@ -1268,14 +1269,20 @@ class CS2DView < Live::View
         }
         
         sendEvent(type, data) {
-          if (window.Live && window.Live.default) {
-            const live = window.Live.default;
-            const element = document.getElementById('cs2d-container');
-            if (element && element.__live) {
-              element.__live.forward({
+          const element = document.getElementById('cs2d-container');
+          if (element) {
+            // Use Live.js event system
+            if (window.live && window.live.forwardEvent) {
+              window.live.forwardEvent(this.game.viewId, {
                 type: type,
                 ...data
               });
+            } else if (element.dispatchEvent) {
+              // Fallback to custom event
+              element.dispatchEvent(new CustomEvent('live:forward', {
+                detail: { type: type, ...data },
+                bubbles: true
+              }));
             }
           }
         }

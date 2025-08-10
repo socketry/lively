@@ -108,3 +108,29 @@ Views can trigger client updates by calling `update!` which sends the new render
 - Application-specific assets go in `./public/_static/`
 - Shared framework assets are in the gem's `public/` directory
 - Both are automatically served by the Assets middleware
+
+## Common Issues and Solutions
+
+### Black Screen in Frontend
+If you encounter a black screen when rendering JavaScript content in the browser:
+
+**Problem**: Using `builder.text()` for JavaScript code escapes the content as HTML entities, preventing execution.
+
+**Solution**: Use `builder.raw()` instead of `builder.text()` when outputting JavaScript or HTML that should not be escaped.
+
+```ruby
+# WRONG - causes black screen
+builder.tag(:script) do
+  builder.text(javascript_code)  # This escapes < > & etc.
+end
+
+# CORRECT - JavaScript executes properly
+builder.tag(:script) do
+  builder.raw(javascript_code)   # This outputs raw JavaScript
+end
+```
+
+This is particularly important when:
+- Embedding JavaScript code in script tags
+- Outputting pre-formatted HTML content
+- Including inline CSS or JavaScript
