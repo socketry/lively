@@ -134,3 +134,40 @@ This is particularly important when:
 - Embedding JavaScript code in script tags
 - Outputting pre-formatted HTML content
 - Including inline CSS or JavaScript
+
+## Example Applications
+
+### CS2D Game (`examples/cs2d/`)
+A fully-featured Counter-Strike 2D clone built with Lively demonstrating real-time game development:
+
+**Features:**
+- **AI Bot System**: 4 terrorist bots with combat AI, pathfinding, and tactical behavior
+- **Weapons System**: Multiple weapon types with realistic fire rates, damage, and ammo management
+- **Bomb Gameplay**: Plant/defuse mechanics with timers and win conditions
+- **Grenades**: Flashbangs, smoke grenades, and HE grenades with physics
+- **Economy**: Buy menu with money management and round rewards
+- **Minimap**: Real-time tactical overview showing players and objectives
+- **Game Loop**: Async updates at 20 FPS for smooth gameplay
+
+**Technical Highlights:**
+- Uses `Async` blocks for game loop without blocking WebSocket events
+- Client-side prediction for responsive movement
+- Efficient state broadcasting with JSON serialization
+- Modular JavaScript architecture with separate managers (Input, Network, Audio, UI)
+- Canvas-based rendering with frustum culling optimization
+
+**Running CS2D:**
+```bash
+# From project root
+./bin/lively examples/cs2d/application.rb
+
+# Or from the example directory
+cd examples/cs2d
+ruby application.rb
+```
+
+**Key Implementation Patterns:**
+- Bot AI updates run at 10Hz to balance performance and responsiveness
+- Game state updates broadcast at 20 FPS
+- Uses `builder.raw()` for JavaScript to avoid escaping issues
+- Implements proper cleanup in `close` method to stop async tasks
