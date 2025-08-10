@@ -111,9 +111,10 @@ Views can trigger client updates by calling `update!` which sends the new render
 
 ## Common Issues and Solutions
 
-### Black Screen in Frontend
-If you encounter a black screen when rendering JavaScript content in the browser:
+### JavaScript Execution Issues
+When building complex web applications with JavaScript in Lively, you may encounter execution blocking issues:
 
+#### Issue 1: Black Screen with HTML Script Tags
 **Problem**: Using `builder.text()` for JavaScript code escapes the content as HTML entities, preventing execution.
 
 **Solution**: Use `builder.raw()` instead of `builder.text()` when outputting JavaScript or HTML that should not be escaped.
@@ -130,10 +131,49 @@ builder.tag(:script) do
 end
 ```
 
-This is particularly important when:
-- Embedding JavaScript code in script tags
-- Outputting pre-formatted HTML content
-- Including inline CSS or JavaScript
+#### Issue 2: WebSocket Script Injection Failures
+**Problem**: Using `self.script()` for large JavaScript injections may fail silently, especially for complex applications with 40K+ characters of JavaScript.
+
+**Solution**: For complex applications, use HTML-based JavaScript inclusion instead of WebSocket injection:
+
+```ruby
+# Instead of WebSocket injection via self.script()
+def inject_game_javascript
+  self.script(large_javascript_code)  # May fail silently
+end
+
+# Use HTML-based inclusion in render method
+def render(builder)
+  render_game_container(builder)
+  render_complete_game_scripts(builder)  # Direct HTML inclusion
+end
+
+def render_complete_game_scripts(builder)
+  builder.tag(:script, type: "text/javascript") do
+    builder.raw(complete_javascript_code)
+  end
+end
+```
+
+#### Issue 3: Live.js Timing Dependencies
+**Problem**: JavaScript initialization may fail if executed before Live.js WebSocket connection is established.
+
+**Solution**: Implement proper timing and fallbacks:
+
+```ruby
+# Add delays and error handling for WebSocket connections
+Async do
+  sleep 1.5  # Wait for WebSocket connection
+  Console.info(self, "Attempting JavaScript injection after delay...")
+  inject_game_javascript
+  broadcast_game_state
+end
+```
+
+**When to use each approach:**
+- **HTML-based inclusion**: For large, complex JavaScript applications (>10K characters)
+- **WebSocket injection**: For small, dynamic script updates and real-time interactions
+- **Mixed approach**: HTML for initial game code, WebSocket for state updates
 
 ## Example Applications
 
@@ -171,3 +211,20 @@ ruby application.rb
 - Game state updates broadcast at 20 FPS
 - Uses `builder.raw()` for JavaScript to avoid escaping issues
 - Implements proper cleanup in `close` method to stop async tasks
+- **JavaScript Architecture**: HTML-based inclusion for 41K+ characters of game code
+- **Error Handling**: Comprehensive page disconnection handling for WebSocket failures
+- **Debugging**: Extensive console logging and visual validation indicators
+
+**Technical Lessons Learned:**
+- **Large JavaScript Applications**: Use HTML-based inclusion (`render_complete_game_scripts`) instead of WebSocket injection (`self.script()`) for applications with >40K characters
+- **WebSocket Timing**: Add proper delays (1.5s+) and error handling for Live.js connection establishment
+- **Class Dependencies**: Define helper classes (ObjectPool, FrustumCuller) before main classes to avoid undefined reference errors
+- **Canvas Debugging**: Always add visual validation indicators and aggressive canvas testing for rendering issues
+
+**Debugging JavaScript Execution Issues:**
+If you encounter black screen or JavaScript execution problems:
+1. **Check HTML inclusion**: Verify JavaScript is properly included via `builder.raw()`
+2. **Add visual indicators**: Create DOM elements to confirm JavaScript execution
+3. **Test canvas access**: Verify `canvas.getContext('2d')` works before complex rendering
+4. **Use console logging**: Add extensive `console.log()` statements throughout initialization
+5. **Validate timing**: Ensure WebSocket connections are established before script injection
