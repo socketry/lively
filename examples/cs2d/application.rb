@@ -47,10 +47,20 @@ class CS2DView < Live::View
       bomb_planted: false,
       bomb_site: nil,
       bomb_timer: nil,
+      bomb_position: nil,
+      defusing_player: nil,
+      defuse_start_time: nil,
       players: {},
-      kill_feed: []
+      bots: {},
+      grenades: [],
+      dropped_weapons: [],
+      kill_feed: [],
+      round_winner: nil,
+      mvp_player: nil
     }
     @game_running = false
+    @last_bot_update = Time.now
+    @last_round_update = Time.now
   end
   
   def bind(page)
@@ -58,12 +68,12 @@ class CS2DView < Live::View
     @player_id = SecureRandom.uuid
     
     # Initialize player with full state
-    player_team = ['ct', 't'].sample
+    player_team = 'ct' # Player starts as CT
     spawn_point = get_spawn_point(player_team)
     
     @game_state[:players][@player_id] = {
       id: @player_id,
-      name: "Player_#{@player_id[0..5]}",
+      name: "Player",
       team: player_team,
       x: spawn_point[:x],
       y: spawn_point[:y],
@@ -71,28 +81,39 @@ class CS2DView < Live::View
       health: 100,
       armor: 0,
       money: 800,
-      weapons: [player_team == 'ct' ? 'usp' : 'glock'],
-      current_weapon: player_team == 'ct' ? 'usp' : 'glock',
+      weapons: ['usp'],
+      current_weapon: 'usp',
+      ammo: { 'usp' => 12 },
+      reserve_ammo: { 'usp' => 100 },
       grenades: [],
-      has_bomb: player_team == 't' && @game_state[:players].none? { |_, p| p[:has_bomb] },
+      has_bomb: false,
       has_defuse_kit: false,
       alive: true,
       kills: 0,
       deaths: 0,
-      score: 0
+      score: 0,
+      is_bot: false,
+      last_shot: 0
     }
+    
+    # Initialize bots
+    initialize_bots
     
     @game_running = true
     
-    # Simplified: Start in buy time without async timer
+    # Start in buy time
     @game_state[:phase] = 'buy_time'
     @game_state[:round_time] = BUY_TIME
+    
+    # Start game loop
+    start_game_loop
     
     self.update!
   end
   
   def close
     @game_running = false
+    @game_loop&.stop if @game_loop
     @game_state[:players].delete(@player_id) if @player_id
     super
   end
@@ -524,6 +545,355 @@ class CS2DView < Live::View
   
   def broadcast_chat_message(message)
     self.script("window.game && window.game.receiveChatMessage(#{message.to_json});")
+  end
+  
+  # Bot AI Methods
+  def initialize_bots
+    # Create 4 terrorist bots
+    4.times do |i|
+      bot_id = "bot_t_#{i}"
+      spawn_point = get_spawn_point('t')
+      
+      @game_state[:bots][bot_id] = {
+        id: bot_id,
+        name: ["Phoenix", "Leet", "Guerilla", "Elite"][i],
+        team: 't',
+        x: spawn_point[:x],
+        y: spawn_point[:y],
+        angle: 0,
+        health: 100,
+        armor: 0,
+        money: 800,
+        weapons: ['glock', 'ak47'],
+        current_weapon: 'ak47',
+        ammo: { 'glock' => 20, 'ak47' => 30 },
+        reserve_ammo: { 'glock' => 120, 'ak47' => 90 },
+        grenades: [],
+        has_bomb: i == 0, # First bot gets bomb
+        has_defuse_kit: false,
+        alive: true,
+        kills: 0,
+        deaths: 0,
+        score: 0,
+        is_bot: true,
+        last_shot: 0,
+        target: nil,
+        path: [],
+        state: 'roaming', # roaming, attacking, planting, defusing
+        last_think: Time.now
+      }
+      
+      @game_state[:players][bot_id] = @game_state[:bots][bot_id]
+    end
+  end
+  
+  def start_game_loop
+    @game_loop = Async do
+      while @game_running
+        update_game_state
+        sleep 0.05 # 20 FPS update rate
+      end
+    end
+  end
+  
+  def update_game_state
+    now = Time.now
+    
+    # Update round timer
+    if now - @last_round_update > 1
+      update_round_timer
+      @last_round_update = now
+    end
+    
+    # Update bots
+    if now - @last_bot_update > 0.1 # 10 Hz bot updates
+      update_bots
+      @last_bot_update = now
+    end
+    
+    # Update grenades
+    update_grenades
+    
+    # Check defuse progress
+    check_defuse_progress
+    
+    # Check weapon pickups
+    check_weapon_pickups
+    
+    broadcast_game_state if @game_running
+  end
+  
+  def update_round_timer
+    case @game_state[:phase]
+    when 'buy_time'
+      @game_state[:round_time] -= 1
+      if @game_state[:round_time] <= 0
+        @game_state[:phase] = 'round_active'
+        @game_state[:round_time] = ROUND_TIME
+        add_to_kill_feed("Round #{@game_state[:round]} started!")
+      end
+    when 'round_active'
+      if @game_state[:bomb_planted]
+        @game_state[:bomb_timer] -= 1
+        if @game_state[:bomb_timer] <= 0
+          # Bomb explodes
+          end_round('t')
+          add_to_kill_feed("The bomb has exploded!")
+        end
+      else
+        @game_state[:round_time] -= 1
+        if @game_state[:round_time] <= 0
+          # Time runs out
+          end_round('ct')
+          add_to_kill_feed("Time has run out!")
+        end
+      end
+    when 'round_end'
+      # Wait a few seconds then start new round
+      start_new_round if @game_state[:round_time] <= 0
+    end
+  end
+  
+  def update_bots
+    @game_state[:bots].each do |bot_id, bot|
+      next unless bot[:alive]
+      
+      # Bot AI decision making
+      case bot[:state]
+      when 'roaming'
+        bot_roam(bot)
+      when 'attacking'
+        bot_attack(bot)
+      when 'planting'
+        bot_plant_bomb(bot)
+      end
+    end
+  end
+  
+  def bot_roam(bot)
+    # Find nearest enemy
+    nearest_enemy = find_nearest_enemy(bot)
+    
+    if nearest_enemy
+      dist = calculate_distance(bot, nearest_enemy)
+      if dist < 300 # Engagement range
+        bot[:state] = 'attacking'
+        bot[:target] = nearest_enemy[:id]
+      else
+        # Move towards enemy
+        move_bot_towards(bot, nearest_enemy)
+      end
+    elsif bot[:has_bomb] && @game_state[:phase] == 'round_active'
+      # Move to bomb site
+      bot[:state] = 'planting'
+      site = ['A', 'B'].sample
+      move_bot_to_site(bot, site)
+    else
+      # Random patrol
+      bot[:angle] += (rand - 0.5) * 0.2
+      move_bot_forward(bot, 3)
+    end
+  end
+  
+  def bot_attack(bot)
+    target = @game_state[:players][bot[:target]]
+    
+    if target && target[:alive]
+      # Face target
+      dx = target[:x] - bot[:x]
+      dy = target[:y] - bot[:y]
+      bot[:angle] = Math.atan2(dy, dx)
+      
+      # Check if can shoot
+      dist = Math.sqrt(dx * dx + dy * dy)
+      if dist < 400 && bot[:ammo][bot[:current_weapon]] > 0
+        bot_shoot(bot)
+      else
+        # Move closer
+        move_bot_towards(bot, target)
+      end
+      
+      # Reload if needed
+      if bot[:ammo][bot[:current_weapon]] == 0
+        bot_reload(bot)
+      end
+    else
+      bot[:state] = 'roaming'
+      bot[:target] = nil
+    end
+  end
+  
+  def bot_plant_bomb(bot)
+    return unless bot[:has_bomb]
+    
+    site = at_bomb_site?(bot[:x], bot[:y])
+    if site
+      # Plant bomb
+      @game_state[:bomb_planted] = true
+      @game_state[:bomb_site] = site
+      @game_state[:bomb_timer] = BOMB_TIMER
+      @game_state[:bomb_position] = { x: bot[:x], y: bot[:y] }
+      bot[:has_bomb] = false
+      bot[:state] = 'roaming'
+      add_to_kill_feed("#{bot[:name]} planted the bomb at site #{site}!")
+    else
+      # Move to nearest bomb site
+      move_bot_to_site(bot, 'A')
+    end
+  end
+  
+  def bot_shoot(bot)
+    weapon = WEAPONS[bot[:current_weapon]]
+    return unless weapon
+    
+    # Fire rate check
+    now = Time.now.to_f * 1000
+    fire_delay = 60000.0 / weapon[:rate]
+    return if now - bot[:last_shot] < fire_delay
+    
+    # Shoot
+    bot[:ammo][bot[:current_weapon]] -= 1
+    bot[:last_shot] = now
+    
+    # Check hit
+    check_bullet_hit(bot, bot[:angle], weapon[:damage])
+  end
+  
+  def bot_reload(bot)
+    weapon_key = bot[:current_weapon]
+    weapon = WEAPONS[weapon_key]
+    return unless weapon && weapon[:ammo]
+    
+    current = bot[:ammo][weapon_key] || 0
+    reserve = bot[:reserve_ammo][weapon_key] || 0
+    
+    return if current >= weapon[:ammo] || reserve <= 0
+    
+    needed = weapon[:ammo] - current
+    reload_amount = [needed, reserve].min
+    
+    bot[:ammo][weapon_key] = current + reload_amount
+    bot[:reserve_ammo][weapon_key] = reserve - reload_amount
+  end
+  
+  def move_bot_towards(bot, target)
+    dx = target[:x] - bot[:x]
+    dy = target[:y] - bot[:y]
+    dist = Math.sqrt(dx * dx + dy * dy)
+    
+    return if dist < 50
+    
+    # Normalize and apply speed
+    speed = 3 * (WEAPONS[bot[:current_weapon]][:speed] || 1.0)
+    bot[:x] += (dx / dist) * speed
+    bot[:y] += (dy / dist) * speed
+    
+    # Bounds
+    bot[:x] = [[bot[:x], 20].max, 1260].min
+    bot[:y] = [[bot[:y], 20].max, 700].min
+  end
+  
+  def move_bot_forward(bot, speed)
+    bot[:x] += Math.cos(bot[:angle]) * speed
+    bot[:y] += Math.sin(bot[:angle]) * speed
+    
+    # Bounds and collision
+    bot[:x] = [[bot[:x], 20].max, 1260].min
+    bot[:y] = [[bot[:y], 20].max, 700].min
+  end
+  
+  def move_bot_to_site(bot, site)
+    target = site == 'A' ? { x: 200, y: 200 } : { x: 1080, y: 520 }
+    move_bot_towards(bot, target)
+  end
+  
+  def find_nearest_enemy(bot)
+    nearest = nil
+    min_dist = Float::INFINITY
+    
+    @game_state[:players].each do |id, player|
+      next if player[:team] == bot[:team] || !player[:alive] || player[:is_bot]
+      
+      dist = calculate_distance(bot, player)
+      if dist < min_dist
+        min_dist = dist
+        nearest = player
+      end
+    end
+    
+    nearest
+  end
+  
+  def calculate_distance(obj1, obj2)
+    dx = obj2[:x] - obj1[:x]
+    dy = obj2[:y] - obj1[:y]
+    Math.sqrt(dx * dx + dy * dy)
+  end
+  
+  def update_grenades
+    @game_state[:grenades].each do |grenade|
+      # Physics update
+      grenade[:x] += grenade[:vx]
+      grenade[:y] += grenade[:vy]
+      grenade[:vx] *= 0.98 # Friction
+      grenade[:vy] *= 0.98
+      grenade[:timer] -= 0.05
+      
+      # Explode when timer expires
+      if grenade[:timer] <= 0
+        case grenade[:type]
+        when 'flashbang'
+          apply_flashbang_effect(grenade[:x], grenade[:y])
+        when 'hegrenade'
+          apply_he_damage(grenade[:x], grenade[:y])
+        when 'smokegrenade'
+          apply_smoke_effect(grenade[:x], grenade[:y])
+        end
+        @game_state[:grenades].delete(grenade)
+      end
+    end
+  end
+  
+  def check_defuse_progress
+    return unless @game_state[:defusing_player] && @game_state[:defuse_start_time]
+    
+    player = @game_state[:players][@game_state[:defusing_player]]
+    return unless player && player[:alive]
+    
+    defuse_time = player[:has_defuse_kit] ? 2.5 : DEFUSE_TIME
+    elapsed = Time.now - @game_state[:defuse_start_time]
+    
+    if elapsed >= defuse_time
+      # Defuse complete
+      @game_state[:bomb_planted] = false
+      @game_state[:bomb_timer] = nil
+      @game_state[:defusing_player] = nil
+      @game_state[:defuse_start_time] = nil
+      
+      add_to_kill_feed("#{player[:name]} defused the bomb!")
+      player[:money] += 300
+      end_round('ct')
+    end
+  end
+  
+  def check_weapon_pickups
+    player = @game_state[:players][@player_id]
+    return unless player && player[:alive]
+    
+    @game_state[:dropped_weapons].each do |weapon|
+      dist = calculate_distance(player, weapon)
+      if dist < 30
+        # Pick up weapon
+        if !player[:weapons].include?(weapon[:weapon])
+          player[:weapons] << weapon[:weapon]
+          player[:ammo][weapon[:weapon]] = weapon[:ammo]
+          player[:reserve_ammo][weapon[:weapon]] = weapon[:reserve]
+          player[:current_weapon] = weapon[:weapon]
+          @game_state[:dropped_weapons].delete(weapon)
+          play_sound('pickup')
+        end
+      end
+    end
   end
   
   def send_message(message)
@@ -981,6 +1351,7 @@ class CS2DView < Live::View
           
           // Draw UI elements
           this.drawCrosshair();
+          this.drawMiniMap();
           this.drawFlashEffect();
         }
         
@@ -1171,10 +1542,53 @@ class CS2DView < Live::View
         
         drawGrenades() {
           // Draw thrown grenades
+          if (!this.game.gameState.grenades) return;
+          
+          this.game.gameState.grenades.forEach(grenade => {
+            // Grenade body
+            let color = '#888';
+            if (grenade.type === 'flashbang') color = '#fff';
+            else if (grenade.type === 'hegrenade') color = '#f00';
+            else if (grenade.type === 'smokegrenade') color = '#888';
+            
+            this.ctx.fillStyle = color;
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 2;
+            
+            this.ctx.beginPath();
+            this.ctx.arc(grenade.x, grenade.y, 5, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.stroke();
+            
+            // Trail effect
+            this.ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(grenade.x, grenade.y);
+            this.ctx.lineTo(grenade.x - grenade.vx * 2, grenade.y - grenade.vy * 2);
+            this.ctx.stroke();
+          });
         }
         
         drawDroppedWeapons() {
           // Draw weapons on ground
+          if (!this.game.gameState.dropped_weapons) return;
+          
+          this.game.gameState.dropped_weapons.forEach(weapon => {
+            // Weapon box
+            this.ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            this.ctx.strokeStyle = '#ff0';
+            this.ctx.lineWidth = 2;
+            
+            this.ctx.fillRect(weapon.x - 15, weapon.y - 10, 30, 20);
+            this.ctx.strokeRect(weapon.x - 15, weapon.y - 10, 30, 20);
+            
+            // Weapon name
+            this.ctx.fillStyle = '#fff';
+            this.ctx.font = '10px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(weapon.weapon.toUpperCase(), weapon.x, weapon.y);
+          });
         }
         
         drawEffects() {
@@ -1232,6 +1646,107 @@ class CS2DView < Live::View
           this.ctx.moveTo(mouseX, mouseY + 5);
           this.ctx.lineTo(mouseX, mouseY + 15);
           this.ctx.stroke();
+        }
+        
+        drawMiniMap() {
+          const mapSize = 150;
+          const mapX = this.canvas.width - mapSize - 20;
+          const mapY = 20;
+          const scale = mapSize / 1280;
+          
+          // Background
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+          this.ctx.fillRect(mapX, mapY, mapSize, mapSize * (720/1280));
+          
+          // Border
+          this.ctx.strokeStyle = '#666';
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(mapX, mapY, mapSize, mapSize * (720/1280));
+          
+          // Draw map features
+          this.ctx.fillStyle = '#333';
+          // Simplified walls on minimap
+          const walls = [
+            [400, 100, 80, 200],
+            [800, 100, 80, 200],
+            [300, 400, 200, 80],
+            [780, 400, 200, 80],
+            [590, 200, 100, 20],
+            [590, 500, 100, 20],
+            [640, 220, 20, 280]
+          ];
+          
+          walls.forEach(wall => {
+            this.ctx.fillRect(
+              mapX + wall[0] * scale,
+              mapY + wall[1] * scale,
+              wall[2] * scale,
+              wall[3] * scale
+            );
+          });
+          
+          // Draw bomb sites
+          this.ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+          this.ctx.beginPath();
+          this.ctx.arc(mapX + 200 * scale, mapY + 200 * scale, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#ff0';
+          this.ctx.font = '10px Arial';
+          this.ctx.textAlign = 'center';
+          this.ctx.fillText('A', mapX + 200 * scale, mapY + 200 * scale + 3);
+          
+          this.ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+          this.ctx.beginPath();
+          this.ctx.arc(mapX + 1080 * scale, mapY + 520 * scale, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillText('B', mapX + 1080 * scale, mapY + 520 * scale + 3);
+          
+          // Draw players
+          Object.values(this.game.gameState.players).forEach(player => {
+            if (!player.alive) return;
+            
+            const isLocal = player.id === this.game.playerId;
+            const color = isLocal ? '#0f0' : (player.team === 'ct' ? '#5B9BD5' : '#FFA500');
+            
+            this.ctx.fillStyle = color;
+            this.ctx.beginPath();
+            this.ctx.arc(
+              mapX + player.x * scale,
+              mapY + player.y * scale,
+              isLocal ? 4 : 3,
+              0,
+              Math.PI * 2
+            );
+            this.ctx.fill();
+            
+            // Draw view direction for local player
+            if (isLocal) {
+              this.ctx.strokeStyle = color;
+              this.ctx.lineWidth = 1;
+              this.ctx.beginPath();
+              this.ctx.moveTo(mapX + player.x * scale, mapY + player.y * scale);
+              this.ctx.lineTo(
+                mapX + (player.x + Math.cos(player.angle || 0) * 50) * scale,
+                mapY + (player.y + Math.sin(player.angle || 0) * 50) * scale
+              );
+              this.ctx.stroke();
+            }
+          });
+          
+          // Draw bomb if planted
+          if (this.game.gameState.bomb_planted && this.game.gameState.bomb_position) {
+            const pulse = Math.sin(Date.now() * 0.01) * 0.3 + 0.7;
+            this.ctx.fillStyle = `rgba(255, 0, 0, ${pulse})`;
+            this.ctx.beginPath();
+            this.ctx.arc(
+              mapX + this.game.gameState.bomb_position.x * scale,
+              mapY + this.game.gameState.bomb_position.y * scale,
+              5,
+              0,
+              Math.PI * 2
+            );
+            this.ctx.fill();
+          }
         }
         
         drawFlashEffect() {
