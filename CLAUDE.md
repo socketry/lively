@@ -228,3 +228,65 @@ If you encounter black screen or JavaScript execution problems:
 3. **Test canvas access**: Verify `canvas.getContext('2d')` works before complex rendering
 4. **Use console logging**: Add extensive `console.log()` statements throughout initialization
 5. **Validate timing**: Ensure WebSocket connections are established before script injection
+
+#### Issue 4: Server Startup Errors
+**Problem**: Ruby syntax errors or missing modules can prevent the server from starting.
+
+**Common Errors and Solutions:**
+1. **NoMethodError for Console.info**: The Console module may not be available in all contexts
+   - Solution: Comment out or remove Console.info calls, or ensure the Console module is properly required
+   
+2. **Nil reference errors**: Accessing properties on nil objects (e.g., `@player_id[0..7]` when @player_id is nil)
+   - Solution: Add conditional checks: `@player_id ? @player_id[0..7] : "default"`
+
+3. **File corruption**: Null bytes or invalid characters in Ruby files
+   - Solution: Check file encoding, recreate file if corrupted, use `file` command to verify file type
+
+**Minimal Working CS2D Example:**
+```ruby
+#!/usr/bin/env lively
+require 'securerandom'
+require 'json'
+
+class CS2DView < Live::View
+  def bind(page)
+    super
+    @player_id = SecureRandom.uuid
+    @game_state = { players: {}, phase: 'waiting', round_time: 30 }
+    self.update!
+    initialize_game_javascript
+  end
+
+  def render(builder)
+    builder.tag(:div, id: "cs2d-container", data: { live: @id }) do
+      builder.tag(:canvas, id: "game-canvas", width: 1280, height: 720)
+      builder.tag(:div) do
+        builder.text(@player_id ? "Player: #{@player_id[0..7]}" : "CS2D Game")
+      end
+    end
+  end
+
+  def initialize_game_javascript
+    # Use self.script() for WebSocket injection of small scripts
+    self.script(<<~JAVASCRIPT)
+      console.log('CS2D: WebSocket JavaScript injection working!');
+      const canvas = document.getElementById('game-canvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#1a3d1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#00FF00';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('CS2D Game Ready!', canvas.width/2, canvas.height/2);
+      }
+    JAVASCRIPT
+  end
+
+  def close
+    # Cleanup when view closes
+  end
+end
+
+Application = Lively::Application[CS2DView]
+```
