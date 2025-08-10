@@ -3,7 +3,6 @@
 require_relative "player"
 require_relative "bullet"
 require_relative "game_state"
-require_relative "lag_compensation"
 
 class MultiplayerGameRoom
   attr_reader :room_id, :players, :bullets, :game_state, :room_settings
@@ -41,7 +40,9 @@ class MultiplayerGameRoom
     @team_balance_enabled = true
     
     # Start the game loop
-    start_game_loop
+    # Disabled: Game loop causes async context issues with Live framework
+    # Updates will be triggered by player actions instead
+    # start_game_loop
   end
   
   def add_player(player_id, view)
