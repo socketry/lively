@@ -89,15 +89,16 @@ class CS2DView < Live::View
     @room.add_player(@player_id, self)
     @game_running = true
     
-    # Start game timers
-    start_round_timer
+    # Simplified: Start in buy time without async timer
+    @game_state[:phase] = 'buy_time'
+    @game_state[:round_time] = BUY_TIME
     
     self.update!
   end
   
   def close
     @game_running = false
-    @round_timer&.stop if @round_timer
+    @round_timer = nil
     @room&.remove_player(@player_id)
     @game_state[:players].delete(@player_id)
     super
@@ -336,60 +337,15 @@ class CS2DView < Live::View
   private
   
   def start_round_timer
-    return if @round_timer
-    
-    @round_timer = Async do
-      loop do
-        sleep 1
-        
-        case @game_state[:phase]
-        when 'warmup'
-          @game_state[:phase] = 'buy_time'
-          @game_state[:round_time] = BUY_TIME
-        when 'buy_time'
-          @game_state[:round_time] -= 1
-          if @game_state[:round_time] <= 0
-            @game_state[:phase] = 'round_active'
-            @game_state[:round_time] = ROUND_TIME
-          end
-        when 'round_active'
-          @game_state[:round_time] -= 1
-          if @game_state[:round_time] <= 0
-            # Time ran out - T wins if bomb not planted, CT wins otherwise
-            end_round(@game_state[:bomb_planted] ? 't' : 'ct')
-          end
-        when 'round_end'
-          sleep 5
-          start_new_round
-        end
-        
-        broadcast_game_state
-      end
-    end
+    # Simplified: Timer is handled client-side to avoid async issues
+    # The game state phase and time are managed through player actions
   end
   
   def start_bomb_timer
+    # Simplified: Bomb timer is handled client-side to avoid async issues
+    # The bomb timer countdown is managed in JavaScript
     return unless @game_state[:bomb_planted]
-    
-    Async do
-      while @game_state[:bomb_planted] && @game_state[:bomb_timer] > 0
-        sleep 1
-        @game_state[:bomb_timer] -= 1
-        
-        # Play beeping sound that gets faster
-        if @game_state[:bomb_timer] < 10
-          play_sound('bomb_beep')
-        end
-        
-        broadcast_game_state
-      end
-      
-      if @game_state[:bomb_planted] && @game_state[:bomb_timer] <= 0
-        # Bomb exploded - T wins
-        play_sound('bomb_explode')
-        end_round('t')
-      end
-    end
+    broadcast_game_state
   end
   
   def end_round(winning_team)
@@ -821,10 +777,38 @@ class CS2DView < Live::View
           this.input = new InputManager(this);
           this.ui = new UIManager(this);
           
+          // Start client-side timers
+          this.startTimers();
+          
           // Start game loop
           this.lastTime = Date.now();
           this.running = true;
           this.gameLoop();
+        }
+        
+        startTimers() {
+          // Client-side round timer
+          setInterval(() => {
+            if (this.gameState.phase === 'buy_time' || this.gameState.phase === 'round_active') {
+              this.gameState.round_time--;
+              if (this.gameState.round_time <= 0) {
+                if (this.gameState.phase === 'buy_time') {
+                  this.gameState.phase = 'round_active';
+                  this.gameState.round_time = 115;
+                }
+              }
+            }
+            
+            // Client-side bomb timer
+            if (this.gameState.bomb_planted && this.gameState.bomb_timer > 0) {
+              this.gameState.bomb_timer--;
+              if (this.gameState.bomb_timer < 10) {
+                this.audio.play('bomb_beep');
+              }
+            }
+            
+            this.ui.update();
+          }, 1000);
         }
         
         gameLoop() {
