@@ -177,49 +177,72 @@ end
 
 ## Example Applications
 
-### CS2D Game (`examples/cs2d/`)
-A fully-featured Counter-Strike 2D clone built with Lively demonstrating real-time game development:
+### CS 1.6 Game (`examples/cs2d/`)
+A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-time game development:
 
 **Features:**
-- **AI Bot System**: 4 terrorist bots with combat AI, pathfinding, and tactical behavior
-- **Weapons System**: Multiple weapon types with realistic fire rates, damage, and ammo management
-- **Bomb Gameplay**: Plant/defuse mechanics with timers and win conditions
-- **Grenades**: Flashbangs, smoke grenades, and HE grenades with physics
-- **Economy**: Buy menu with money management and round rewards
-- **Minimap**: Real-time tactical overview showing players and objectives
-- **Game Loop**: Async updates at 20 FPS for smooth gameplay
+- **Complete Weapon System**: 15+ weapons including M4A1, AK-47, AWP, Desert Eagle, Glock, USP, MP5, P90, Scout with realistic stats
+- **Movement Mechanics**: Walk (Shift), crouch (Ctrl), normal speed with proper physics and diagonal normalization
+- **Combat System**: Fire rates, recoil, bullet spread, damage falloff, headshots, armor penetration
+- **Bomb Gameplay**: Plant/defuse mechanics with 35-second timer, A/B bomb sites, defuse kits
+- **Grenades**: Flashbang (G), smoke (F), HE grenade (4) with realistic physics and effects
+- **Economy System**: Buy menu (B key), weapon prices, round bonuses, money management
+- **Round System**: Best of 30 rounds, freeze time, round timer, proper win conditions
+- **Bot AI**: 7 bots (3 CT, 4 T) with combat AI, movement patterns, shooting mechanics
+- **Map Design**: de_dust2 style layout with walls, boxes, bomb sites, spawn areas
+- **HUD Elements**: Health, armor, ammo counter, weapon name, money, scores, round timer
+- **Dynamic Crosshair**: Expands with movement, affected by shooting, walking, crouching
+
+**Controls:**
+- **WASD**: Movement
+- **Mouse**: Aim
+- **Left Click**: Shoot
+- **Right Click**: Scope (AWP/Scout)
+- **R**: Reload
+- **B**: Buy Menu
+- **TAB**: Scoreboard (hold)
+- **E**: Plant/Defuse bomb
+- **G**: Flashbang
+- **F**: Smoke grenade
+- **4**: HE grenade
+- **Shift**: Walk (silent)
+- **Ctrl**: Crouch
 
 **Technical Highlights:**
 - Uses `Async` blocks for game loop without blocking WebSocket events
-- Client-side prediction for responsive movement
-- Efficient state broadcasting with JSON serialization
-- Modular JavaScript architecture with separate managers (Input, Network, Audio, UI)
-- Canvas-based rendering with frustum culling optimization
+- HTML-based JavaScript inclusion for large game code (avoiding WebSocket injection issues)
+- Proper use of `builder.raw()` instead of `builder.text()` to prevent HTML escaping
+- 1.5-second delay for WebSocket connection establishment
+- Visual indicators to confirm JavaScript execution
+- Modular game architecture with separate systems (Input, Renderer, Game Logic)
+- Canvas-based rendering with optimized drawing calls
 
-**Running CS2D:**
+**Running CS 1.6:**
 ```bash
 # From project root
 ./bin/lively examples/cs2d/application.rb
 
-# Or from the example directory
-cd examples/cs2d
-ruby application.rb
+# Alternative with full implementation
+./bin/lively examples/cs2d/cs16_full.rb
 ```
 
 **Key Implementation Patterns:**
-- Bot AI updates run at 10Hz to balance performance and responsiveness
-- Game state updates broadcast at 20 FPS
-- Uses `builder.raw()` for JavaScript to avoid escaping issues
-- Implements proper cleanup in `close` method to stop async tasks
-- **JavaScript Architecture**: HTML-based inclusion for 41K+ characters of game code
-- **Error Handling**: Comprehensive page disconnection handling for WebSocket failures
-- **Debugging**: Extensive console logging and visual validation indicators
+- **JavaScript Structure**: Separate `render_game_javascript` method for HTML-based inclusion
+- **WebSocket vs HTML**: Use `self.script()` for small scripts (<10K), HTML inclusion for large game code
+- **Timing Management**: Add `Async` delays for WebSocket readiness before JavaScript injection
+- **Visual Debugging**: Always include status indicators and console logging
+- **Game State**: Centralized gameState object for all game data
+- **Input Handling**: Event-driven input system with proper preventDefault calls
+- **Rendering Pipeline**: Clear → Map → Entities → Effects → UI → Crosshair
 
 **Technical Lessons Learned:**
-- **Large JavaScript Applications**: Use HTML-based inclusion (`render_complete_game_scripts`) instead of WebSocket injection (`self.script()`) for applications with >40K characters
-- **WebSocket Timing**: Add proper delays (1.5s+) and error handling for Live.js connection establishment
-- **Class Dependencies**: Define helper classes (ObjectPool, FrustumCuller) before main classes to avoid undefined reference errors
-- **Canvas Debugging**: Always add visual validation indicators and aggressive canvas testing for rendering issues
+- **Large JavaScript Applications**: Always use HTML-based inclusion for game code >10K characters
+- **Builder Methods**: Use `builder.raw()` for JavaScript/HTML, `builder.text()` for user content
+- **WebSocket Timing**: Add 1.5+ second delays before `self.script()` calls in `bind` method
+- **Error Prevention**: Add nil checks for all instance variables in render methods
+- **Canvas Context**: Always verify canvas and context exist before drawing operations
+- **Game Loop**: Use `requestAnimationFrame` for smooth 60 FPS rendering
+- **Delta Time**: Calculate deltaTime for frame-independent movement
 
 **Debugging JavaScript Execution Issues:**
 If you encounter black screen or JavaScript execution problems:
