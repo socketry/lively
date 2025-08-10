@@ -571,7 +571,9 @@ class CS2DView < Live::View
   end
   
   def broadcast_game_state
-    self.script("window.game && window.game.updateGameState(#{@game_state.to_json});")
+    # Include player_id in the broadcast
+    state_with_player = @game_state.merge(current_player_id: @player_id)
+    self.script("window.game && window.game.updateGameState(#{state_with_player.to_json});")
   end
   
   def broadcast_chat_message(message)
@@ -1126,15 +1128,23 @@ class CS2DView < Live::View
     builder.tag(:script, type: "text/javascript") do
       # Combine all game scripts into one
       combined_script = [
-        client_game_script
+        client_game_script,
+        # Always define the initialization trigger
+        <<~JS
+          // Auto-initialize when DOM is ready
+          document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('cs2d-container');
+            if (container) {
+              const viewId = container.dataset.live;
+              // Try to initialize immediately
+              if (viewId && window.initCS2DGame) {
+                // Use a placeholder player ID initially
+                window.initCS2DGame(viewId, viewId);
+              }
+            }
+          });
+        JS
       ]
-      
-      # Only initialize game if we have a player_id
-      if @player_id
-        combined_script << "window.initCS2DGame('#{@id}', '#{@player_id}');"
-      else
-        combined_script << "console.log('Waiting for player initialization...');"
-      end
       
       builder.raw(combined_script.join("\n\n"))
     end
@@ -1284,6 +1294,11 @@ class CS2DView < Live::View
         
         // API methods
         updateGameState(newState) {
+          // Update player ID if provided
+          if (newState.current_player_id) {
+            this.playerId = newState.current_player_id;
+          }
+          
           // Server reconciliation
           const oldLocal = this.gameState.players[this.playerId];
           this.gameState = newState;
@@ -1297,6 +1312,7 @@ class CS2DView < Live::View
             
             // Start game loop if not already running
             if (!this.running) {
+              console.log('Starting game loop with player:', this.playerId);
               this.running = true;
               this.lastTime = Date.now();
               this.gameLoop();
