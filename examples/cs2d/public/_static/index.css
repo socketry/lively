@@ -1,0 +1,54 @@
+/* CS2D Game CSS Override - Force visibility */
+
+/* AGGRESSIVE CSS OVERRIDE - Force everything to be visible */
+* {
+    background-color: #333 !important;
+    color: white !important;
+}
+
+html, body {
+    background-color: #222 !important;
+    color: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Force all elements to be visible */
+div, h1, h2, h3, h4, h5, h6, p, span {
+    background-color: #444 !important;
+    color: yellow !important;
+    border: 2px solid red !important;
+    margin: 5px !important;
+    padding: 10px !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Test view specific - bright colors to ensure visibility */
+[data-class="TestView"] {
+    background: lime !important;
+    color: black !important;
+    font-size: 24px !important;
+    font-weight: bold !important;
+    padding: 40px !important;
+    border: 5px solid red !important;
+    margin: 20px !important;
+}
+
+[data-class="TestView"] h1 {
+    background: red !important;
+    color: white !important;
+    font-size: 48px !important;
+}
+
+[data-class="TestView"] p {
+    background: blue !important;
+    color: white !important;
+    font-size: 24px !important;
+}
+
+[data-class="TestView"] div {
+    background: purple !important;
+    color: white !important;
+    font-size: 24px !important;
+}
