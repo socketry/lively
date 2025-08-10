@@ -182,14 +182,23 @@ class CS2DView < Live::View
     weapon = WEAPONS[player[:current_weapon]]
     return unless weapon && weapon[:ammo]
     
-    # Check ammo
-    ammo_index = player[:weapons].index(player[:current_weapon])
-    return unless ammo_index
+    # Check fire rate
+    now = Time.now.to_f * 1000
+    fire_delay = 60000.0 / weapon[:rate] # Convert RPM to ms between shots
+    return if now - player[:last_shot] < fire_delay
     
-    # Deduct ammo (simplified)
+    # Check ammo
+    current_ammo = player[:ammo][player[:current_weapon]] || 0
+    return if current_ammo <= 0
+    
+    # Deduct ammo
+    player[:ammo][player[:current_weapon]] -= 1
+    player[:last_shot] = now
+    
+    # Play sound
     play_sound('shoot')
     
-    # Check for hit (simplified hit detection)
+    # Check for hit
     angle = event[:angle] || player[:angle]
     check_bullet_hit(player, angle, weapon[:damage])
     
@@ -200,9 +209,24 @@ class CS2DView < Live::View
     player = @game_state[:players][@player_id]
     return unless player && player[:alive]
     
-    play_sound('reload')
-    # Reload logic would go here
+    weapon_key = player[:current_weapon]
+    weapon = WEAPONS[weapon_key]
+    return unless weapon && weapon[:ammo]
     
+    current_ammo = player[:ammo][weapon_key] || 0
+    reserve = player[:reserve_ammo][weapon_key] || 0
+    
+    return if current_ammo >= weapon[:ammo] || reserve <= 0
+    
+    # Calculate reload amount
+    needed = weapon[:ammo] - current_ammo
+    reload_amount = [needed, reserve].min
+    
+    # Perform reload
+    player[:ammo][weapon_key] = current_ammo + reload_amount
+    player[:reserve_ammo][weapon_key] = reserve - reload_amount
+    
+    play_sound('reload')
     broadcast_game_state
   end
   
@@ -1785,20 +1809,14 @@ class CS2DView < Live::View
         
         sendEvent(type, data) {
           const element = document.getElementById('cs2d-container');
-          if (element) {
-            // Use Live.js event system
-            if (window.live && window.live.forwardEvent) {
-              window.live.forwardEvent(this.game.viewId, {
-                type: type,
-                ...data
-              });
-            } else if (element.dispatchEvent) {
-              // Fallback to custom event
-              element.dispatchEvent(new CustomEvent('live:forward', {
-                detail: { type: type, ...data },
-                bubbles: true
-              }));
-            }
+          if (element && element.live) {
+            // Use the live instance attached to the element
+            element.live.forward({
+              type: type,
+              ...data
+            });
+          } else {
+            console.warn('Live.js not properly initialized on element');
           }
         }
         
@@ -2319,13 +2337,21 @@ class CS2DView < Live::View
           window.game.running = false;
         }
         
+        // Wait for Live.js to be properly initialized
+        const element = document.getElementById('cs2d-container');
+        if (!element || !element.live) {
+          console.log('Waiting for Live.js initialization...');
+          setTimeout(() => window.initCS2DGame(viewId, playerId), 100);
+          return;
+        }
+        
         window.game = new CS2DGame(viewId, playerId);
         
         // Remove debug indicator
         const debugDiv = document.querySelector('div[style*="background: yellow"]');
         if (debugDiv) debugDiv.remove();
         
-        console.log('CS2D initialized successfully');
+        console.log('CS2D initialized successfully with Live.js');
       };
       
       // Handle page visibility
