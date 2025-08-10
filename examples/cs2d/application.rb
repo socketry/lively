@@ -108,6 +108,9 @@ class CS2DView < Live::View
     # Start game loop
     start_game_loop
     
+    # Send initial game state to client
+    broadcast_game_state
+    
     self.update!
   end
   
@@ -1150,9 +1153,24 @@ class CS2DView < Live::View
           this.canvas = document.getElementById('game-canvas');
           this.ctx = this.canvas.getContext('2d');
           
-          // Game state
-          this.gameState = #{@game_state.to_json};
-          this.localPlayer = this.gameState.players[this.playerId];
+          // Game state - initialize with empty state
+          this.gameState = {
+            players: {},
+            bots: {},
+            round: 1,
+            ct_score: 0,
+            t_score: 0,
+            round_time: 15,
+            phase: 'buy_time',
+            bomb_planted: false,
+            bomb_site: null,
+            bomb_timer: null,
+            bomb_position: null,
+            grenades: [],
+            dropped_weapons: [],
+            kill_feed: []
+          };
+          this.localPlayer = null;
           
           // Client prediction
           this.inputSequence = 0;
@@ -1175,10 +1193,15 @@ class CS2DView < Live::View
           // Start client-side timers
           this.startTimers();
           
-          // Start game loop
+          // Don't start game loop until we have game state
           this.lastTime = Date.now();
-          this.running = true;
-          this.gameLoop();
+          this.running = false;
+          
+          // Request initial game state
+          console.log('CS2D waiting for initial game state...');
+          
+          // Draw initial loading screen
+          this.drawLoadingScreen();
         }
         
         startTimers() {
@@ -1256,10 +1279,34 @@ class CS2DView < Live::View
           const oldLocal = this.gameState.players[this.playerId];
           this.gameState = newState;
           
-          if (this.gameState.players[this.playerId]) {
+          // Update local player reference
+          this.localPlayer = this.gameState.players[this.playerId];
+          
+          if (this.localPlayer) {
             // Apply pending inputs
             this.reconcileState();
+            
+            // Start game loop if not already running
+            if (!this.running) {
+              this.running = true;
+              this.lastTime = Date.now();
+              this.gameLoop();
+            }
           }
+        }
+        
+        drawLoadingScreen() {
+          this.ctx.fillStyle = '#000';
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+          
+          this.ctx.fillStyle = '#fff';
+          this.ctx.font = '48px Arial';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('CS2D Loading...', this.canvas.width / 2, this.canvas.height / 2 - 50);
+          
+          this.ctx.font = '24px Arial';
+          this.ctx.fillText('Connecting to server...', this.canvas.width / 2, this.canvas.height / 2 + 20);
         }
         
         reconcileState() {
