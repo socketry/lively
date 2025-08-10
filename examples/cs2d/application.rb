@@ -108,10 +108,14 @@ class CS2DView < Live::View
     # Start game loop
     start_game_loop
     
-    # Send initial game state to client
-    broadcast_game_state
-    
+    # Update the view to render with player_id
     self.update!
+    
+    # Send initial game state to client after a small delay to ensure JS is loaded
+    Async do
+      sleep 0.1
+      broadcast_game_state
+    end
   end
   
   def close
@@ -1122,12 +1126,17 @@ class CS2DView < Live::View
     builder.tag(:script, type: "text/javascript") do
       # Combine all game scripts into one
       combined_script = [
-        client_game_script,
-        # Initialize the game
-        "window.initCS2DGame('#{@id}', '#{@player_id}');"
-      ].join("\n\n")
+        client_game_script
+      ]
       
-      builder.raw(combined_script)
+      # Only initialize game if we have a player_id
+      if @player_id
+        combined_script << "window.initCS2DGame('#{@id}', '#{@player_id}');"
+      else
+        combined_script << "console.log('Waiting for player initialization...');"
+      end
+      
+      builder.raw(combined_script.join("\n\n"))
     end
   end
   
@@ -2189,18 +2198,27 @@ class CS2DView < Live::View
           
           // Update ammo
           const ammoDisplay = document.getElementById('ammo-display');
-          if (ammoDisplay) {
-            const weapon = #{WEAPONS.to_json}[localPlayer.current_weapon];
-            if (weapon && weapon.ammo) {
-              ammoDisplay.textContent = weapon.ammo + ' / ' + weapon.reserve;
-            }
+          if (ammoDisplay && localPlayer.ammo && localPlayer.current_weapon) {
+            const current = localPlayer.ammo[localPlayer.current_weapon] || 0;
+            const reserve = localPlayer.reserve_ammo ? localPlayer.reserve_ammo[localPlayer.current_weapon] || 0 : 0;
+            ammoDisplay.textContent = current + ' / ' + reserve;
           }
           
           // Update weapon name
           const weaponName = document.getElementById('weapon-name');
-          if (weaponName) {
-            const weapon = #{WEAPONS.to_json}[localPlayer.current_weapon];
-            if (weapon) weaponName.textContent = weapon.name;
+          if (weaponName && localPlayer.current_weapon) {
+            // Simple weapon name display
+            const weaponNames = {
+              'usp': 'USP',
+              'glock': 'Glock-18',
+              'deagle': 'Desert Eagle',
+              'ak47': 'AK-47',
+              'm4a1': 'M4A1',
+              'awp': 'AWP',
+              'mp5': 'MP5',
+              'p90': 'P90'
+            };
+            weaponName.textContent = weaponNames[localPlayer.current_weapon] || localPlayer.current_weapon.toUpperCase();
           }
           
           // Update round timer
