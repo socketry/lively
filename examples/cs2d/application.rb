@@ -111,9 +111,12 @@ class CS2DView < Live::View
     # Update the view to render with player_id
     self.update!
     
-    # Send initial game state to client after a small delay to ensure JS is loaded
+    # Initialize JavaScript game after rendering with a delay to ensure WebSocket is connected
     Async do
-      sleep 0.1
+      sleep 1.5  # Wait even longer for WebSocket connection
+      Console.info(self, "Attempting JavaScript injection after extended delay...")
+      inject_game_javascript
+      sleep 0.5
       broadcast_game_state
     end
   end
@@ -571,13 +574,26 @@ class CS2DView < Live::View
   end
   
   def broadcast_game_state
+    return unless @page
     # Include player_id in the broadcast
     state_with_player = @game_state.merge(current_player_id: @player_id)
-    self.script("window.game && window.game.updateGameState(#{state_with_player.to_json});")
+    begin
+      self.script("window.game && window.game.updateGameState(#{state_with_player.to_json});")
+    rescue Live::PageError => e
+      # Page disconnected, stop game loop
+      @game_running = false
+      puts "Page disconnected: #{e.message}"
+    end
   end
   
   def broadcast_chat_message(message)
-    self.script("window.game && window.game.receiveChatMessage(#{message.to_json});")
+    return unless @page
+    begin
+      self.script("window.game && window.game.receiveChatMessage(#{message.to_json});")
+    rescue Live::PageError => e
+      # Page disconnected
+      puts "Page disconnected during chat: #{e.message}"
+    end
   end
   
   # Bot AI Methods
@@ -935,7 +951,8 @@ class CS2DView < Live::View
   
   def render(builder)
     render_game_container(builder)
-    render_game_scripts(builder)
+    # SOLUTION: Inject JavaScript directly in HTML instead of via WebSocket
+    render_complete_game_scripts(builder)
   end
   
   def render_game_container(builder)
@@ -1124,6 +1141,123 @@ class CS2DView < Live::View
     end
   end
   
+  def render_complete_game_scripts(builder)
+    Console.info(self, "Rendering complete CS2D game JavaScript directly in HTML...")
+    
+    builder.tag(:script, type: "text/javascript") do
+      # Create the complete game script with visual validation
+      immediate_validation_script = <<~JS
+        // IMMEDIATE HTML-BASED JAVASCRIPT VALIDATION
+        console.log('=== HTML SCRIPT: JavaScript executing directly in HTML ===');
+        
+        // Create immediate success indicator
+        document.addEventListener('DOMContentLoaded', function() {
+          console.log('HTML SCRIPT: DOMContentLoaded event fired');
+          
+          // Strategy 1: Immediate DOM manipulation
+          const successDiv = document.createElement('div');
+          successDiv.style.cssText = 'position: fixed; top: 20px; left: 20px; background: lime; color: black; padding: 20px; z-index: 999999; font-size: 24px; font-weight: bold; border: 5px solid red;';
+          successDiv.textContent = 'HTML SCRIPT: CS2D JavaScript Loaded!';
+          document.body.appendChild(successDiv);
+          
+          // Strategy 2: Canvas immediate drawing
+          const canvas = document.getElementById('game-canvas');
+          if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.fillStyle = '#00FF00';
+              ctx.fillRect(10, 10, 300, 80);
+              ctx.fillStyle = '#000000';
+              ctx.font = 'bold 20px Arial';
+              ctx.fillText('HTML SCRIPT: Canvas Ready!', 20, 50);
+              console.log('HTML SCRIPT: Canvas drawing successful');
+            }
+          }
+          
+          // Strategy 3: Title change
+          document.title = 'HTML SCRIPT: CS2D Game Loaded!';
+          
+          console.log('HTML SCRIPT: Immediate validation complete');
+        });
+        
+        // Also execute immediately without waiting for DOMContentLoaded
+        if (document.body) {
+          console.log('HTML SCRIPT: Document.body available immediately');
+          const immediateDiv = document.createElement('div');
+          immediateDiv.style.cssText = 'position: fixed; top: 100px; left: 20px; background: yellow; color: black; padding: 15px; z-index: 999999; font-size: 20px; font-weight: bold;';
+          immediateDiv.textContent = 'HTML SCRIPT: Immediate Execution!';
+          document.body.appendChild(immediateDiv);
+        }
+        
+        console.log('HTML SCRIPT: Initial execution completed');
+      JS
+      
+      # Game initialization script
+      game_init_script = <<~JS
+        // Initialize CS2D game after everything is loaded
+        window.addEventListener('load', function() {
+          console.log('HTML SCRIPT: Window load event - initializing CS2D');
+          
+          // Add game initialization indicator
+          const initDiv = document.createElement('div');
+          initDiv.style.cssText = 'position: fixed; top: 180px; left: 20px; background: cyan; color: black; padding: 15px; z-index: 999999; font-size: 18px; font-weight: bold;';
+          initDiv.textContent = 'HTML SCRIPT: Initializing CS2D Game...';
+          document.body.appendChild(initDiv);
+          
+          // Initialize the game
+          const container = document.getElementById('cs2d-container');
+          if (container && window.initCS2DGame) {
+            const viewId = container.dataset.live || '#{@id}';
+            console.log('HTML SCRIPT: Calling initCS2DGame with viewId:', viewId);
+            
+            try {
+              window.initCS2DGame(viewId, '#{@player_id}');
+              
+              // Success indicator
+              const gameDiv = document.createElement('div');
+              gameDiv.style.cssText = 'position: fixed; top: 260px; left: 20px; background: purple; color: white; padding: 15px; z-index: 999999; font-size: 18px; font-weight: bold;';
+              gameDiv.textContent = 'HTML SCRIPT: CS2D Game Initialized!';
+              document.body.appendChild(gameDiv);
+              
+              console.log('HTML SCRIPT: CS2D game initialization successful');
+            } catch (error) {
+              console.error('HTML SCRIPT: Game initialization failed:', error);
+              
+              // Error indicator
+              const errorDiv = document.createElement('div');
+              errorDiv.style.cssText = 'position: fixed; top: 260px; left: 20px; background: red; color: white; padding: 15px; z-index: 999999; font-size: 18px; font-weight: bold;';
+              errorDiv.textContent = 'HTML SCRIPT: Init Error: ' + error.message;
+              document.body.appendChild(errorDiv);
+            }
+          } else {
+            console.error('HTML SCRIPT: Missing container or initCS2DGame function');
+            
+            // Missing elements indicator
+            const missingDiv = document.createElement('div');
+            missingDiv.style.cssText = 'position: fixed; top: 260px; left: 20px; background: orange; color: black; padding: 15px; z-index: 999999; font-size: 18px; font-weight: bold;';
+            missingDiv.textContent = 'HTML SCRIPT: Missing elements - Container:' + !!container + ' InitFunc:' + !!window.initCS2DGame;
+            document.body.appendChild(missingDiv);
+          }
+        });
+      JS
+      
+      # Combine all scripts
+      complete_game_script = [
+        immediate_validation_script,
+        client_game_script, 
+        game_init_script
+      ].join("\n\n")
+      
+      Console.info(self, "Generated #{complete_game_script.length} characters of complete CS2D game script")
+      builder.raw(complete_game_script)
+    end
+  end
+
+  def inject_game_javascript
+    # WebSocket injection is disabled - using HTML-based injection instead
+    Console.info(self, "WebSocket JavaScript injection disabled - using HTML-based approach")
+  end
+
   def render_game_scripts(builder)
     builder.tag(:script, type: "text/javascript") do
       # Combine all game scripts into one
@@ -1131,16 +1265,110 @@ class CS2DView < Live::View
         client_game_script,
         # Always define the initialization trigger
         <<~JS
+          // IMMEDIATE AGGRESSIVE TEST - multiple methods to detect JS execution
+          console.log('=== SCRIPT EXECUTING ===');
+          
+          // Method 1: Alert (most aggressive)
+          alert('JAVASCRIPT IS EXECUTING!');
+          
+          // Method 2: Console messages
+          console.warn('JS SCRIPT LOADED AND RUNNING');
+          console.error('THIS IS A TEST ERROR TO ENSURE CONSOLE WORKS');
+          
+          // Method 3: Try to create DOM element immediately
+          try {
+            const jsTestDiv = document.createElement('div');
+            jsTestDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 20px; z-index: 99999; font-size: 20px; font-weight: bold; border: 3px solid yellow;';
+            jsTestDiv.textContent = 'JS EXECUTING!';
+            if (document.body) {
+              document.body.appendChild(jsTestDiv);
+              console.log('Test div added to body');
+            } else {
+              console.log('document.body not available yet');
+            }
+          } catch (e) {
+            console.error('Error creating test div:', e);
+            alert('Error in DOM creation: ' + e.message);
+          }
+          
+          // Method 4: Window property
+          window.JAVASCRIPT_IS_WORKING = true;
+          console.log('Set window.JAVASCRIPT_IS_WORKING =', window.JAVASCRIPT_IS_WORKING);
+          
           // Auto-initialize when DOM is ready
+          console.log('JS test div created');
+          
           document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded fired');
+            
+            // Update the test div
+            jsTestDiv.textContent = 'DOM READY!';
+            jsTestDiv.style.background = 'yellow';
+            
+            // AGGRESSIVE canvas test - fill entire canvas
+            const canvas = document.getElementById('game-canvas');
+            console.log('Canvas element found:', canvas);
+            console.log('Canvas style:', canvas ? canvas.style.cssText : 'no canvas');
+            console.log('Canvas computed style:', canvas ? window.getComputedStyle(canvas) : 'no canvas');
+            
+            if (canvas) {
+              console.log('Canvas size:', canvas.width, 'x', canvas.height);
+              console.log('Canvas client size:', canvas.clientWidth, 'x', canvas.clientHeight);
+              console.log('Canvas offset:', canvas.offsetWidth, 'x', canvas.offsetHeight);
+              
+              const ctx = canvas.getContext('2d');
+              console.log('Canvas context:', ctx);
+              
+              if (ctx) {
+                console.log('FILLING ENTIRE CANVAS WITH BRIGHT RED...');
+                ctx.fillStyle = 'rgb(255, 0, 0)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                console.log('Adding white text overlay...');
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('CANVAS WORKS!', canvas.width/2, canvas.height/2);
+                
+                console.log('Canvas test complete - entire screen should be RED!');
+                
+                // Force a repaint
+                canvas.style.display = 'none';
+                canvas.offsetHeight; // trigger reflow
+                canvas.style.display = 'block';
+              } else {
+                console.error('NO CANVAS CONTEXT AVAILABLE!');
+                // Add a DOM element to show the error
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; background: red; padding: 20px; z-index: 10000; font-size: 24px;';
+                errorDiv.textContent = 'CANVAS CONTEXT FAILED';
+                document.body.appendChild(errorDiv);
+              }
+            } else {
+              console.error('NO CANVAS ELEMENT FOUND!');
+              // Add a DOM element to show the error
+              const errorDiv = document.createElement('div');
+              errorDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; background: blue; padding: 20px; z-index: 10000; font-size: 24px;';
+              errorDiv.textContent = 'NO CANVAS ELEMENT!';
+              document.body.appendChild(errorDiv);
+            }
+            
             const container = document.getElementById('cs2d-container');
+            console.log('Container found:', container);
             if (container) {
               const viewId = container.dataset.live;
+              console.log('ViewId from container:', viewId);
               // Try to initialize immediately
               if (viewId && window.initCS2DGame) {
+                console.log('Calling initCS2DGame with:', viewId);
                 // Use a placeholder player ID initially
                 window.initCS2DGame(viewId, viewId);
+              } else {
+                console.error('Missing viewId or initCS2DGame function');
+                console.log('Available on window:', Object.keys(window));
               }
+            } else {
+              console.error('cs2d-container not found');
             }
           });
         JS
@@ -1165,12 +1393,44 @@ class CS2DView < Live::View
   
   def game_core_script
     <<~JAVASCRIPT
+      // Helper classes must be defined first
+      class ObjectPool {
+        constructor(createFn) {
+          this.createFn = createFn;
+          this.pool = [];
+        }
+        
+        get() {
+          return this.pool.pop() || this.createFn();
+        }
+        
+        release(obj) {
+          this.pool.push(obj);
+        }
+      }
+      
+      class FrustumCuller {
+        constructor() {
+          this.viewBounds = { x: 0, y: 0, width: 1280, height: 720 };
+        }
+        
+        isInView(x, y, radius = 50) {
+          return x + radius > this.viewBounds.x &&
+                 x - radius < this.viewBounds.x + this.viewBounds.width &&
+                 y + radius > this.viewBounds.y &&
+                 y - radius < this.viewBounds.y + this.viewBounds.height;
+        }
+      }
+      
       class CS2DGame {
         constructor(viewId, playerId) {
+          console.log('CS2DGame constructor called with:', viewId, playerId);
           this.viewId = viewId;
           this.playerId = playerId;
           this.canvas = document.getElementById('game-canvas');
+          console.log('Canvas element:', this.canvas);
           this.ctx = this.canvas.getContext('2d');
+          console.log('Canvas context:', this.ctx);
           
           // Game state - initialize with empty state
           this.gameState = {
@@ -1220,7 +1480,15 @@ class CS2DView < Live::View
           console.log('CS2D waiting for initial game state...');
           
           // Draw initial loading screen
+          console.log('Drawing loading screen...');
           this.drawLoadingScreen();
+          console.log('CS2DGame constructor finished');
+          
+          // Add a visible debug indicator
+          const debug = document.createElement('div');
+          debug.style.cssText = 'position: absolute; top: 10px; left: 10px; background: green; color: white; padding: 5px; z-index: 9999;';
+          debug.textContent = 'CS2DGame initialized';
+          document.body.appendChild(debug);
         }
         
         startTimers() {
@@ -1321,17 +1589,50 @@ class CS2DView < Live::View
         }
         
         drawLoadingScreen() {
-          this.ctx.fillStyle = '#000';
-          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+          console.log('drawLoadingScreen called');
+          console.log('Canvas:', this.canvas);
+          console.log('Canvas dimensions:', this.canvas?.width, 'x', this.canvas?.height);
+          console.log('Context:', this.ctx);
           
-          this.ctx.fillStyle = '#fff';
-          this.ctx.font = '48px Arial';
-          this.ctx.textAlign = 'center';
-          this.ctx.textBaseline = 'middle';
-          this.ctx.fillText('CS2D Loading...', this.canvas.width / 2, this.canvas.height / 2 - 50);
+          if (!this.canvas) {
+            console.error('No canvas element!');
+            return;
+          }
           
-          this.ctx.font = '24px Arial';
-          this.ctx.fillText('Connecting to server...', this.canvas.width / 2, this.canvas.height / 2 + 20);
+          if (!this.ctx) {
+            console.error('No canvas context available!');
+            // Try to get context again
+            this.ctx = this.canvas.getContext('2d');
+            if (!this.ctx) {
+              console.error('Still no context after retry');
+              return;
+            }
+            console.log('Got context on retry:', this.ctx);
+          }
+          
+          console.log('About to draw...');
+          try {
+            // Clear with black background
+            this.ctx.fillStyle = '#000000';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            console.log('Black background drawn');
+            
+            // Draw loading text
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = '48px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText('CS2D Loading...', this.canvas.width / 2, this.canvas.height / 2 - 50);
+            console.log('Loading text drawn');
+            
+            // Draw smaller text
+            this.ctx.font = '24px Arial';
+            this.ctx.fillText('Connecting to server...', this.canvas.width / 2, this.canvas.height / 2 + 20);
+            console.log('Server text drawn');
+            console.log('Loading screen render complete!');
+          } catch (e) {
+            console.error('Error drawing loading screen:', e);
+          }
         }
         
         reconcileState() {
@@ -1371,36 +1672,6 @@ class CS2DView < Live::View
         
         createSmokeCloud(x, y) {
           this.renderer.addSmoke(x, y);
-        }
-      }
-      
-      // Object pooling for performance
-      class ObjectPool {
-        constructor(createFn) {
-          this.createFn = createFn;
-          this.pool = [];
-        }
-        
-        get() {
-          return this.pool.pop() || this.createFn();
-        }
-        
-        release(obj) {
-          this.pool.push(obj);
-        }
-      }
-      
-      // Frustum culling for rendering optimization
-      class FrustumCuller {
-        constructor() {
-          this.viewBounds = { x: 0, y: 0, width: 1280, height: 720 };
-        }
-        
-        isInView(x, y, radius = 50) {
-          return x + radius > this.viewBounds.x &&
-                 x - radius < this.viewBounds.x + this.viewBounds.width &&
-                 y + radius > this.viewBounds.y &&
-                 y - radius < this.viewBounds.y + this.viewBounds.height;
         }
       }
     JAVASCRIPT
@@ -2418,21 +2689,38 @@ class CS2DView < Live::View
           window.game.running = false;
         }
         
-        // Wait for Live.js to be properly initialized
+        // Check if Live.js is available - but don't block initialization
         const element = document.getElementById('cs2d-container');
-        if (!element || !element.live) {
-          console.log('Waiting for Live.js initialization...');
-          setTimeout(() => window.initCS2DGame(viewId, playerId), 100);
+        if (!element) {
+          console.error('cs2d-container not found!');
           return;
         }
         
+        if (!element.live) {
+          console.log('Live.js not ready yet, will initialize without Live.js for now...');
+        }
+        
+        // Initialize the game regardless of Live.js status
         window.game = new CS2DGame(viewId, playerId);
         
         // Remove debug indicator
         const debugDiv = document.querySelector('div[style*="background: yellow"]');
         if (debugDiv) debugDiv.remove();
         
-        console.log('CS2D initialized successfully with Live.js');
+        console.log('CS2D initialized successfully');
+        
+        // If Live.js becomes available later, we can set it up
+        if (!element.live) {
+          const checkLiveJS = () => {
+            if (element.live) {
+              console.log('Live.js now available, setting up event forwarding');
+              // Set up Live.js event forwarding here if needed
+            } else {
+              setTimeout(checkLiveJS, 500);
+            }
+          };
+          setTimeout(checkLiveJS, 500);
+        }
       };
       
       // Handle page visibility
