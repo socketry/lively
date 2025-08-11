@@ -1,0 +1,16 @@
+# Automatically generated context index for Utopia::Project guides.
+# Do not edit then files in this directory directly, instead edit the guides and then run `bake utopia:project:agent:context:update`.
+---
+description: A simple client-server SPA framework.
+metadata:
+  documentation_uri: https://socketry.github.io/lively/
+  source_code_uri: https://github.com/socketry/lively.git
+files:
+- path: getting-started.md
+  title: Getting Started
+  description: This guide will help you get started with Lively, a framework for building
+    real-time applications in Ruby.
+- path: worms-tutorial.md
+  title: Building a Worms Game with Lively
+  description: This tutorial will guide you through creating a Worms-style game using
+    Lively, a Ruby framework for building real-time applications.

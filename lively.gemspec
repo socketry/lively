@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
 		"source_code_uri" => "https://github.com/socketry/lively.git",
 	}
 	
-	spec.files = Dir.glob(["{bin,lib,public}/**/*", "*.md"], File::FNM_DOTMATCH, base: __dir__)
+	spec.files = Dir.glob(["{bin,context,lib,public}/**/*", "*.md"], File::FNM_DOTMATCH, base: __dir__)
 	
 	spec.executables = ["lively"]
 	
