@@ -10,3 +10,13 @@
 # macOS system files
 .DS_Store
 **/.DS_Store
+
+# Debug and temporary files
+debug-*.js
+test-*.js
+debug-*.png
+test-*.png
+*.backup
+
+# References/temp debugging assets
+references/

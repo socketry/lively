@@ -1,8 +1,7 @@
 // CS 1.6 Classic Rules JavaScript Implementation
 // Extracted from cs16_classic_rules.rb for better maintainability
 
-console.log('CS 1.6 Classic: Initializing game with strict classic rules...');
-console.log('🔧 CLAUDE FIXES LOADED - Version 2.0 - Enhanced Buy Menu Support!');
+console.log('🔧 CS 1.6 Classic v3.0: Ammo + Dead Players + Slot Switching');
 
 // DOM Resilience System for Lively Framework
 // Handles dynamic DOM updates and ensures Buy Menu works properly
@@ -215,6 +214,48 @@ const CLASSIC_CONFIG = {
 	LOSS_BONUSES: [1400, 1900, 2400, 2900, 3400]
 };
 
+// Weapon Ammunition Configuration (Classic CS 1.6)
+const WEAPON_AMMO_CONFIG = {
+	// Pistols
+	glock: { clipSize: 20, maxAmmo: 120 },
+	usp: { clipSize: 12, maxAmmo: 100 },
+	p228: { clipSize: 13, maxAmmo: 52 },
+	deagle: { clipSize: 7, maxAmmo: 35 },
+	fiveseven: { clipSize: 20, maxAmmo: 100 },
+	elite: { clipSize: 30, maxAmmo: 120 },
+	
+	// SMGs
+	mac10: { clipSize: 30, maxAmmo: 120 },
+	tmp: { clipSize: 30, maxAmmo: 120 },
+	mp5: { clipSize: 30, maxAmmo: 120 },
+	ump45: { clipSize: 25, maxAmmo: 100 },
+	p90: { clipSize: 50, maxAmmo: 100 },
+	
+	// Shotguns
+	m3: { clipSize: 8, maxAmmo: 32 },
+	xm1014: { clipSize: 7, maxAmmo: 32 },
+	
+	// Rifles
+	galil: { clipSize: 35, maxAmmo: 90 },
+	famas: { clipSize: 25, maxAmmo: 90 },
+	ak47: { clipSize: 30, maxAmmo: 90 },
+	m4a1: { clipSize: 30, maxAmmo: 90 },
+	sg552: { clipSize: 30, maxAmmo: 90 },
+	aug: { clipSize: 30, maxAmmo: 90 },
+	
+	// Snipers
+	scout: { clipSize: 10, maxAmmo: 90 },
+	awp: { clipSize: 10, maxAmmo: 30 },
+	g3sg1: { clipSize: 20, maxAmmo: 90 },
+	sg550: { clipSize: 30, maxAmmo: 90 },
+	
+	// Machine Gun
+	m249: { clipSize: 100, maxAmmo: 200 },
+	
+	// Knife has no ammo
+	knife: { clipSize: 0, maxAmmo: 0 }
+};
+
 // Game state - will be initialized by the Ruby view
 let gameState = null;
 
@@ -274,7 +315,16 @@ function initializeGame(localPlayerId) {
 		armor: 0,
 		alive: true,
 		money: 800,
-		currentWeapon: 'usp',
+		currentWeapon: 'secondary', // Start with secondary weapon
+		primaryWeapon: null,
+		secondaryWeapon: 'usp',
+		// Ammunition system
+		ammo: {
+			primary: { clip: 0, reserve: 0 },
+			secondary: { clip: 12, reserve: 88 } // USP starts with full clip and reserve
+		},
+		isReloading: false,
+		reloadStartTime: 0,
 		grenades: { he: 0, flash: 2, smoke: 1 },
 		hasDefuseKit: false,
 		kills: 0,
@@ -282,7 +332,15 @@ function initializeGame(localPlayerId) {
 		assists: 0,
 		score: 0,
 		damage_taken: 0,
-		damage_given: 0
+		damage_given: 0,
+		// Equipment slots
+		slots: {
+			1: 'knife',
+			2: 'usp',  // Secondary weapon
+			3: null,   // Primary weapon
+			4: 'he',   // Grenade slot 1
+			5: 'flash' // Grenade slot 2
+		}
 	};
 	
 	// Get canvas and context
@@ -392,11 +450,10 @@ function testRender() {
 	ctx.fillStyle = '#00ff00';
 	ctx.fillText('Money: $800', canvas.width / 2, canvas.height / 2 + 50);
 	
-	console.log('CS 1.6 Classic: Test render complete!');
+	console.log('✅ Game ready with new features!');
 	
 	// Start the actual game loop after a delay
 	setTimeout(() => {
-		console.log('CS 1.6 Classic: Starting real game loop...');
 		gameLoop();
 	}, 1000);
 }
@@ -417,7 +474,16 @@ function initializeBotPlayers() {
 			armor: 0,
 			alive: true,
 			money: 800,
-			currentWeapon: 'usp',
+			currentWeapon: 'secondary',
+			primaryWeapon: null,
+			secondaryWeapon: 'usp',
+			// Ammunition system
+			ammo: {
+				primary: { clip: 0, reserve: 0 },
+				secondary: { clip: 12, reserve: 88 } // USP starts with full clip and reserve
+			},
+			isReloading: false,
+			reloadStartTime: 0,
 			grenades: { he: 0, flash: 1, smoke: 0 },
 			hasDefuseKit: false,
 			kills: 0,
@@ -425,7 +491,15 @@ function initializeBotPlayers() {
 			assists: 0,
 			score: 0,
 			damage_taken: 0,
-			damage_given: 0
+			damage_given: 0,
+			// Equipment slots for bots
+			slots: {
+				1: 'knife',
+				2: 'usp',
+				3: null,
+				4: null,
+				5: 'flash'
+			}
 		};
 	}
 	
@@ -443,7 +517,16 @@ function initializeBotPlayers() {
 			armor: 0,
 			alive: true,
 			money: 800,
-			currentWeapon: 'glock',
+			currentWeapon: 'secondary',
+			primaryWeapon: null,
+			secondaryWeapon: 'glock',
+			// Ammunition system
+			ammo: {
+				primary: { clip: 0, reserve: 0 },
+				secondary: { clip: 20, reserve: 100 } // Glock starts with full clip and reserve
+			},
+			isReloading: false,
+			reloadStartTime: 0,
 			grenades: { he: 0, flash: 1, smoke: 0 },
 			hasDefuseKit: false,
 			kills: 0,
@@ -451,7 +534,15 @@ function initializeBotPlayers() {
 			assists: 0,
 			score: 0,
 			damage_taken: 0,
-			damage_given: 0
+			damage_given: 0,
+			// Equipment slots for bots
+			slots: {
+				1: 'knife',
+				2: 'glock',
+				3: null,
+				4: null,
+				5: 'flash'
+			}
 		};
 	}
 	
@@ -704,52 +795,89 @@ function renderBuyZones() {
 
 function renderPlayers() {
 	for (const player of Object.values(gameState.players)) {
-		if (!player.alive) continue;
-		
-		// Player body
-		ctx.fillStyle = player.team === 'ct' ? '#4444ff' : '#ffaa00';
-		ctx.beginPath();
-		ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
-		ctx.fill();
-		
-		// Player direction indicator
-		ctx.strokeStyle = ctx.fillStyle;
-		ctx.lineWidth = 3;
-		ctx.beginPath();
-		ctx.moveTo(player.x, player.y);
-		ctx.lineTo(
-			player.x + Math.cos(player.angle) * 25,
-			player.y + Math.sin(player.angle) * 25
-		);
-		ctx.stroke();
-		
-		// Player name (moved higher for better spacing)
-		ctx.fillStyle = '#fff';
-		ctx.font = '12px Arial';
-		ctx.textAlign = 'center';
-		ctx.fillText(player.name, player.x, player.y - 45);
-		
-		// Health bar (with better spacing from name)
-		const barWidth = 30;
-		const barHeight = 4;
-		const healthPercent = player.health / 100;
-		ctx.fillStyle = '#000';
-		ctx.fillRect(player.x - barWidth/2, player.y - 35, barWidth, barHeight);
-		ctx.fillStyle = healthPercent > 0.5 ? '#00ff00' : healthPercent > 0.25 ? '#ffaa00' : '#ff0000';
-		ctx.fillRect(player.x - barWidth/2, player.y - 35, barWidth * healthPercent, barHeight);
-		
-		// Bomb carrier indicator
-		if (player.bomb) {
-			ctx.fillStyle = '#ff0000';
-			ctx.font = 'bold 16px Arial';
-			ctx.fillText('💣', player.x, player.y + 35);
-		}
-		
-		// Defuse kit indicator
-		if (player.defuseKit) {
-			ctx.fillStyle = '#00ff00';
+		if (player.alive) {
+			// Render alive players normally
+			
+			// Player body
+			ctx.fillStyle = player.team === 'ct' ? '#4444ff' : '#ffaa00';
+			ctx.beginPath();
+			ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+			ctx.fill();
+			
+			// Player direction indicator
+			ctx.strokeStyle = ctx.fillStyle;
+			ctx.lineWidth = 3;
+			ctx.beginPath();
+			ctx.moveTo(player.x, player.y);
+			ctx.lineTo(
+				player.x + Math.cos(player.angle) * 25,
+				player.y + Math.sin(player.angle) * 25
+			);
+			ctx.stroke();
+			
+			// Player name (moved higher for better spacing)
+			ctx.fillStyle = '#fff';
 			ctx.font = '12px Arial';
-			ctx.fillText('🔧', player.x + 15, player.y);
+			ctx.textAlign = 'center';
+			ctx.fillText(player.name, player.x, player.y - 45);
+			
+			// Health bar (with better spacing from name)
+			const barWidth = 30;
+			const barHeight = 4;
+			const healthPercent = player.health / 100;
+			ctx.fillStyle = '#000';
+			ctx.fillRect(player.x - barWidth/2, player.y - 35, barWidth, barHeight);
+			ctx.fillStyle = healthPercent > 0.5 ? '#00ff00' : healthPercent > 0.25 ? '#ffaa00' : '#ff0000';
+			ctx.fillRect(player.x - barWidth/2, player.y - 35, barWidth * healthPercent, barHeight);
+			
+			// Bomb carrier indicator
+			if (player.bomb) {
+				ctx.fillStyle = '#ff0000';
+				ctx.font = 'bold 16px Arial';
+				ctx.fillText('💣', player.x, player.y + 35);
+			}
+			
+			// Defuse kit indicator
+			if (player.defuseKit) {
+				ctx.fillStyle = '#00ff00';
+				ctx.font = '12px Arial';
+				ctx.fillText('🔧', player.x + 15, player.y);
+			}
+		} else {
+			// Render dead players with gray body and cross
+			
+			// Dead player body (gray)
+			ctx.fillStyle = '#555555';
+			ctx.beginPath();
+			ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+			ctx.fill();
+			
+			// Draw red cross over dead player
+			ctx.strokeStyle = '#ff0000';
+			ctx.lineWidth = 4;
+			
+			// Cross line 1
+			ctx.beginPath();
+			ctx.moveTo(player.x - 10, player.y - 10);
+			ctx.lineTo(player.x + 10, player.y + 10);
+			ctx.stroke();
+			
+			// Cross line 2
+			ctx.beginPath();
+			ctx.moveTo(player.x + 10, player.y - 10);
+			ctx.lineTo(player.x - 10, player.y + 10);
+			ctx.stroke();
+			
+			// Dead player name (gray)
+			ctx.fillStyle = '#888888';
+			ctx.font = '12px Arial';
+			ctx.textAlign = 'center';
+			ctx.fillText(player.name + ' (DEAD)', player.x, player.y - 45);
+			
+			// Dead indicator text
+			ctx.fillStyle = '#ff4444';
+			ctx.font = 'bold 10px Arial';
+			ctx.fillText('✞ R.I.P ✞', player.x, player.y + 35);
 		}
 	}
 }
@@ -973,17 +1101,42 @@ function renderMinimap() {
 	
 	// Draw players
 	for (const player of Object.values(gameState.players)) {
-		if (!player.alive) continue;
-		
-		minimapCtx.fillStyle = player.team === 'ct' ? '#4444ff' : '#ffaa00';
-		minimapCtx.beginPath();
-		minimapCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI * 2);
-		minimapCtx.fill();
-		
-		// Highlight local player
-		if (player.id === gameState.localPlayerId) {
-			minimapCtx.strokeStyle = '#00ff00';
-			minimapCtx.lineWidth = 2;
+		if (player.alive) {
+			// Draw alive players normally
+			minimapCtx.fillStyle = player.team === 'ct' ? '#4444ff' : '#ffaa00';
+			minimapCtx.beginPath();
+			minimapCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI * 2);
+			minimapCtx.fill();
+			
+			// Highlight local player
+			if (player.id === gameState.localPlayerId) {
+				minimapCtx.strokeStyle = '#00ff00';
+				minimapCtx.lineWidth = 2;
+				minimapCtx.stroke();
+			}
+		} else {
+			// Draw dead players with gray color and cross
+			minimapCtx.fillStyle = '#666666';
+			minimapCtx.beginPath();
+			minimapCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI * 2);
+			minimapCtx.fill();
+			
+			// Draw small red cross for dead player on minimap
+			minimapCtx.strokeStyle = '#ff4444';
+			minimapCtx.lineWidth = 1;
+			const miniX = player.x * scale;
+			const miniY = player.y * scale;
+			
+			// Cross line 1
+			minimapCtx.beginPath();
+			minimapCtx.moveTo(miniX - 2, miniY - 2);
+			minimapCtx.lineTo(miniX + 2, miniY + 2);
+			minimapCtx.stroke();
+			
+			// Cross line 2
+			minimapCtx.beginPath();
+			minimapCtx.moveTo(miniX + 2, miniY - 2);
+			minimapCtx.lineTo(miniX - 2, miniY + 2);
 			minimapCtx.stroke();
 		}
 	}
@@ -1057,7 +1210,91 @@ function renderHUD() {
 	// Current weapon
 	ctx.fillStyle = '#ffffff';
 	ctx.font = '16px Arial';
-	ctx.fillText(`Weapon: ${player.currentWeapon.toUpperCase()}`, 240, canvas.height - 55);
+	let weaponDisplayName = 'NONE';
+	if (player.currentWeapon === 'primary' && player.primaryWeapon) {
+		weaponDisplayName = player.primaryWeapon.toUpperCase();
+	} else if (player.currentWeapon === 'secondary' && player.secondaryWeapon) {
+		weaponDisplayName = player.secondaryWeapon.toUpperCase();
+	} else if (player.currentWeapon === 'knife') {
+		weaponDisplayName = 'KNIFE';
+	}
+	ctx.fillText(`Weapon: ${weaponDisplayName}`, 240, canvas.height - 55);
+	
+	// Ammunition display
+	if (player.currentWeapon === 'primary' || player.currentWeapon === 'secondary') {
+		const weaponSlot = player.currentWeapon;
+		const currentAmmo = player.ammo[weaponSlot];
+		
+		// Show reload status
+		if (player.isReloading) {
+			ctx.fillStyle = '#ffaa00';
+			ctx.fillText('RELOADING...', 400, canvas.height - 80);
+		} else {
+			// Show ammo count
+			ctx.fillStyle = '#ffffff';
+			ctx.font = 'bold 18px Arial';
+			ctx.fillText(`${currentAmmo.clip}`, 400, canvas.height - 80);
+			
+			ctx.font = '14px Arial';
+			ctx.fillStyle = '#aaaaaa';
+			ctx.fillText(`/ ${currentAmmo.reserve}`, 430, canvas.height - 80);
+		}
+		
+		// Low ammo warning
+		if (currentAmmo.clip <= 3 && !player.isReloading) {
+			ctx.fillStyle = '#ff4444';
+			ctx.font = '12px Arial';
+			ctx.fillText('LOW AMMO', 400, canvas.height - 60);
+		}
+	}
+	
+	// Equipment slots display
+	ctx.fillStyle = '#ffffff';
+	ctx.font = '12px Arial';
+	ctx.textAlign = 'left';
+	ctx.fillText('Slots:', 20, canvas.height - 20);
+	
+	for (let slotNum = 1; slotNum <= 5; slotNum++) {
+		const slotItem = player.slots[slotNum];
+		const slotX = 80 + (slotNum - 1) * 60;
+		const slotY = canvas.height - 35;
+		
+		// Draw slot background
+		if (
+			(slotNum === 1 && player.currentWeapon === 'knife') ||
+			(slotNum === 2 && player.currentWeapon === 'secondary') ||
+			(slotNum === 3 && player.currentWeapon === 'primary') ||
+			(slotNum === 4 && player.currentWeapon === 'grenade1') ||
+			(slotNum === 5 && player.currentWeapon === 'grenade2')
+		) {
+			// Active slot - highlighted background
+			ctx.fillStyle = 'rgba(255, 107, 0, 0.7)';
+		} else {
+			// Inactive slot - dark background
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+		}
+		ctx.fillRect(slotX - 2, slotY - 2, 56, 16);
+		
+		// Draw slot border
+		ctx.strokeStyle = '#666666';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(slotX - 2, slotY - 2, 56, 16);
+		
+		// Draw slot number and item
+		ctx.fillStyle = '#ffffff';
+		ctx.font = 'bold 10px Arial';
+		ctx.textAlign = 'left';
+		ctx.fillText(`[${slotNum}]`, slotX, slotY + 10);
+		
+		if (slotItem) {
+			ctx.font = '9px Arial';
+			ctx.fillText(slotItem.toUpperCase(), slotX + 22, slotY + 10);
+		} else {
+			ctx.fillStyle = '#666666';
+			ctx.font = '9px Arial';
+			ctx.fillText('EMPTY', slotX + 22, slotY + 10);
+		}
+	}
 
 	// Round info
 	ctx.textAlign = 'center';
@@ -2202,8 +2439,8 @@ function initializeInputHandlers() {
 		}
 		
 		// Buy menu number key shortcuts
-		const buyMenu = document.getElementById('claude-buy-menu');
-		if (buyMenu) {
+		let buyMenuElement = document.getElementById('claude-buy-menu');
+		if (buyMenuElement) {
 			// Number key purchases when buy menu is open
 			if (e.code === 'Digit1') {
 				buyWeapon('ak47', 2500);  // [1] AK-47 in rifles or [1] Desert Eagle in pistols
@@ -2217,6 +2454,30 @@ function initializeInputHandlers() {
 				buyWeapon('usp', 500);    // [5] USP
 			} else if (e.code === 'Digit0') {
 				buyWeapon('glock', 0);    // [0] Glock (free)
+			}
+		}
+		
+		// Reload weapon with R key
+		if (e.code === 'KeyR') {
+			const player = gameState.players[gameState.localPlayerId];
+			if (player && player.alive && !player.isReloading) {
+				startReload(player);
+			}
+		}
+		
+		// Weapon/slot switching with number keys (when buy menu is not open)
+		let buyMenuCheck = document.getElementById('claude-buy-menu');
+		if (!buyMenuCheck) {
+			if (e.code === 'Digit1') {
+				switchToSlot(1); // Knife
+			} else if (e.code === 'Digit2') {
+				switchToSlot(2); // Secondary weapon (pistol)
+			} else if (e.code === 'Digit3') {
+				switchToSlot(3); // Primary weapon (rifle)
+			} else if (e.code === 'Digit4') {
+				switchToSlot(4); // Grenade slot 1
+			} else if (e.code === 'Digit5') {
+				switchToSlot(5); // Grenade slot 2
 			}
 		}
 		
@@ -2285,6 +2546,151 @@ function initializeInputHandlers() {
 				input.mouse.down = false;
 			}
 		});
+	}
+}
+
+// Ammunition and Reload System
+function startReload(player) {
+	// Determine which weapon is currently being used
+	let weaponSlot = null;
+	let weaponId = null;
+	
+	if (player.currentWeapon === 'primary' && player.primaryWeapon) {
+		weaponSlot = 'primary';
+		weaponId = player.primaryWeapon;
+	} else if (player.currentWeapon === 'secondary' && player.secondaryWeapon) {
+		weaponSlot = 'secondary';
+		weaponId = player.secondaryWeapon;
+	}
+	
+	if (!weaponSlot || !weaponId || weaponId === 'knife') {
+		console.log('Cannot reload: no weapon or knife selected');
+		return;
+	}
+	
+	const ammoConfig = WEAPON_AMMO_CONFIG[weaponId];
+	if (!ammoConfig) {
+		console.log('Cannot reload: weapon config not found for', weaponId);
+		return;
+	}
+	
+	const currentAmmo = player.ammo[weaponSlot];
+	
+	// Check if reload is needed
+	if (currentAmmo.clip >= ammoConfig.clipSize) {
+		console.log('Cannot reload: clip already full');
+		return;
+	}
+	
+	if (currentAmmo.reserve <= 0) {
+		console.log('Cannot reload: no reserve ammo');
+		return;
+	}
+	
+	// Start reload process
+	player.isReloading = true;
+	player.reloadStartTime = Date.now();
+	
+	// Reload time varies by weapon type (in milliseconds)
+	const reloadTimes = {
+		pistol: 1500,
+		smg: 2000,
+		rifle: 2500,
+		sniper: 3000,
+		shotgun: 2800
+	};
+	
+	let reloadTime = 2000; // Default
+	if (['glock', 'usp', 'p228', 'deagle', 'fiveseven', 'elite'].includes(weaponId)) {
+		reloadTime = reloadTimes.pistol;
+	} else if (['ak47', 'm4a1', 'galil', 'famas', 'sg552', 'aug'].includes(weaponId)) {
+		reloadTime = reloadTimes.rifle;
+	} else if (['awp', 'scout', 'g3sg1', 'sg550'].includes(weaponId)) {
+		reloadTime = reloadTimes.sniper;
+	} else if (['mac10', 'tmp', 'mp5', 'ump45', 'p90'].includes(weaponId)) {
+		reloadTime = reloadTimes.smg;
+	} else if (['m3', 'xm1014'].includes(weaponId)) {
+		reloadTime = reloadTimes.shotgun;
+	}
+	
+	console.log(`🔄 Reloading ${weaponId} (${reloadTime}ms)`);
+	
+	// Complete reload after delay
+	setTimeout(() => {
+		if (player.isReloading) { // Check if reload wasn't cancelled
+			completeReload(player, weaponSlot, weaponId);
+		}
+	}, reloadTime);
+}
+
+function completeReload(player, weaponSlot, weaponId) {
+	const ammoConfig = WEAPON_AMMO_CONFIG[weaponId];
+	const currentAmmo = player.ammo[weaponSlot];
+	
+	// Calculate how many bullets to reload
+	const ammoNeeded = ammoConfig.clipSize - currentAmmo.clip;
+	const ammoToReload = Math.min(ammoNeeded, currentAmmo.reserve);
+	
+	// Reload ammunition
+	currentAmmo.clip += ammoToReload;
+	currentAmmo.reserve -= ammoToReload;
+	
+	player.isReloading = false;
+	player.reloadStartTime = 0;
+	
+	console.log(`✅ Reload complete: ${currentAmmo.clip}/${currentAmmo.reserve} (${weaponId})`);
+}
+
+// Slot Switching System
+function switchToSlot(slotNumber) {
+	const player = gameState.players[gameState.localPlayerId];
+	if (!player || !player.alive) return;
+	
+	const slotItem = player.slots[slotNumber];
+	if (!slotItem) {
+		console.log(`Slot ${slotNumber} is empty`);
+		return;
+	}
+	
+	// Switch to the appropriate weapon/item
+	switch (slotNumber) {
+		case 1: // Knife
+			if (slotItem === 'knife') {
+				player.currentWeapon = 'knife';
+				console.log('🔪 Switched to knife');
+			}
+			break;
+			
+		case 2: // Secondary weapon (pistol)
+			if (player.secondaryWeapon && slotItem === player.secondaryWeapon) {
+				player.currentWeapon = 'secondary';
+				console.log(`🔫 Switched to secondary: ${player.secondaryWeapon}`);
+			}
+			break;
+			
+		case 3: // Primary weapon (rifle)
+			if (player.primaryWeapon && slotItem === player.primaryWeapon) {
+				player.currentWeapon = 'primary';
+				console.log(`🔫 Switched to primary: ${player.primaryWeapon}`);
+			}
+			break;
+			
+		case 4: // Grenade slot 1
+		case 5: // Grenade slot 2
+			// TODO: Implement grenade switching
+			console.log(`💣 Selected grenade slot ${slotNumber}: ${slotItem}`);
+			break;
+	}
+}
+
+function updateAmmo(player, weaponSlot, bulletsUsed = 1) {
+	const currentAmmo = player.ammo[weaponSlot];
+	currentAmmo.clip = Math.max(0, currentAmmo.clip - bulletsUsed);
+	
+	// Auto-reload when clip is empty and there's reserve ammo
+	if (currentAmmo.clip === 0 && currentAmmo.reserve > 0 && !player.isReloading) {
+		console.log('🔄 Auto-reload triggered (clip empty)');
+		startReload(player);
 	}
 }
 
@@ -2439,6 +2845,17 @@ function purchaseWeapon(weaponId) {
 	// Assign weapon based on type
 	if (['usp', 'glock', 'p228', 'deagle', 'fiveseven', 'elite'].includes(weaponId)) {
 		player.secondaryWeapon = weaponId;
+		
+		// Initialize ammunition for secondary weapon
+		const ammoConfig = WEAPON_AMMO_CONFIG[weaponId];
+		if (ammoConfig) {
+			player.ammo.secondary.clip = ammoConfig.clipSize;
+			player.ammo.secondary.reserve = ammoConfig.maxAmmo - ammoConfig.clipSize;
+		}
+		
+		// Update slot
+		player.slots[2] = weaponId;
+		
 		// Only switch to secondary if player doesn't have a primary weapon
 		if (!player.primaryWeapon) {
 			player.currentWeapon = 'secondary';
@@ -2463,6 +2880,16 @@ function purchaseWeapon(weaponId) {
 		// Primary weapons
 		player.primaryWeapon = weaponId;
 		player.currentWeapon = 'primary';
+		
+		// Initialize ammunition for primary weapon
+		const ammoConfig = WEAPON_AMMO_CONFIG[weaponId];
+		if (ammoConfig) {
+			player.ammo.primary.clip = ammoConfig.clipSize;
+			player.ammo.primary.reserve = ammoConfig.maxAmmo - ammoConfig.clipSize;
+		}
+		
+		// Update slot
+		player.slots[3] = weaponId;
 	}
 	
 	console.log(`Purchased ${weaponData.name} for $${weaponData.price}`);
@@ -2670,20 +3097,43 @@ function shoot() {
 	const player = gameState.players[gameState.localPlayerId];
 	if (!player || !player.alive) return;
 	
-	// DEBUG: Log all player data when shooting
-	console.log('🔥 SHOOT DEBUG:');
-	console.log('  localPlayerId:', gameState.localPlayerId);
-	console.log('  player object:', player);
-	console.log('  all players:', Object.keys(gameState.players));
-	console.log('  player.x:', player.x, 'player.y:', player.y);
-	console.log('  player.name:', player.name, 'player.team:', player.team);
+	// Check if player is reloading
+	if (player.isReloading) {
+		console.log('Cannot shoot: currently reloading');
+		return;
+	}
 	
-	// Determine current weapon
+	// Determine current weapon and slot
 	let currentWeaponId = null;
+	let weaponSlot = null;
+	
 	if (player.currentWeapon === 'primary' && player.primaryWeapon) {
 		currentWeaponId = player.primaryWeapon;
+		weaponSlot = 'primary';
 	} else if (player.currentWeapon === 'secondary' && player.secondaryWeapon) {
 		currentWeaponId = player.secondaryWeapon;
+		weaponSlot = 'secondary';
+	} else if (player.currentWeapon === 'knife') {
+		console.log('Cannot shoot: knife selected');
+		return;
+	}
+	
+	// Check ammunition
+	if (weaponSlot && player.ammo[weaponSlot].clip <= 0) {
+		console.log(`Cannot shoot: no ammo in clip (${player.ammo[weaponSlot].clip}/${player.ammo[weaponSlot].reserve})`);
+		// Try to auto-reload if there's reserve ammo
+		if (player.ammo[weaponSlot].reserve > 0 && !player.isReloading) {
+			console.log('🔄 Auto-reload triggered (empty clip)');
+			startReload(player);
+		}
+		return;
+	}
+	
+	console.log(`🔥 Shooting ${currentWeaponId} (${player.ammo[weaponSlot].clip}/${player.ammo[weaponSlot].reserve})`);
+	
+	// Consume ammunition
+	if (weaponSlot) {
+		updateAmmo(player, weaponSlot, 1);
 	}
 	
 	// Check fire rate limit
@@ -2961,10 +3411,32 @@ function buyWeapon(weaponId, price) {
 		// Primary weapon
 		player.primaryWeapon = weaponId;
 		player.currentWeapon = 'primary';
+		
+		// Initialize ammunition for primary weapon
+		const ammoConfig = WEAPON_AMMO_CONFIG[weaponId];
+		if (ammoConfig) {
+			player.ammo.primary.clip = ammoConfig.clipSize;
+			player.ammo.primary.reserve = ammoConfig.maxAmmo - ammoConfig.clipSize;
+		}
+		
+		// Update slot
+		player.slots[3] = weaponId;
+		
 		console.log(`🔫 Equipped primary weapon: ${weaponId}`);
 	} else if (['deagle', 'usp', 'glock', 'p228'].includes(weaponId)) {
 		// Secondary weapon  
 		player.secondaryWeapon = weaponId;
+		
+		// Initialize ammunition for secondary weapon
+		const ammoConfig = WEAPON_AMMO_CONFIG[weaponId];
+		if (ammoConfig) {
+			player.ammo.secondary.clip = ammoConfig.clipSize;
+			player.ammo.secondary.reserve = ammoConfig.maxAmmo - ammoConfig.clipSize;
+		}
+		
+		// Update slot
+		player.slots[2] = weaponId;
+		
 		if (!player.primaryWeapon) {
 			player.currentWeapon = 'secondary';
 		}
@@ -2976,9 +3448,9 @@ function buyWeapon(weaponId, price) {
 	
 	// Close buy menu after purchase
 	setTimeout(() => {
-		const buyMenu = document.getElementById('claude-buy-menu');
-		if (buyMenu) {
-			buyMenu.remove();
+		let buyMenuToClose = document.getElementById('claude-buy-menu');
+		if (buyMenuToClose) {
+			buyMenuToClose.remove();
 		}
 	}, 500);
 }
@@ -2996,9 +3468,9 @@ function updateBuyMenuMoney() {
 	});
 	
 	// Also update any money display in the buy menu content
-	const buyMenu = document.getElementById('claude-buy-menu');
-	if (buyMenu) {
-		const moneyDiv = buyMenu.querySelector('div:nth-child(1) div:nth-child(2)');
+	let currentBuyMenu = document.getElementById('claude-buy-menu');
+	if (currentBuyMenu) {
+		const moneyDiv = currentBuyMenu.querySelector('div:nth-child(1) div:nth-child(2)');
 		if (moneyDiv) {
 			moneyDiv.textContent = `Money: $${player.money}`;
 		}
