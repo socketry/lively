@@ -48,38 +48,11 @@ class CS16ClassicView < Live::View
 	end
 	
 	def inject_game_initialization
-		# Inject JavaScript to initialize the game
-		self.script(<<~JAVASCRIPT)
-			console.log('CS16 Classic: Injecting game initialization via WebSocket...');
-			
-			// Check if module is loaded
-			if (typeof window.CS16Classic !== 'undefined' && window.CS16Classic.initializeGame) {
-				console.log('CS16 Classic: Module found, initializing game with player ID: #{@player_id}');
-				try {
-					window.CS16Classic.initializeGame('#{@player_id}');
-					console.log('CS16 Classic: Game initialized successfully!');
-				} catch (error) {
-					console.error('CS16 Classic: Error during initialization:', error);
-					console.error(error.stack);
-				}
-			} else {
-				console.error('CS16 Classic: Module not found, retrying...');
-				// Retry after delay
-				setTimeout(function() {
-					if (typeof window.CS16Classic !== 'undefined' && window.CS16Classic.initializeGame) {
-						console.log('CS16 Classic: Module found on retry, initializing...');
-						try {
-							window.CS16Classic.initializeGame('#{@player_id}');
-							console.log('CS16 Classic: Game initialized on retry!');
-						} catch (error) {
-							console.error('CS16 Classic: Error on retry:', error);
-						}
-					} else {
-						console.error('CS16 Classic: Module still not available after retry');
-					}
-				}, 1000);
-			}
-		JAVASCRIPT
+		# Skip WebSocket injection if page is not bound properly
+		# The HTML-based initialization will handle the game startup
+		Console.info(self, "CS16 Classic: Using HTML-based initialization instead of WebSocket injection")
+	rescue => error
+		Console.error(self, "CS16 Classic: WebSocket injection failed: #{error.message}")
 	end
 	
 	def render(builder)
@@ -103,8 +76,8 @@ class CS16ClassicView < Live::View
 			render_classic_chatbox(builder)
 			render_classic_killfeed(builder)
 			
-			# Loading screen
-			render_loading_screen(builder)
+			# Loading screen - DISABLED for debugging
+			# render_loading_screen(builder)
 		end
 	end
 	
@@ -132,43 +105,100 @@ class CS16ClassicView < Live::View
 	end
 	
 	def render_javascript_integration(builder)
-		# Include the external JavaScript file
-		builder.tag(:script, src: "/_static/cs16_classic_game.js", type: "text/javascript")
+		# Simple test first
+		builder.tag(:script, type: "text/javascript") do
+			builder.raw(<<~JAVASCRIPT)
+				console.log('🚀🚀🚀 BASIC HTML SCRIPT TEST - This should appear first!');
+				console.log('🚀🚀🚀 DOM ready state:', document.readyState);
+				console.log('🚀🚀🚀 Canvas element exists:', !!document.getElementById('game-canvas'));
+				
+				// Monitor for external JS loading
+				let checkCount = 0;
+				const loadChecker = setInterval(() => {
+					checkCount++;
+					console.log('🔍 Check', checkCount + ':', 'CS16Classic available:', typeof window.CS16Classic !== 'undefined');
+					if (typeof window.CS16Classic !== 'undefined' || checkCount >= 10) {
+						clearInterval(loadChecker);
+						if (typeof window.CS16Classic !== 'undefined') {
+							console.log('✅ External JS loaded successfully!');
+							console.log('✅ CS16Classic functions:', Object.keys(window.CS16Classic));
+						} else {
+							console.log('❌ External JS failed to load after 5 seconds');
+						}
+					}
+				}, 500);
+			JAVASCRIPT
+		end
+		
+		# Include the external JavaScript file - must have closing tag
+		builder.tag(:script, src: "/_static/cs16_classic_game.js", type: "text/javascript") do
+			# Empty content but forces proper opening/closing tags
+		end
 		
 		# Initialize the game with the player ID
 		builder.tag(:script, type: "text/javascript") do
 			builder.raw(<<~JAVASCRIPT)
-				// Initialize CS 1.6 Classic Game
-				console.log('CS16 Classic: Attempting to initialize game...');
+				console.log('🎮🎮🎮 INITIALIZATION SCRIPT IS RUNNING!');
+				console.log('🎮 CS16 Classic: Starting initialization...');
 				
-				// Function to initialize game when ready
-				function initializeCS16Game() {
-					if (typeof window.CS16Classic !== 'undefined' && window.CS16Classic.initializeGame) {
-						console.log('CS16 Classic: Module loaded, initializing with player ID: #{@player_id}');
-						window.CS16Classic.initializeGame('#{@player_id}');
-						return true;
+				// Generate player ID in JavaScript if not provided from Ruby
+				const playerId = '#{@player_id}' || 'player-' + Math.random().toString(36).substr(2, 9);
+				console.log('🎮 Player ID:', playerId);
+				
+				// Wait for external JS to load (DOM elements are already available)
+				function attemptInitialization() {
+					console.log('🎮 Checking initialization conditions...');
+					console.log('🎮 DOM ready state:', document.readyState);
+					console.log('🎮 CS16Classic available:', typeof window.CS16Classic !== 'undefined');
+					console.log('🎮 Canvas exists:', !!document.getElementById('game-canvas'));
+					
+					// Only need external JS and canvas to be ready - don't wait for document.readyState === 'complete'
+					if (typeof window.CS16Classic !== 'undefined' && window.CS16Classic.initializeGame && document.getElementById('game-canvas')) {
+						console.log('✅ All conditions met, initializing game...');
+						try {
+							window.CS16Classic.initializeGame(playerId);
+							console.log('✅ Game initialization completed successfully!');
+							return true;
+						} catch (error) {
+							console.error('❌ Game initialization failed:', error);
+							console.error('❌ Stack trace:', error.stack);
+							return false;
+						}
+					} else {
+						console.log('⏳ Conditions not met yet, will retry...');
+						if (typeof window.CS16Classic === 'undefined') {
+							console.log('Available window properties:', Object.keys(window).filter(k => k.toLowerCase().includes('cs16') || k.toLowerCase().includes('game')));
+						}
+						return false;
 					}
-					return false;
 				}
 				
-				// Try immediate initialization
-				if (!initializeCS16Game()) {
-					console.log('CS16 Classic: Module not ready, setting up retry...');
+				// Try immediate initialization, then use event-driven approach
+				console.log('🎮 Starting initialization sequence...');
+				
+				if (attemptInitialization()) {
+					console.log('🎮 Immediate initialization successful!');
+				} else {
+					console.log('🎮 Immediate initialization failed, setting up retry system...');
 					
-					// Retry with increasing delays
+					// Use a more aggressive retry with shorter intervals
 					let attempts = 0;
 					const maxAttempts = 10;
 					const retryInterval = setInterval(function() {
 						attempts++;
-						console.log('CS16 Classic: Retry attempt ' + attempts);
+						console.log('🎮 Initialization attempt', attempts + '/' + maxAttempts);
 						
-						if (initializeCS16Game() || attempts >= maxAttempts) {
+						if (attemptInitialization()) {
+							console.log('🎮 Retry initialization successful!');
 							clearInterval(retryInterval);
-							if (attempts >= maxAttempts) {
-								console.error('CS16 Classic: Failed to load after ' + maxAttempts + ' attempts');
-							}
+						} else if (attempts >= maxAttempts) {
+							console.error('❌ Failed to initialize after ' + maxAttempts + ' attempts');
+							console.log('❌ Final DOM state:', document.readyState);
+							console.log('❌ CS16Classic available:', typeof window.CS16Classic !== 'undefined');
+							console.log('❌ Canvas available:', !!document.getElementById('game-canvas'));
+							clearInterval(retryInterval);
 						}
-					}, 500);
+					}, 200);
 				}
 			JAVASCRIPT
 		end
@@ -388,5 +418,4 @@ class CS16ClassicView < Live::View
 	end
 end
 
-# Define Application for Lively framework
-Application = Lively::Application[CS16ClassicView]
+# Application constant is defined in application.rb
