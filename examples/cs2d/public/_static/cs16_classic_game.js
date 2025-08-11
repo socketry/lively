@@ -1043,7 +1043,7 @@ function renderHUD() {
 	// Buy Zone & Buy Time Indicator
 	const buyTimeLeft = CLASSIC_CONFIG.BUY_TIME - (CLASSIC_CONFIG.ROUND_TIME - gameState.roundTime);
 	const inBuyZone = isInBuyZone(player);
-	const canBuy = buyTimeLeft > 0 && gameState.phase === 'playing';
+	const canBuy = (gameState.phase === 'freeze') || (buyTimeLeft > 0 && gameState.phase === 'playing');
 	
 	if (inBuyZone && canBuy) {
 		// Can buy - show green indicator
@@ -1052,7 +1052,11 @@ function renderHUD() {
 		ctx.textAlign = 'center';
 		ctx.fillText('BUY ZONE', canvas.width / 2, 95);
 		ctx.font = '14px Arial';
-		ctx.fillText(`Buy Time: ${Math.ceil(buyTimeLeft)}s`, canvas.width / 2, 110);
+		if (gameState.phase === 'freeze') {
+			ctx.fillText(`Freeze Time - Can Buy`, canvas.width / 2, 110);
+		} else {
+			ctx.fillText(`Buy Time: ${Math.ceil(buyTimeLeft)}s`, canvas.width / 2, 110);
+		}
 		ctx.fillText('Press B to buy', canvas.width / 2, 125);
 	} else if (inBuyZone && !canBuy) {
 		// In buy zone but can't buy - show yellow indicator
@@ -2243,9 +2247,11 @@ function purchaseWeapon(weaponId) {
 		return;
 	}
 	
-	// Check buy time
+	// Check buy time (allow during freeze time or within buy time during playing phase)
 	const buyTimeLeft = CLASSIC_CONFIG.BUY_TIME - (CLASSIC_CONFIG.ROUND_TIME - gameState.roundTime);
-	if (buyTimeLeft <= 0 && gameState.phase === 'playing') {
+	const canBuyTime = (gameState.phase === 'freeze') || (buyTimeLeft > 0 && gameState.phase === 'playing');
+	
+	if (!canBuyTime) {
 		const message = 'Buy time expired';
 		console.log(message);
 		showPurchaseError(message);
