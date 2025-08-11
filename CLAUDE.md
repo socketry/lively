@@ -39,8 +39,11 @@ bundle exec lively lib/lively/application.rb
 cd examples/hello-world
 bundle exec lively application.rb
 
-# Alternative: use the lively executable directly
-./bin/lively examples/hello-world/application.rb
+# Use the lively executable with absolute paths (recommended)
+./bin/lively /full/path/to/application.rb
+
+# Example: CS2D game
+./bin/lively /Users/jimmy/jimmy_side_projects/lively/examples/cs2d/cs16_classic_refactored.rb
 ```
 
 ### Testing

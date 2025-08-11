@@ -787,10 +787,6 @@ function updatePlayerMovement(deltaTime) {
 		player.y = newY;
 	}
 	
-	// Keep player in bounds
-	player.x = Math.max(50, Math.min(CLASSIC_CONFIG.MAP_WIDTH - 50, player.x));
-	player.y = Math.max(50, Math.min(CLASSIC_CONFIG.MAP_HEIGHT - 50, player.y));
-	
 	// Update viewport to follow player
 	gameState.viewportX = player.x - canvas.width / 2;
 	gameState.viewportY = player.y - canvas.height / 2;
@@ -804,32 +800,54 @@ function updatePlayerMovement(deltaTime) {
 function checkWallCollision(x, y) {
 	const playerRadius = 16;
 	
-	// Simple wall collision based on de_dust2 layout
+	// Map boundaries (matching the strokeRect from renderMap)
+	const mapBounds = {
+		left: 50,
+		top: 50,
+		right: CLASSIC_CONFIG.MAP_WIDTH - 50,
+		bottom: CLASSIC_CONFIG.MAP_HEIGHT - 50
+	};
+	
+	// Check map boundary collisions
+	if (x - playerRadius <= mapBounds.left ||
+			x + playerRadius >= mapBounds.right ||
+			y - playerRadius <= mapBounds.top ||
+			y + playerRadius >= mapBounds.bottom) {
+		return true;
+	}
+	
+	// Wall segments matching the rendered map exactly
 	const walls = [
-		// CT spawn walls
-		{ x1: 50, y1: 100, x2: 70, y2: 300 },
-		{ x1: 50, y1: 100, x2: 200, y2: 120 },
-		// T spawn walls  
-		{ x1: 1200, y1: 100, x2: 1220, y2: 300 },
-		{ x1: 1070, y1: 100, x2: 1220, y2: 120 },
-		// Mid walls
-		{ x1: 400, y1: 50, x2: 420, y2: 350 },
-		{ x1: 860, y1: 50, x2: 880, y2: 350 },
-		{ x1: 400, y1: 400, x2: 880, y2: 420 }
+		// Mid walls - vertical line at x=640 (matching renderMap)
+		{ x1: 640, y1: 50, x2: 640, y2: 300 },   // Top section
+		{ x1: 640, y1: 420, x2: 640, y2: 670 }   // Bottom section
 	];
 	
+	// Boxes matching the rendered positions exactly
 	const boxes = [
-		{ x: 250, y: 250, w: 60, h: 60 },
-		{ x: 550, y: 150, w: 40, h: 40 },
-		{ x: 750, y: 300, w: 50, h: 50 },
-		{ x: 950, y: 200, w: 60, h: 60 }
+		// A site boxes (matching renderMap positions)
+		{ x: 200, y: 150, w: 60, h: 60 },
+		{ x: 300, y: 200, w: 40, h: 40 },
+		// B site boxes (matching renderMap positions)
+		{ x: 900, y: 500, w: 60, h: 60 },
+		{ x: 1000, y: 450, w: 40, h: 40 }
 	];
 	
-	// Check wall collisions
+	// Check wall collisions (for line walls, need special handling)
 	for (const wall of walls) {
-		if (x + playerRadius > wall.x1 && x - playerRadius < wall.x2 &&
-				y + playerRadius > wall.y1 && y - playerRadius < wall.y2) {
-			return true;
+		// For vertical walls (x1 === x2)
+		if (wall.x1 === wall.x2) {
+			if (Math.abs(x - wall.x1) <= playerRadius &&
+					y + playerRadius >= wall.y1 && y - playerRadius <= wall.y2) {
+				return true;
+			}
+		}
+		// For horizontal walls (y1 === y2)  
+		else if (wall.y1 === wall.y2) {
+			if (Math.abs(y - wall.y1) <= playerRadius &&
+					x + playerRadius >= wall.x1 && x - playerRadius <= wall.x2) {
+				return true;
+			}
 		}
 	}
 	
@@ -1089,10 +1107,6 @@ function moveBotTowards(bot, target, speed, deltaTime) {
 		if (!checkWallCollision(bot.x, newY)) {
 			bot.y = newY;
 		}
-		
-		// Keep bot in bounds
-		bot.x = Math.max(50, Math.min(CLASSIC_CONFIG.MAP_WIDTH - 50, bot.x));
-		bot.y = Math.max(50, Math.min(CLASSIC_CONFIG.MAP_HEIGHT - 50, bot.y));
 	}
 }
 
