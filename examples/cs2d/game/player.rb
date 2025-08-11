@@ -2,10 +2,10 @@
 
 class Player
 	attr_accessor :id, :name, :team, :x, :y, :health, :armor, :money
-	attr_accessor :kills, :deaths, :last_update
+	attr_accessor :kills, :deaths, :last_update, :is_bot, :bot_difficulty
 	attr_reader :weapons, :current_weapon_index
 		
-	def initialize(id:, name:, team:, x: 0, y: 0)
+	def initialize(id:, name:, team:, x: 0, y: 0, is_bot: false, bot_difficulty: "normal")
 		@id = id
 		@name = name
 		@team = team
@@ -23,6 +23,8 @@ class Player
 		@is_reloading = false
 		@reload_start_time = nil
 		@last_update = Time.now
+		@is_bot = is_bot
+		@bot_difficulty = bot_difficulty
 	end
 		
 	def current_weapon

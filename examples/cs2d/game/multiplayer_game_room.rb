@@ -5,19 +5,27 @@ require_relative "bullet"
 require_relative "game_state"
 
 class MultiplayerGameRoom
-	attr_reader :room_id, :players, :bullets, :game_state, :room_settings
+	attr_reader :room_id, :players, :bots, :bullets, :game_state, :room_settings, :room_state
 		
 	TICK_RATE = 30 # 30 updates per second
 	TICK_INTERVAL = 1.0 / TICK_RATE
 	MAX_PLAYERS = 10
+	
+	# Room states
+	STATE_WAITING = "waiting"
+	STATE_STARTING = "starting" 
+	STATE_PLAYING = "playing"
+	STATE_FINISHED = "finished"
 		
 	def initialize(room_id, settings = {})
 		@room_id = room_id
 		@players = {}
+		@bots = {}
 		@player_views = {} # Store view references for direct communication
 		@bullets = []
 		@game_state = GameState.new
 		@room_settings = default_room_settings.merge(settings)
+		@room_state = STATE_WAITING
 				
 		# Network optimization
 		@last_state_snapshot = {}
@@ -46,7 +54,7 @@ class MultiplayerGameRoom
 	end
 		
 	def add_player(player_id, view)
-		return false if @players.size >= MAX_PLAYERS
+		return false if (@players.size + @bots.size) >= MAX_PLAYERS
 				
 		# Auto-balance teams
 		team = determine_team_for_new_player
@@ -103,6 +111,58 @@ class MultiplayerGameRoom
 		
 	def get_player_view(player_id)
 		@player_views[player_id]
+	end
+	
+	# Bot management methods
+	def add_bot(bot_id, bot_name = nil, difficulty = "normal")
+		return false if (@players.size + @bots.size) >= MAX_PLAYERS
+		
+		# Auto-balance teams
+		team = determine_team_for_new_player
+		
+		bot = Player.new(
+			id: bot_id,
+			name: bot_name || generate_bot_name(bot_id),
+			team: team,
+			x: get_spawn_position(team)[:x],
+			y: get_spawn_position(team)[:y],
+			is_bot: true,
+			bot_difficulty: difficulty
+		)
+		
+		@bots[bot_id] = bot
+		
+		broadcast_to_all_players({
+			type: "bot_joined",
+			bot: player_data(bot),
+			room_info: get_room_info,
+			timestamp: Time.now.to_f * 1000
+		})
+		
+		true
+	end
+	
+	def remove_bot(bot_id)
+		bot = @bots.delete(bot_id)
+		
+		if bot
+			broadcast_to_all_players({
+				type: "bot_left",
+				bot_id: bot_id,
+				bot_name: bot.name,
+				timestamp: Time.now.to_f * 1000
+			})
+		end
+		
+		check_round_end_conditions
+	end
+	
+	def get_bot(bot_id)
+		@bots[bot_id]
+	end
+	
+	def get_all_entities
+		@players.merge(@bots)
 	end
 		
 	def process_movement(player_id, input)
@@ -845,6 +905,107 @@ class MultiplayerGameRoom
 				}
 	end
 		
+	# Room state management
+	def can_start_game?
+		total_players = @players.size + @bots.size
+		total_players >= 2 && @room_state == STATE_WAITING
+	end
+	
+	def start_game
+		return false unless can_start_game?
+		
+		@room_state = STATE_PLAYING
+		@game_state.start_new_round
+		
+		broadcast_to_all_players({
+			type: "game_started",
+			room_state: @room_state,
+			timestamp: Time.now.to_f * 1000
+		})
+		
+		true
+	end
+	
+	def end_game
+		@room_state = STATE_FINISHED
+		
+		broadcast_to_all_players({
+			type: "game_ended",
+			room_state: @room_state,
+			timestamp: Time.now.to_f * 1000
+		})
+	end
+	
+	def reset_room
+		@room_state = STATE_WAITING
+		@players.clear
+		@bots.clear
+		@player_views.clear
+		@bullets.clear
+		@game_state = GameState.new
+	end
+	
+	def can_add_player?
+		(@players.size + @bots.size) < MAX_PLAYERS && @room_state == STATE_WAITING
+	end
+	
+	def empty?
+		@players.empty? && @bots.empty?
+	end
+	
+	def get_player_list
+		@players.map do |id, player|
+			{
+				id: id,
+				name: player.name,
+				team: player.team,
+				is_bot: false,
+				health: player.health,
+				money: player.money
+			}
+		end
+	end
+	
+	def get_bot_list  
+		@bots.map do |id, bot|
+			{
+				id: id,
+				name: bot.name,
+				team: bot.team,
+				is_bot: true,
+				difficulty: bot.bot_difficulty || "normal",
+				health: bot.health
+			}
+		end
+	end
+	
+	def get_room_info
+		{
+			room_id: @room_id,
+			state: @room_state,
+			player_count: @players.size,
+			bot_count: @bots.size,
+			max_players: MAX_PLAYERS,
+			settings: @room_settings
+		}
+	end
+	
+	def generate_bot_name(bot_id)
+		bot_names = [
+			"Alpha", "Bravo", "Charlie", "Delta", "Echo", 
+			"Foxtrot", "Golf", "Hotel", "India", "Juliet"
+		]
+		bot_names.sample || "Bot_#{bot_id.split('_').last}"
+	end
+	
+	def cleanup
+		# Clean up any resources when room is destroyed
+		@players.clear
+		@bots.clear
+		@player_views.clear
+		@bullets.clear
+	end
+
 	def default_room_settings
 		{
 						map: "de_dust2",
