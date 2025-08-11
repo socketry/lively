@@ -132,6 +132,70 @@ Views can trigger client updates by calling `update!` which sends the new render
 - Shared framework assets are in the gem's `public/` directory
 - Both are automatically served by the Assets middleware
 
+### Modular Architecture Pattern (NEW)
+For complex applications, use Ruby modules to organize code by responsibility:
+
+```ruby
+# Extract components into focused modules
+module GameState
+  def initialize_game_state
+    # Game state management
+  end
+end
+
+module PlayerManager
+  def create_player(id, team)
+    # Player creation and management
+  end
+end
+
+module HudComponents
+  def render_classic_hud(builder)
+    # HUD rendering logic
+  end
+end
+
+# Main view class includes modules
+class GameView < Live::View
+  include GameState
+  include PlayerManager
+  include HudComponents
+  
+  def render(builder)
+    render_game_container(builder)
+    render_javascript_integration(builder)
+  end
+end
+```
+
+### JavaScript Externalization Pattern
+For large JavaScript applications (>10K characters), externalize to separate files:
+
+```ruby
+def render_javascript_integration(builder)
+  # Include external JavaScript file
+  builder.tag(:script, src: "/_static/game_logic.js", type: "text/javascript")
+  
+  # Initialize with Ruby data
+  builder.tag(:script, type: "text/javascript") do
+    builder.raw(<<~JAVASCRIPT)
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.GameEngine !== 'undefined') {
+          window.GameEngine.initialize('#{@player_id}');
+        }
+      });
+    JAVASCRIPT
+  end
+end
+```
+
+**Benefits:**
+- **Maintainability**: Each component has single responsibility
+- **Performance**: JavaScript can be cached and optimized separately
+- **Debugging**: Easier to isolate and fix issues
+- **Reusability**: Modules can be shared across different views
+- **Testing**: Components can be tested in isolation
+
 ## Common Issues and Solutions
 
 ### JavaScript Execution Issues
@@ -247,18 +311,34 @@ A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-t
 cd examples/cs2d
 bundle exec lively ./application.rb
 
-# Alternative direct run
+# Run original monolithic version (2227 lines)
 ./bin/lively examples/cs2d/cs16_classic_rules.rb
+
+# Run refactored modular version (recommended)
+./bin/lively examples/cs2d/cs16_classic_refactored.rb
+```
+
+**Refactored Modular Architecture:**
+The CS2D example has been refactored from a single 2227-line file into a clean modular structure:
+
+```
+cs16_classic_refactored.rb     # Main view (338 lines, 85% reduction)
+lib/
+  cs16_game_state.rb           # Game state management
+  cs16_player_manager.rb       # Player creation and management  
+  cs16_hud_components.rb       # HUD rendering components
+public/_static/
+  cs16_classic_game.js         # Externalized JavaScript (1645+ lines)
 ```
 
 **Key Implementation Patterns:**
-- **JavaScript Structure**: Separate `render_game_javascript` method for HTML-based inclusion
-- **WebSocket vs HTML**: Use `self.script()` for small scripts (<10K), HTML inclusion for large game code
-- **Timing Management**: Add `Async` delays for WebSocket readiness before JavaScript injection
-- **Visual Debugging**: Always include status indicators and console logging
-- **Game State**: Centralized gameState object for all game data
-- **Input Handling**: Event-driven input system with proper preventDefault calls
-- **Rendering Pipeline**: Clear → Map → Entities → Effects → UI → Crosshair
+- **Modular Design**: Ruby modules for single responsibility (GameState, PlayerManager, HudComponents)
+- **JavaScript Externalization**: Large game logic moved to separate cached .js file
+- **Clean Separation**: Server logic in Ruby, client logic in JavaScript
+- **Component Reusability**: HUD components can be reused across different game modes
+- **Maintainable Structure**: Each file handles one specific concern
+- **Performance**: External JavaScript is cached by browser
+- **Debugging**: Issues can be isolated to specific modules
 
 **Technical Lessons Learned:**
 - **Large JavaScript Applications**: Always use HTML-based inclusion for game code >10K characters
@@ -525,3 +605,118 @@ end
 
 Application = Lively::Application[CS2DView]
 ```
+
+## Code Refactoring Best Practices
+
+### When to Refactor Large Lively Applications
+
+**Refactor when files exceed these thresholds:**
+- **Ruby View Files**: >500 lines (extract into modules)
+- **JavaScript Blocks**: >100 lines (externalize to .js files)  
+- **Combined Files**: >1000 lines (apply full modular architecture)
+- **Repeated Patterns**: >3 similar code blocks (extract into modules/functions)
+
+### Refactoring Strategy
+
+1. **Identify Concerns**: Group related functionality (UI, game state, player management)
+2. **Extract Modules**: Create focused Ruby modules with single responsibility
+3. **Externalize JavaScript**: Move large JavaScript to separate cached files
+4. **Clean Integration**: Use clean interfaces between components
+5. **Test Iteratively**: Verify functionality after each refactoring step
+
+### Module Extraction Pattern
+
+```ruby
+# Before: Monolithic view (2227 lines)
+class LargeGameView < Live::View
+  def initialize
+    # 50+ lines of game state initialization
+  end
+  
+  def create_player(id, team)  
+    # 100+ lines of player creation
+  end
+  
+  def render_hud(builder)
+    # 300+ lines of HUD rendering
+  end
+  
+  def render(builder)
+    # 1500+ lines of JavaScript mixed with HTML
+  end
+end
+
+# After: Modular architecture (338 lines main + focused modules)
+class RefactoredGameView < Live::View
+  include GameStateModule      # Handles game state (extracted)
+  include PlayerManagerModule  # Handles players (extracted)
+  include HudComponentsModule  # Handles UI rendering (extracted)
+  
+  def render(builder)
+    render_game_container(builder)           # Clean HTML structure
+    render_javascript_integration(builder)  # External JS integration
+  end
+end
+```
+
+### JavaScript Externalization Best Practices
+
+1. **Create Module Export Pattern**:
+```javascript
+// public/_static/game_engine.js
+window.GameEngine = {
+  initialize: function(playerId) {
+    // Game initialization
+  },
+  
+  getGameState: function() {
+    return gameState;
+  }
+};
+```
+
+2. **Clean Ruby Integration**:
+```ruby
+def render_javascript_integration(builder)
+  builder.tag(:script, src: "/_static/game_engine.js")
+  builder.tag(:script, type: "text/javascript") do
+    builder.raw(<<~JAVASCRIPT)
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.GameEngine !== 'undefined') {
+          window.GameEngine.initialize('#{@player_id}');
+        } else {
+          console.error('GameEngine not loaded');
+        }
+      });
+    JAVASCRIPT
+  end
+end
+```
+
+### Refactoring Checklist
+
+**Before Starting:**
+- [ ] File exceeds recommended size thresholds
+- [ ] Multiple concerns mixed in single file
+- [ ] Repeated code patterns identified
+- [ ] JavaScript embedded in Ruby exceeds 100 lines
+
+**During Refactoring:**
+- [ ] Extract one module/concern at a time
+- [ ] Maintain all original functionality
+- [ ] Test each extraction step
+- [ ] Use consistent naming conventions
+- [ ] Add clear module documentation
+
+**After Completion:**
+- [ ] All Ruby files pass RuboCop checks
+- [ ] External JavaScript loads correctly  
+- [ ] No functionality regressions
+- [ ] Improved maintainability and readability
+- [ ] Performance improved (JS caching)
+
+**File Size Targets After Refactoring:**
+- Main view file: <400 lines
+- Individual modules: <300 lines each
+- External JavaScript: No size limit (cached)
+- Total complexity: Significantly reduced
