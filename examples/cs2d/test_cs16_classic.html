@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS 1.6 Classic Rules Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+        }
+        #test-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #f5cb42;
+        }
+        .test-section {
+            background: #16213e;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid #4CAF50;
+            background: #0f3460;
+        }
+        .test-result.fail {
+            border-left-color: #f44336;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="test-container">
+        <h1>CS 1.6 Classic Rules Verification</h1>
+        
+        <div class="test-section">
+            <h2>1. Game Configuration Tests</h2>
+            <div id="config-tests"></div>
+            <button onclick="testConfiguration()">Run Config Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>2. Weapon System Tests</h2>
+            <div id="weapon-tests"></div>
+            <button onclick="testWeaponSystem()">Run Weapon Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>3. Economy System Tests</h2>
+            <div id="economy-tests"></div>
+            <button onclick="testEconomySystem()">Run Economy Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>4. Movement System Tests</h2>
+            <div id="movement-tests"></div>
+            <button onclick="testMovementSystem()">Run Movement Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>5. Round System Tests</h2>
+            <div id="round-tests"></div>
+            <button onclick="testRoundSystem()">Run Round Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Full Game Test</h2>
+            <div id="game-container"></div>
+            <button onclick="startFullGame()">Start Game Test</button>
+        </div>
+    </div>
+
+    <script src="public/_static/cs16_classic_game.js"></script>
+    <script>
+        function addTestResult(containerId, message, success = true) {
+            const container = document.getElementById(containerId);
+            const result = document.createElement('div');
+            result.className = success ? 'test-result' : 'test-result fail';
+            result.textContent = success ? '✓ ' + message : '✗ ' + message;
+            container.appendChild(result);
+        }
+        
+        function testConfiguration() {
+            const container = document.getElementById('config-tests');
+            container.innerHTML = '';
+            
+            // Test round time
+            if (CLASSIC_CONFIG.ROUND_TIME === 115) {
+                addTestResult('config-tests', 'Round time is 1:55 (115 seconds)', true);
+            } else {
+                addTestResult('config-tests', `Round time is ${CLASSIC_CONFIG.ROUND_TIME} seconds, expected 115`, false);
+            }
+            
+            // Test freeze time
+            if (CLASSIC_CONFIG.FREEZE_TIME === 15) {
+                addTestResult('config-tests', 'Freeze time is 15 seconds', true);
+            } else {
+                addTestResult('config-tests', `Freeze time is ${CLASSIC_CONFIG.FREEZE_TIME} seconds, expected 15`, false);
+            }
+            
+            // Test C4 timer
+            if (CLASSIC_CONFIG.C4_TIMER === 35) {
+                addTestResult('config-tests', 'C4 timer is 35 seconds', true);
+            } else {
+                addTestResult('config-tests', `C4 timer is ${CLASSIC_CONFIG.C4_TIMER} seconds, expected 35`, false);
+            }
+            
+            // Test buy time
+            if (CLASSIC_CONFIG.BUY_TIME === 90) {
+                addTestResult('config-tests', 'Buy time is 90 seconds', true);
+            } else {
+                addTestResult('config-tests', `Buy time is ${CLASSIC_CONFIG.BUY_TIME} seconds, expected 90`, false);
+            }
+            
+            // Test starting money
+            if (CLASSIC_CONFIG.STARTING_MONEY === 800) {
+                addTestResult('config-tests', 'Starting money is $800', true);
+            } else {
+                addTestResult('config-tests', `Starting money is $${CLASSIC_CONFIG.STARTING_MONEY}, expected $800`, false);
+            }
+        }
+        
+        function testWeaponSystem() {
+            const container = document.getElementById('weapon-tests');
+            container.innerHTML = '';
+            
+            // Test weapon prices
+            const expectedPrices = {
+                'ak47': 2500,
+                'm4a1': 3100,
+                'awp': 4750,
+                'deagle': 650,
+                'hegrenade': 300,
+                'flashbang': 200,
+                'smokegrenade': 300
+            };
+            
+            for (const [weapon, expectedPrice] of Object.entries(expectedPrices)) {
+                const actualPrice = CLASSIC_CONFIG.WEAPON_PRICES[weapon];
+                if (actualPrice === expectedPrice) {
+                    addTestResult('weapon-tests', `${weapon.toUpperCase()} price is $${expectedPrice}`, true);
+                } else {
+                    addTestResult('weapon-tests', `${weapon.toUpperCase()} price is $${actualPrice || 'undefined'}, expected $${expectedPrice}`, false);
+                }
+            }
+            
+            // Test weapon damage
+            const ak47Damage = CLASSIC_CONFIG.DAMAGE.ak47?.base;
+            if (ak47Damage === 36) {
+                addTestResult('weapon-tests', 'AK-47 base damage is 36', true);
+            } else {
+                addTestResult('weapon-tests', `AK-47 damage is ${ak47Damage}, expected 36`, false);
+            }
+            
+            // Test AWP damage
+            const awpDamage = CLASSIC_CONFIG.DAMAGE.awp?.base;
+            if (awpDamage === 115) {
+                addTestResult('weapon-tests', 'AWP damage is 115 (one-shot kill)', true);
+            } else {
+                addTestResult('weapon-tests', `AWP damage is ${awpDamage}, expected 115`, false);
+            }
+        }
+        
+        function testEconomySystem() {
+            const container = document.getElementById('economy-tests');
+            container.innerHTML = '';
+            
+            // Test kill rewards
+            if (CLASSIC_CONFIG.KILL_REWARD === 300) {
+                addTestResult('economy-tests', 'Kill reward is $300', true);
+            } else {
+                addTestResult('economy-tests', `Kill reward is $${CLASSIC_CONFIG.KILL_REWARD}, expected $300`, false);
+            }
+            
+            // Test bomb plant reward
+            if (CLASSIC_CONFIG.BOMB_PLANT_REWARD === 800) {
+                addTestResult('economy-tests', 'Bomb plant reward is $800', true);
+            } else {
+                addTestResult('economy-tests', `Bomb plant reward is $${CLASSIC_CONFIG.BOMB_PLANT_REWARD}, expected $800`, false);
+            }
+            
+            // Test loss bonuses
+            const expectedLossBonuses = [1400, 1900, 2400, 2900, 3400];
+            let lossBonusCorrect = true;
+            for (let i = 0; i < expectedLossBonuses.length; i++) {
+                if (CLASSIC_CONFIG.LOSS_BONUSES[i] !== expectedLossBonuses[i]) {
+                    lossBonusCorrect = false;
+                    break;
+                }
+            }
+            
+            if (lossBonusCorrect) {
+                addTestResult('economy-tests', 'Loss bonuses correct: $1400-$3400', true);
+            } else {
+                addTestResult('economy-tests', 'Loss bonuses incorrect', false);
+            }
+        }
+        
+        function testMovementSystem() {
+            const container = document.getElementById('movement-tests');
+            container.innerHTML = '';
+            
+            // Test base movement speed
+            const baseSpeed = CLASSIC_CONFIG.MOVEMENT_SPEEDS?.base;
+            if (baseSpeed === 250) {
+                addTestResult('movement-tests', 'Base movement speed is 250 units/s', true);
+            } else {
+                addTestResult('movement-tests', `Base speed is ${baseSpeed}, expected 250`, false);
+            }
+            
+            // Test walk speed (should be 52% of base = 130)
+            const walkSpeed = CLASSIC_CONFIG.MOVEMENT_SPEEDS?.walk;
+            if (walkSpeed === 130) {
+                addTestResult('movement-tests', 'Walk speed is 130 units/s (52% of base)', true);
+            } else {
+                addTestResult('movement-tests', `Walk speed is ${walkSpeed}, expected 130`, false);
+            }
+            
+            // Test crouch speed (should be 34% of base = 85)
+            const crouchSpeed = CLASSIC_CONFIG.MOVEMENT_SPEEDS?.crouch;
+            if (crouchSpeed === 85) {
+                addTestResult('movement-tests', 'Crouch speed is 85 units/s (34% of base)', true);
+            } else {
+                addTestResult('movement-tests', `Crouch speed is ${crouchSpeed}, expected 85`, false);
+            }
+            
+            // Test weapon speed penalties
+            const sniperSpeed = CLASSIC_CONFIG.MOVEMENT_SPEEDS?.weapon_modifiers?.sniper;
+            if (sniperSpeed === 0.65) {
+                addTestResult('movement-tests', 'Sniper (AWP) speed modifier is 0.65', true);
+            } else {
+                addTestResult('movement-tests', `Sniper speed modifier is ${sniperSpeed}, expected 0.65`, false);
+            }
+        }
+        
+        function testRoundSystem() {
+            const container = document.getElementById('round-tests');
+            container.innerHTML = '';
+            
+            // Test max rounds
+            if (CLASSIC_CONFIG.MAX_ROUNDS === 30) {
+                addTestResult('round-tests', 'Max rounds is 30', true);
+            } else {
+                addTestResult('round-tests', `Max rounds is ${CLASSIC_CONFIG.MAX_ROUNDS}, expected 30`, false);
+            }
+            
+            // Test halftime
+            if (CLASSIC_CONFIG.HALFTIME_ROUND === 15) {
+                addTestResult('round-tests', 'Halftime at round 15', true);
+            } else {
+                addTestResult('round-tests', `Halftime at round ${CLASSIC_CONFIG.HALFTIME_ROUND}, expected 15`, false);
+            }
+            
+            // Test win condition
+            if (CLASSIC_CONFIG.ROUNDS_TO_WIN === 16) {
+                addTestResult('round-tests', 'First to 16 rounds wins', true);
+            } else {
+                addTestResult('round-tests', `Win at ${CLASSIC_CONFIG.ROUNDS_TO_WIN} rounds, expected 16`, false);
+            }
+        }
+        
+        function startFullGame() {
+            const container = document.getElementById('game-container');
+            container.innerHTML = `
+                <canvas id="game-canvas" width="1280" height="720" style="border: 1px solid #444;"></canvas>
+                <div id="buy-menu" style="display: none;"></div>
+                <div id="hud-container"></div>
+            `;
+            
+            // Initialize the game
+            if (window.CS16Classic && typeof window.CS16Classic.initializeGame === 'function') {
+                const testPlayerId = 'test-player-' + Date.now();
+                window.CS16Classic.initializeGame(testPlayerId);
+                addTestResult('game-container', 'Game initialized successfully!', true);
+                
+                // Check game state
+                const gameState = window.CS16Classic.gameState();
+                if (gameState && gameState.localPlayerId === testPlayerId) {
+                    addTestResult('game-container', 'Game state created with correct player ID', true);
+                }
+                
+                // Check if players were created
+                if (gameState.players && Object.keys(gameState.players).length > 0) {
+                    addTestResult('game-container', `${Object.keys(gameState.players).length} players created`, true);
+                    
+                    // Check for bots
+                    const bots = Object.values(gameState.players).filter(p => p.id.includes('bot_'));
+                    addTestResult('game-container', `${bots.length} bots created`, true);
+                }
+            } else {
+                addTestResult('game-container', 'CS16Classic module not loaded properly!', false);
+            }
+        }
+        
+        // Auto-run tests on page load
+        setTimeout(() => {
+            testConfiguration();
+            testWeaponSystem();
+            testEconomySystem();
+            testMovementSystem();
+            testRoundSystem();
+        }, 500);
+    </script>
+</body>
+</html>

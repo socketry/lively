@@ -40,8 +40,46 @@ class CS16ClassicView < Live::View
 		
 		self.update!
 		
-		# Start game loop
-		start_classic_game_loop
+		# Inject JavaScript initialization after WebSocket is ready
+		Async do
+			sleep 2.0 # Wait for WebSocket and JS to load
+			inject_game_initialization
+		end
+	end
+	
+	def inject_game_initialization
+		# Inject JavaScript to initialize the game
+		self.script(<<~JAVASCRIPT)
+			console.log('CS16 Classic: Injecting game initialization via WebSocket...');
+			
+			// Check if module is loaded
+			if (typeof window.CS16Classic !== 'undefined' && window.CS16Classic.initializeGame) {
+				console.log('CS16 Classic: Module found, initializing game with player ID: #{@player_id}');
+				try {
+					window.CS16Classic.initializeGame('#{@player_id}');
+					console.log('CS16 Classic: Game initialized successfully!');
+				} catch (error) {
+					console.error('CS16 Classic: Error during initialization:', error);
+					console.error(error.stack);
+				}
+			} else {
+				console.error('CS16 Classic: Module not found, retrying...');
+				// Retry after delay
+				setTimeout(function() {
+					if (typeof window.CS16Classic !== 'undefined' && window.CS16Classic.initializeGame) {
+						console.log('CS16 Classic: Module found on retry, initializing...');
+						try {
+							window.CS16Classic.initializeGame('#{@player_id}');
+							console.log('CS16 Classic: Game initialized on retry!');
+						} catch (error) {
+							console.error('CS16 Classic: Error on retry:', error);
+						}
+					} else {
+						console.error('CS16 Classic: Module still not available after retry');
+					}
+				}, 1000);
+			}
+		JAVASCRIPT
 	end
 	
 	def render(builder)
@@ -101,21 +139,37 @@ class CS16ClassicView < Live::View
 		builder.tag(:script, type: "text/javascript") do
 			builder.raw(<<~JAVASCRIPT)
 				// Initialize CS 1.6 Classic Game
-				document.addEventListener('DOMContentLoaded', function() {
-					// Wait for the external script to load
-					if (typeof window.CS16Classic !== 'undefined') {
+				console.log('CS16 Classic: Attempting to initialize game...');
+				
+				// Function to initialize game when ready
+				function initializeCS16Game() {
+					if (typeof window.CS16Classic !== 'undefined' && window.CS16Classic.initializeGame) {
+						console.log('CS16 Classic: Module loaded, initializing with player ID: #{@player_id}');
 						window.CS16Classic.initializeGame('#{@player_id}');
-					} else {
-						// Retry after a short delay if not loaded yet
-						setTimeout(function() {
-							if (typeof window.CS16Classic !== 'undefined') {
-								window.CS16Classic.initializeGame('#{@player_id}');
-							} else {
-								console.error('CS16Classic JavaScript module not loaded');
-							}
-						}, 100);
+						return true;
 					}
-				});
+					return false;
+				}
+				
+				// Try immediate initialization
+				if (!initializeCS16Game()) {
+					console.log('CS16 Classic: Module not ready, setting up retry...');
+					
+					// Retry with increasing delays
+					let attempts = 0;
+					const maxAttempts = 10;
+					const retryInterval = setInterval(function() {
+						attempts++;
+						console.log('CS16 Classic: Retry attempt ' + attempts);
+						
+						if (initializeCS16Game() || attempts >= maxAttempts) {
+							clearInterval(retryInterval);
+							if (attempts >= maxAttempts) {
+								console.error('CS16 Classic: Failed to load after ' + maxAttempts + ' attempts');
+							}
+						}
+					}, 500);
+				}
 			JAVASCRIPT
 		end
 	end

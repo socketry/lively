@@ -132,7 +132,7 @@ const CLASSIC_CONFIG = {
 		// Machine Gun
 		m249: 5750,
 		// Equipment
-		kevlar: 650, kevlar_helmet: 1000, defuse: 200, nvg: 1250,
+		kevlar: 650, kevlar_helmet: 1000, defusekit: 400, defuse: 200, nvg: 1250,
 		// Grenades
 		hegrenade: 300, flashbang: 200, smokegrenade: 300
 	},
@@ -168,7 +168,7 @@ const CLASSIC_CONFIG = {
 	// Damage values (Classic)
 	DAMAGE_VALUES: {
 		ak47: { base: 36, headshot: 143, armor_pen: 0.9 },
-		m4a1: { base: 33, headshot: 131, armor_pen: 0.9 },
+		m4a1: { base: 30, headshot: 131, armor_pen: 0.9 },
 		awp: { base: 115, headshot: 415, armor_pen: 0.95 },
 		deagle: { base: 48, headshot: 149, armor_pen: 0.85 },
 		usp: { base: 34, headshot: 102, armor_pen: 0.75 },
@@ -181,7 +181,19 @@ const CLASSIC_CONFIG = {
 	
 	// Network
 	TICK_RATE: 64,
-	UPDATE_RATE: 30
+	UPDATE_RATE: 30,
+	
+	// Round System
+	MAX_ROUNDS: 30,
+	HALFTIME_ROUND: 15,
+	ROUNDS_TO_WIN: 16,
+	
+	// Additional Economy
+	KILL_REWARD: 300,  // Default kill reward
+	BOMB_PLANT_REWARD: 800,  // Bomb plant reward for team
+	
+	// Loss bonuses for consecutive losses
+	LOSS_BONUSES: [1400, 1900, 2400, 2900, 3400]
 };
 
 // Game state - will be initialized by the Ruby view
@@ -512,11 +524,20 @@ function updateGame(deltaTime) {
 }
 
 function render() {
-	if (!ctx) return;
+	if (!ctx) {
+		console.warn('CS 1.6 Classic: No rendering context available');
+		return;
+	}
 	
-	// Clear canvas
-	ctx.fillStyle = '#2a2a2a';
+	// Clear canvas with a visible color to confirm rendering
+	ctx.fillStyle = '#1a3d1a'; // Dark green background for visibility
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	
+	// Add a debug text to confirm rendering is working
+	ctx.fillStyle = '#00FF00';
+	ctx.font = 'bold 24px Arial';
+	ctx.textAlign = 'center';
+	ctx.fillText('CS 1.6 Classic - Loading...', canvas.width/2, 50);
 	
 	// Apply viewport transform
 	ctx.save();

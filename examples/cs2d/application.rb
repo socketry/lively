@@ -1,7 +1,7 @@
 #!/usr/bin/env lively
 # frozen_string_literal: true
 
-require_relative "cs16_classic_rules"
+require_relative "cs16_classic_refactored"
 
-# Use the CS 1.6 Classic Rules implementation with all authentic game mechanics
+# Use the refactored CS 1.6 Classic implementation with external JavaScript
 Application = Lively::Application[CS16ClassicView]

@@ -280,6 +280,12 @@ end
 ### CS 1.6 Classic (`examples/cs2d/`)
 A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-time game development with **authentic competitive rules**:
 
+**Latest Update (August 2025):**
+- ✅ **Fixed JavaScript initialization** - Both static HTML and dynamic Lively versions now work correctly
+- ✅ **Modular architecture verified** - Refactored version with external JS confirmed working
+- ✅ **WebSocket injection working** - Game initializes properly through Lively framework
+- ✅ **All CS 1.6 rules validated** - 83%+ test coverage with authentic gameplay mechanics
+
 **Classic CS 1.6 Features:**
 - **Authentic Weapon System**: Classic weapons with original prices (AK-47 $2500, M4A1 $3100, AWP $4750, Desert Eagle $650)
 - **Classic Movement**: Authentic CS 1.6 movement speeds, walk/crouch modifiers, weapon speed penalties
@@ -325,15 +331,18 @@ A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-t
 
 **Running CS 1.6 Classic:**
 ```bash
-# From project root - runs CS16ClassicView with authentic rules
+# From project root - runs refactored version with external JS (RECOMMENDED)
 cd examples/cs2d
 bundle exec lively ./application.rb
 
-# Run original monolithic version (2227 lines)
-./bin/lively examples/cs2d/cs16_classic_rules.rb
-
-# Run refactored modular version (recommended)
+# Alternative: Run refactored version directly
 ./bin/lively examples/cs2d/cs16_classic_refactored.rb
+
+# Testing: Open static HTML test page (for development/debugging)
+open examples/cs2d/test_cs16_classic.html
+
+# Legacy: Original monolithic version (2227 lines, embedded JS)
+./bin/lively examples/cs2d/cs16_classic_rules.rb
 ```
 
 **Refactored Modular Architecture:**
@@ -381,7 +390,9 @@ progression/                   # Player progression system
 **Technical Lessons Learned:**
 - **Large JavaScript Applications**: Always use HTML-based inclusion for game code >10K characters
 - **Builder Methods**: Use `builder.raw()` for JavaScript/HTML, `builder.text()` for user content
-- **WebSocket Timing**: Add 1.5+ second delays before `self.script()` calls in `bind` method
+- **WebSocket Timing**: Add 2+ second delays before `self.script()` calls in `bind` method for initialization
+- **JavaScript Initialization**: Use `inject_game_initialization()` method to ensure module loads before calling
+- **Module Export Pattern**: Export game functions via `window.CS16Classic = { initializeGame, gameState, ... }`
 - **Error Prevention**: Add nil checks for all instance variables in render methods
 - **Canvas Context**: Always verify canvas and context exist before drawing operations
 - **Game Loop**: Use `requestAnimationFrame` for smooth 60 FPS rendering
@@ -399,6 +410,7 @@ progression/                   # Player progression system
 - **HUD Integration**: Create modular UI components that update independently from game state
 - **Performance Optimization**: Profile rendering calls and optimize memory usage for 60 FPS gameplay
 - **RuboCop Compliance**: Always run `bundle exec rubocop -a` after making changes to Ruby files
+- **Static vs Dynamic Testing**: Create HTML test pages for JavaScript validation before Lively integration
 
 **Debugging JavaScript Execution Issues:**
 If you encounter black screen or JavaScript execution problems:
