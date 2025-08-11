@@ -1523,4 +1523,5 @@ class CS16ClassicView < Live::View
 	end
 end
 
-Application = Lively::Application[CS16ClassicView]
+# Only define Application if this file is run directly
+Application = Lively::Application[CS16ClassicView] if __FILE__ == $0

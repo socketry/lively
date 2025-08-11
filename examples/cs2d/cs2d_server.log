@@ -1,0 +1,24 @@
+{"time":"2025-08-11T11:14:52+08:00","severity":"info","pid":8589,"oid":1360,"fiber_id":1380,"subject":"Async::Container::Notify::Console","message":{"status":"Initializing controller..."}}
+{"time":"2025-08-11T11:14:52+08:00","severity":"info","pid":8589,"oid":1420,"fiber_id":1380,"subject":"Falcon::Service::Server","message":"Starting lively on #<Async::HTTP::Endpoint http://localhost:9292/ {:reuse_address=>true, :timeout=>nil}>"}
+{"time":"2025-08-11T11:14:52+08:00","severity":"info","pid":8589,"oid":1440,"fiber_id":1380,"subject":"Async::Service::Controller","message":"Controller starting..."}
+{"time":"2025-08-11T11:14:52+08:00","severity":"info","pid":8589,"oid":1360,"fiber_id":1380,"subject":"Async::Container::Notify::Console","message":{"ready":true,"size":1}}
+{"time":"2025-08-11T11:14:52+08:00","severity":"info","pid":8589,"oid":1440,"fiber_id":1380,"subject":"Async::Service::Controller","message":"Controller started..."}
+{"time":"2025-08-11T11:18:23+08:00","severity":"info","pid":9402,"oid":1360,"fiber_id":1380,"subject":"Async::Container::Notify::Console","message":{"status":"Initializing controller..."}}
+/Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/wrapper.rb:152:in `bind': Address already in use - bind(2) for [::1]:9292 (Errno::EADDRINUSE)
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/wrapper.rb:152:in `bind'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/host_endpoint.rb:68:in `block in bind'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/host_endpoint.rb:67:in `each'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/host_endpoint.rb:67:in `each'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/host_endpoint.rb:67:in `map'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/host_endpoint.rb:67:in `bind'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/async-http-0.90.1/lib/async/http/endpoint.rb:216:in `bind'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/bound_endpoint.rb:13:in `bound'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/io-endpoint-0.15.2/lib/io/endpoint/bound_endpoint.rb:80:in `bound'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/falcon-0.52.3/lib/falcon/service/server.rb:42:in `block in start'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/async-2.27.2/lib/async/task.rb:183:in `block in run'
+	from /Users/jimmy/.asdf/installs/ruby/3.3.6/lib/ruby/gems/3.3.0/gems/async-2.27.2/lib/async/task.rb:427:in `block in schedule'
+{"time":"2025-08-11T11:20:33+08:00","severity":"info","pid":9838,"oid":1360,"fiber_id":1380,"subject":"Async::Container::Notify::Console","message":{"status":"Initializing controller..."}}
+{"time":"2025-08-11T11:20:33+08:00","severity":"info","pid":9838,"oid":1420,"fiber_id":1380,"subject":"Falcon::Service::Server","message":"Starting lively on #<Async::HTTP::Endpoint http://localhost:9292/ {:reuse_address=>true, :timeout=>nil}>"}
+{"time":"2025-08-11T11:20:33+08:00","severity":"info","pid":9838,"oid":1440,"fiber_id":1380,"subject":"Async::Service::Controller","message":"Controller starting..."}
+{"time":"2025-08-11T11:20:33+08:00","severity":"info","pid":9838,"oid":1360,"fiber_id":1380,"subject":"Async::Container::Notify::Console","message":{"ready":true,"size":1}}
+{"time":"2025-08-11T11:20:33+08:00","severity":"info","pid":9838,"oid":1440,"fiber_id":1380,"subject":"Async::Service::Controller","message":"Controller started..."}
