@@ -27,13 +27,13 @@ GEM
       minitest (>= 5.1)
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
-    async (2.27.0)
+    async (2.27.2)
       console (~> 1.29)
       fiber-annotation
       io-event (~> 1.11)
       metrics (~> 0.12)
       traces (~> 0.15)
-    async-container (0.24.0)
+    async-container (0.25.0)
       async (~> 2.22)
     async-container-supervisor (0.5.2)
       async-container (~> 0.22)
@@ -41,9 +41,9 @@ GEM
       io-endpoint
       io-stream
       memory-leak (~> 0.5)
-    async-http (0.89.0)
+    async-http (0.90.1)
       async (>= 2.10.2)
-      async-pool (~> 0.9)
+      async-pool (~> 0.11)
       io-endpoint (~> 0.14)
       io-stream (~> 0.6)
       metrics (~> 0.12)
@@ -53,7 +53,7 @@ GEM
       traces (~> 0.10)
     async-http-cache (0.4.5)
       async-http (~> 0.56)
-    async-ollama (0.5.1)
+    async-ollama (0.8.0)
       async
       async-rest
     async-pool (0.11.0)
@@ -74,12 +74,12 @@ GEM
     bigdecimal (3.2.2)
     concurrent-ruby (1.3.5)
     connection_pool (2.5.3)
-    console (1.32.0)
+    console (1.33.0)
       fiber-annotation
       fiber-local (~> 1.1)
       json
     drb (2.2.3)
-    falcon (0.52.0)
+    falcon (0.52.3)
       async
       async-container (~> 0.20)
       async-container-supervisor (~> 0.5.0)
@@ -101,17 +101,17 @@ GEM
     io-endpoint (0.15.2)
     io-event (1.12.1)
     io-stream (0.10.0)
-    json (2.13.1)
+    json (2.13.2)
     live (0.17.0)
       async-websocket (~> 0.27)
       protocol-websocket (~> 0.19)
       xrb (~> 0.10)
-    localhost (1.5.0)
+    localhost (1.6.0)
     logger (1.7.0)
     mapping (1.1.3)
     markly (0.13.1)
     memory-leak (0.5.2)
-    metrics (0.12.2)
+    metrics (0.13.0)
     mini_portile2 (2.8.9)
     minitest (5.25.5)
     openssl (3.3.0)
@@ -122,13 +122,13 @@ GEM
     protocol-http2 (0.22.1)
       protocol-hpack (~> 1.4)
       protocol-http (~> 0.47)
-    protocol-rack (0.15.0)
+    protocol-rack (0.16.0)
       io-stream (>= 0.10)
       protocol-http (~> 0.43)
       rack (>= 1.0)
     protocol-websocket (0.20.2)
       protocol-http (~> 0.2)
-    rack (3.1.16)
+    rack (3.2.0)
     samovar (2.3.0)
       console (~> 1.0)
       mapping (~> 1.0)
@@ -136,7 +136,7 @@ GEM
     sqlite3 (1.7.3)
       mini_portile2 (~> 2.8.0)
     timeout (0.4.3)
-    traces (0.15.2)
+    traces (0.16.2)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     xrb (0.11.2)
@@ -154,4 +154,4 @@ DEPENDENCIES
   sqlite3 (~> 1.4)
 
 BUNDLED WITH
-   2.6.2
+   2.6.9
