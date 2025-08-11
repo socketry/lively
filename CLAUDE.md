@@ -200,21 +200,22 @@ end
 
 ## Example Applications
 
-### CS 1.6 Game (`examples/cs2d/`)
-A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-time game development:
+### CS 1.6 Classic (`examples/cs2d/`)
+A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-time game development with **authentic competitive rules**:
 
-**Features:**
-- **Complete Weapon System**: 15+ weapons including M4A1, AK-47, AWP, Desert Eagle, Glock, USP, MP5, P90, Scout with realistic stats
-- **Movement Mechanics**: Walk (Shift), crouch (Ctrl), normal speed with proper physics and diagonal normalization
-- **Combat System**: Fire rates, recoil, bullet spread, damage falloff, headshots, armor penetration
-- **Bomb Gameplay**: Plant/defuse mechanics with 35-second timer, A/B bomb sites, defuse kits
-- **Grenades**: Flashbang (G), smoke (F), HE grenade (4) with realistic physics and effects
-- **Economy System**: Buy menu (B key), weapon prices, round bonuses, money management
-- **Round System**: Best of 30 rounds, freeze time, round timer, proper win conditions
-- **Bot AI**: 7 bots (3 CT, 4 T) with combat AI, movement patterns, shooting mechanics
-- **Map Design**: de_dust2 style layout with walls, boxes, bomb sites, spawn areas
-- **HUD Elements**: Health, armor, ammo counter, weapon name, money, scores, round timer
-- **Dynamic Crosshair**: Expands with movement, affected by shooting, walking, crouching
+**Classic CS 1.6 Features:**
+- **Authentic Weapon System**: Classic weapons with original prices (AK-47 $2500, M4A1 $3100, AWP $4750, Desert Eagle $650)
+- **Classic Movement**: Authentic CS 1.6 movement speeds, walk/crouch modifiers, weapon speed penalties
+- **Competitive Rules**: 1:55 round time, 15s freeze time, 35s C4 timer, 90s buy time
+- **Classic Economy**: $800 starting money, progressive loss bonuses ($1400-3400), authentic kill rewards
+- **Bomb Gameplay**: 3s plant time, 10s defuse (5s with kit), A/B bomb sites, $800 plant bonus
+- **5v5 Format**: Best of 30 rounds, halftime at round 15, first to 16 wins
+- **Classic Grenades**: HE $300, Flash $200, Smoke $300 with authentic physics
+- **Movement & Combat**: Proper collision detection, wall clipping prevention, diagonal normalization
+- **Bot AI System**: Advanced bot AI with combat states, patrol routes, bomb objectives
+- **Map Design**: de_dust2 style layout with proper wall and box collision
+- **HUD Elements**: Classic CS 1.6 styling with health, armor, money, round timer, scoreboard
+- **Dynamic Crosshair**: Expands with movement, crouching reduces spread
 
 **Controls:**
 - **WASD**: Movement
@@ -240,13 +241,14 @@ A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-t
 - Modular game architecture with separate systems (Input, Renderer, Game Logic)
 - Canvas-based rendering with optimized drawing calls
 
-**Running CS 1.6:**
+**Running CS 1.6 Classic:**
 ```bash
-# From project root
-./bin/lively examples/cs2d/application.rb
+# From project root - runs CS16ClassicView with authentic rules
+cd examples/cs2d
+bundle exec lively ./application.rb
 
-# Alternative with full implementation
-./bin/lively examples/cs2d/cs16_full.rb
+# Alternative direct run
+./bin/lively examples/cs2d/cs16_classic_rules.rb
 ```
 
 **Key Implementation Patterns:**
@@ -270,6 +272,10 @@ A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-t
 - **Aim Calculation**: With camera follow, calculate angle from screen center to mouse position
 - **Rendering Order**: Apply camera transforms only to world elements, not UI elements
 - **Debug Visualization**: Add visual aim lines and coordinate displays for debugging game mechanics
+- **Movement System**: Use `document.addEventListener` for reliable keyboard input, not canvas events
+- **Key Handling**: Use `e.code` for consistent key codes, not `e.key` which varies by case
+- **Collision Detection**: Implement proper wall/box collision to prevent walking through solid objects
+- **State Initialization**: Always initialize game state in constructor to prevent nil reference errors
 
 **Debugging JavaScript Execution Issues:**
 If you encounter black screen or JavaScript execution problems:
@@ -342,6 +348,76 @@ canvas.addEventListener('mousemove', e => {
   mouse.y = e.clientY - rect.top;
 });
 ```
+
+#### Issue 6: Movement System and Collision Detection
+**Problem**: Player movement may not work due to incorrect keyboard event handling or missing collision detection.
+
+**Common Movement Issues and Solutions:**
+
+1. **Keyboard Events Not Working**:
+   ```javascript
+   // WRONG - Canvas doesn't reliably receive keyboard events
+   canvas.addEventListener('keydown', e => {
+     input.keys[e.key] = true; // Also e.key is inconsistent
+   });
+
+   // CORRECT - Use document for reliable keyboard input
+   document.addEventListener('keydown', e => {
+     input.keys[e.code] = true; // e.code is consistent ('KeyW', 'KeyS', etc.)
+   });
+   ```
+
+2. **Key Code Mismatches**:
+   ```javascript
+   // WRONG - Checking different key format than stored
+   if (input.keys['w']) player.y -= speed; // Won't work with e.code
+
+   // CORRECT - Match the stored format
+   if (input.keys['KeyW']) player.y -= speed; // Works with e.code
+   ```
+
+3. **Missing Collision Detection**:
+   ```javascript
+   // Add collision detection to prevent walking through walls
+   function checkWallCollision(x, y) {
+     const playerRadius = 16;
+     // Define walls and boxes based on map layout
+     const walls = [
+       { x1: 50, y1: 100, x2: 70, y2: 300 }, // Example wall
+       // Add more walls...
+     ];
+     
+     for (const wall of walls) {
+       if (x + playerRadius > wall.x1 && x - playerRadius < wall.x2 &&
+           y + playerRadius > wall.y1 && y - playerRadius < wall.y2) {
+         return true; // Collision detected
+       }
+     }
+     return false;
+   }
+
+   // Apply collision checking to movement
+   const newX = player.x + dx * speed * deltaTime;
+   const newY = player.y + dy * speed * deltaTime;
+   
+   if (!checkWallCollision(newX, player.y)) {
+     player.x = newX;
+   }
+   if (!checkWallCollision(player.x, newY)) {
+     player.y = newY;
+   }
+   ```
+
+4. **Modifier Keys Not Working**:
+   ```javascript
+   // WRONG - Single key check
+   if (input.keys['Shift']) speed *= 0.4; // May not work
+
+   // CORRECT - Check both left and right modifiers
+   if (input.keys['ShiftLeft'] || input.keys['ShiftRight']) {
+     speed *= 0.4; // Walking speed
+   }
+   ```
 
 #### Issue 5: Server Startup Errors
 **Problem**: Ruby syntax errors or missing modules can prevent the server from starting.
