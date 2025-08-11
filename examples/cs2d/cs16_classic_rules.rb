@@ -7,13 +7,35 @@ require "json"
 # CS 1.6 Classic Rules Implementation
 # Strictly follows Counter-Strike 1.6 competitive rules
 class CS16ClassicView < Live::View
+	def initialize(...)
+		super
+		# Initialize game state early to prevent nil errors
+		initialize_game_state
+	end
+	
 	def bind(page)
 		super
 		
 		@player_id = SecureRandom.uuid
 		@game_running = true
 		
-		# Classic CS 1.6 game state with exact rules
+		# Re-initialize if needed
+		initialize_game_state unless @game_state
+		
+		# Add player with classic CS 1.6 properties
+		@game_state[:players][@player_id] = create_classic_player(@player_id, "ct")
+		@game_state[:economy][:ct_money][@player_id] = 800 # Start with $800
+		
+		# Add bots for full 5v5 classic match
+		add_classic_bots
+		
+		self.update!
+		
+		# Start game loop
+		start_classic_game_loop
+	end
+	
+	def initialize_game_state
 		@game_state = {
 			players: {},
 			phase: "warmup",
@@ -67,18 +89,6 @@ class CS16ClassicView < Live::View
 			team_damage_enabled: false, # Classic: no team damage in competitive
 			collision_enabled: true # Classic: player collision is on
 		}
-		
-		# Add player with classic CS 1.6 properties
-		@game_state[:players][@player_id] = create_classic_player(@player_id, "ct")
-		@game_state[:economy][:ct_money][@player_id] = 800 # Start with $800
-		
-		# Add bots for full 5v5 classic match
-		add_classic_bots
-		
-		self.update!
-		
-		# Start game loop
-		start_classic_game_loop
 	end
 	
 	def create_classic_player(id, team)
@@ -189,7 +199,8 @@ class CS16ClassicView < Live::View
 						builder.text("Counter-Strike 1.6 Classic")
 					end
 					builder.tag(:div, style: "font-size: 24px;") do
-						builder.text("Loading #{@game_state[:map]}...")
+						map_name = @game_state ? @game_state[:map] : "de_dust2"
+						builder.text("Loading #{map_name}...")
 					end
 					builder.tag(:div, style: "margin-top: 20px; font-size: 18px; color: #888;") do
 						builder.text("Classic Competitive Rules")
@@ -465,13 +476,16 @@ class CS16ClassicView < Live::View
 	def render_classic_scoreboard(builder)
 		builder.tag(:div, id: "scoreboard", style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; background: rgba(0,0,0,0.9); border: 2px solid #555; display: none; padding: 20px; color: #fff;") do
 			builder.tag(:h2, style: "text-align: center; color: #ff6b00; margin-bottom: 20px;") do
-				builder.text("Scoreboard - Round #{@game_state[:round]} / #{@game_state[:max_rounds]}")
+				round = @game_state ? @game_state[:round] : 1
+				max_rounds = @game_state ? @game_state[:max_rounds] : 30
+				builder.text("Scoreboard - Round #{round} / #{max_rounds}")
 			end
 			
 			# CT Team
 			builder.tag(:div, style: "margin-bottom: 20px;") do
 				builder.tag(:h3, style: "color: #4444ff; border-bottom: 2px solid #4444ff; padding-bottom: 5px;") do
-					builder.text("Counter-Terrorists - Score: #{@game_state[:ct_score]}")
+					ct_score = @game_state ? @game_state[:ct_score] : 0
+					builder.text("Counter-Terrorists - Score: #{ct_score}")
 				end
 				builder.tag(:table, style: "width: 100%; color: #fff; font-size: 14px;") do
 					builder.tag(:thead) do
@@ -493,7 +507,8 @@ class CS16ClassicView < Live::View
 			# T Team
 			builder.tag(:div) do
 				builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px;") do
-					builder.text("Terrorists - Score: #{@game_state[:t_score]}")
+					t_score = @game_state ? @game_state[:t_score] : 0
+					builder.text("Terrorists - Score: #{t_score}")
 				end
 				builder.tag(:table, style: "width: 100%; color: #fff; font-size: 14px;") do
 					builder.tag(:thead) do
