@@ -622,6 +622,91 @@ canvas.addEventListener('mousemove', e => {
 3. **File corruption**: Null bytes or invalid characters in Ruby files
    - Solution: Check file encoding, recreate file if corrupted, use `file` command to verify file type
 
+#### Issue 7: Buy Menu Not Working in Lively Framework
+**Problem**: Buy Menu works in static HTML but fails in the dynamic Lively environment due to DOM updates.
+
+**Root Cause**: Lively's `self.update!` recreates DOM elements, causing:
+- Event listeners to become detached
+- DOM elements to be replaced
+- JavaScript references to become stale
+
+**Solution - DOM Resilience System:**
+```javascript
+// Add DOM monitoring at the start of your JavaScript file
+(function() {
+  let domObserver = null;
+  let lastBuyMenuState = 'none';
+  
+  function setupDOMMonitor() {
+    domObserver = new MutationObserver(function(mutations) {
+      const buyMenu = document.getElementById('buy-menu');
+      if (buyMenu && lastBuyMenuState === 'block' && buyMenu.style.display === 'none') {
+        // Restore buy menu state after DOM update
+        buyMenu.style.display = 'block';
+        buyMenu.style.pointerEvents = 'auto';
+        buyMenu.style.zIndex = '9999';
+      }
+      ensureBuyMenuEvents();
+    });
+    
+    domObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
+  }
+  
+  // Use event delegation to survive DOM updates
+  document.addEventListener('click', function(e) {
+    if (e.target.id === 'buy-button' || e.target.closest('#buy-button')) {
+      e.preventDefault();
+      window.toggleBuyMenu();
+    }
+  }, true);
+  
+  setupDOMMonitor();
+})();
+```
+
+**Enhanced Toggle Function with Retry:**
+```javascript
+window.toggleBuyMenu = function() {
+  let buyMenu = document.getElementById('buy-menu');
+  
+  if (!buyMenu) {
+    // Retry after next frame if DOM is updating
+    requestAnimationFrame(() => {
+      buyMenu = document.getElementById('buy-menu');
+      if (buyMenu) performToggle(buyMenu);
+    });
+    return;
+  }
+  
+  performToggle(buyMenu);
+};
+
+function performToggle(buyMenu) {
+  const newDisplay = buyMenu.style.display === 'none' ? 'block' : 'none';
+  buyMenu.style.display = newDisplay;
+  buyMenu.style.pointerEvents = 'auto';
+  buyMenu.style.zIndex = '9999';  // Ensure it's on top
+  buyMenu.style.position = 'absolute';
+  
+  if (newDisplay === 'block') {
+    buyMenu.style.top = '50%';
+    buyMenu.style.left = '50%';
+    buyMenu.style.transform = 'translate(-50%, -50%)';
+  }
+}
+```
+
+**Key Principles for Dynamic DOM Compatibility:**
+1. **Event Delegation**: Attach events to document/body, not specific elements
+2. **State Preservation**: Track UI state independently of DOM
+3. **Retry Mechanisms**: Use requestAnimationFrame for DOM timing issues
+4. **Force Styling**: Always set all necessary styles, don't rely on CSS classes
+5. **Monitor DOM Changes**: Use MutationObserver to detect and respond to updates
+
 **Minimal Working CS2D Example:**
 ```ruby
 #!/usr/bin/env lively
