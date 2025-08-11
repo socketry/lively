@@ -58,18 +58,29 @@ class CS2DView < Live::View
 		
 	def handle(event)
 		# Log the event for debugging
-		# Console.info(self, "Event received: #{event.inspect}")
+		puts "\n=== EVENT RECEIVED ==="
+		puts "Event: #{event.inspect}"
+		puts "=====================\n"
+		Console.info(self, "Event received: #{event.inspect}") rescue nil
 				
-		case event[:type]
-		when "click"
-			detail = event[:detail]
-			# Handle both string and symbol keys
-			if detail && (detail["action"] == "team_select" || detail[:action] == "team_select")
-				team = detail["team"] || detail[:team]
-				select_team(team)
+		# Handle different event formats from Live.js
+		type = event[:type] || event["type"]
+		detail = event[:detail] || event["detail"] || event[:data] || event["data"]
+				
+		case type
+		when "click", "live:event"
+			# Handle both direct detail and nested data structures
+			if detail
+				action = detail["action"] || detail[:action] || (detail["data"] && detail["data"]["action"]) || (detail[:data] && detail[:data][:action])
+				team = detail["team"] || detail[:team] || (detail["data"] && detail["data"]["team"]) || (detail[:data] && detail[:data][:team])
+								
+				if action == "team_select" && team
+					puts "\n>>> TEAM SELECTED: #{team} <<<\n"
+					Console.info(self, "Team selection received: #{team}") rescue nil
+					select_team(team)
+				end
 			end
 		when "player_kill"
-			detail = event[:detail]
 			add_kill_to_feed(detail) if detail
 		end
 	end
@@ -200,12 +211,12 @@ class CS2DView < Live::View
 			# Team selection buttons container
 			builder.tag(:div, style: "display: flex; gap: 50px; margin-bottom: 30px;") do
 				# CT Team Button
-				builder.tag(:button, 
-												data: { action: "team_select", team: "ct" },
-												style: "padding: 30px 60px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #4169e1, #1e90ff); color: white; border: 3px solid #0066cc; border-radius: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase;",
-												onclick: "window.selectTeam('ct')",
-												onmouseover: "this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(30,144,255,0.6)';",
-												onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.5)';") do
+				builder.tag(:button,
+													data: { action: "team_select", team: "ct" },
+													style: "padding: 30px 60px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #4169e1, #1e90ff); color: white; border: 3px solid #0066cc; border-radius: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase;",
+													onclick: "window.selectTeam('ct')",
+													onmouseover: "this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(30,144,255,0.6)';",
+													onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.5)';") do
 					builder.tag(:div) { builder.text("Counter-Terrorists") }
 					builder.tag(:div, style: "font-size: 16px; margin-top: 10px; opacity: 0.9;") do
 						builder.text("Prevent the bomb")
@@ -254,31 +265,63 @@ class CS2DView < Live::View
 									console.log('Team selection element:', element);
 									
 									if (element && element.dataset.live) {
-										console.log('Element live ID:', element.dataset.live);
+										const liveId = element.dataset.live;
+										console.log('Element live ID:', liveId);
 										
-										// Try to get Live instance
+										// Multiple ways to get the Live instance
+										let live = null;
+										
+										// Method 1: Live.of
 										if (window.Live && window.Live.of) {
-											const live = window.Live.of(element);
-											console.log('Live instance:', live);
-											
-											if (live && live.send) {
-												try {
-													live.send({
-														type: 'click',
-														detail: {
-															action: 'team_select',
-															team: team
-														}
-													});
-													console.log('Team selection sent successfully:', team);
-												} catch (error) {
-													console.error('Error sending team selection:', error);
+											live = window.Live.of(element);
+											console.log('Live instance from Live.of:', live);
+										}
+										
+										// Method 2: Direct from Live.Connection
+										if (!live && window.Live && window.Live.Connection) {
+											// Try to find existing connection
+											const connections = document.querySelectorAll('[data-live]');
+											for (let conn of connections) {
+												if (conn.dataset.live === liveId) {
+													live = window.Live.of(conn);
+													if (live) break;
 												}
-											} else {
-												console.error('Live instance does not have send method');
+											}
+										}
+										
+										// Method 3: Create new event and dispatch
+										if (!live) {
+											console.log('Trying custom event dispatch method...');
+											const event = new CustomEvent('live:event', {
+												detail: {
+													type: 'click',
+													data: {
+														action: 'team_select',
+														team: team
+													}
+												},
+												bubbles: true
+											});
+											element.dispatchEvent(event);
+											console.log('Dispatched custom event');
+											return;
+										}
+										
+										if (live && live.send) {
+											try {
+												live.send({
+													type: 'click',
+													detail: {
+														action: 'team_select',
+														team: team
+													}
+												});
+												console.log('Team selection sent successfully:', team);
+											} catch (error) {
+												console.error('Error sending team selection:', error);
 											}
 										} else {
-											console.error('window.Live not available');
+											console.error('Could not get Live instance or send method');
 										}
 									} else {
 										console.error('Team selection element not found or missing live data');
