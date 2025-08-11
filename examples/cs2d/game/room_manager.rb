@@ -91,10 +91,12 @@ class RoomManager
 		@rooms.map do |room_id, room|
 			{
 								room_id: room_id,
-								player_count: room.players.size,
-								max_players: MultiplayerGameRoom::MAX_PLAYERS,
+								room_name: room.room_settings[:name] || room_id,
+								player_count: room.players.size + room.bots.size,
+								max_players: room.room_settings[:max_players] || MultiplayerGameRoom::MAX_PLAYERS,
 								map: room.room_settings[:map],
-								game_mode: room.room_settings[:game_mode]
+								game_mode: room.room_settings[:game_mode],
+								creator_id: room.room_settings[:creator_id]
 						}
 		end
 	end

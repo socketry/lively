@@ -946,7 +946,8 @@ class MultiplayerGameRoom
 	end
 	
 	def can_add_player?
-		(@players.size + @bots.size) < MAX_PLAYERS && @room_state == STATE_WAITING
+		max_players = @room_settings[:max_players] || MAX_PLAYERS
+		(@players.size + @bots.size) < max_players && @room_state == STATE_WAITING
 	end
 	
 	def empty?
@@ -985,7 +986,7 @@ class MultiplayerGameRoom
 			state: @room_state,
 			player_count: @players.size,
 			bot_count: @bots.size,
-			max_players: MAX_PLAYERS,
+			max_players: @room_settings[:max_players] || MAX_PLAYERS,
 			settings: @room_settings
 		}
 	end

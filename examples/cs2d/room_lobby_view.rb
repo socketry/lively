@@ -8,10 +8,17 @@ require "json"
 require_relative "game/room_manager"
 require_relative "game/multiplayer_game_room"
 
+# Create a single global room manager instance
+GLOBAL_ROOM_MANAGER = RoomManager.new
+puts "🔧 Initializing GLOBAL_ROOM_MANAGER: #{GLOBAL_ROOM_MANAGER.object_id}"
+
 # Room Lobby System - 玩家創建和加入房間的界面
 class RoomLobbyView < Live::View
-	# Global room manager (shared across all view instances)
-	@@room_manager = RoomManager.new
+	# Use the global room manager instance
+	def room_manager
+		puts "📍 Accessing room_manager: #{GLOBAL_ROOM_MANAGER.object_id} with #{GLOBAL_ROOM_MANAGER.get_room_list.size} rooms"
+		GLOBAL_ROOM_MANAGER
+	end
 	
 	# Room states
 	ROOM_STATE_WAITING = "waiting"
@@ -53,7 +60,10 @@ class RoomLobbyView < Live::View
 			# Handle HTTP requests
 			request = Rack::Request.new(env)
 			
+			puts "🔍 HTTP Request: #{request.request_method} #{request.path}"
+			
 			if request.post?
+				puts "📮 POST request received"
 				handle_form_submission(request)
 			end
 			
@@ -63,6 +73,9 @@ class RoomLobbyView < Live::View
 	
 	def handle_form_submission(request)
 		action = request.params["action"]
+		
+		puts "📋 Form action: #{action}"
+		puts "📋 Form params: #{request.params.inspect}"
 		
 		case action
 		when "create_room"
@@ -96,11 +109,13 @@ class RoomLobbyView < Live::View
 			created_at: Time.now
 		}
 		
-		@room_id = @@room_manager.create_room(@player_id, settings)
-		@game_room = @@room_manager.get_room(@room_id)
+		@room_id = room_manager.create_room(@player_id, settings)
+		@game_room = room_manager.get_room(@room_id)
 		@is_room_creator = true
 		@joined_room = true
 		@show_create_form = false
+		
+		puts "✅ Room created: #{@room_id}, Total rooms: #{room_manager.get_room_list.size}"
 		
 		# Add creator as first player
 		@game_room.add_player(@player_id, self)
@@ -119,7 +134,7 @@ class RoomLobbyView < Live::View
 		@player_id = @custom_player_id.empty? ? SecureRandom.uuid : @custom_player_id
 		
 		# Try to join the specified room
-		target_room = @@room_manager.get_room(target_room_id)
+		target_room = room_manager.get_room(target_room_id)
 		
 		if target_room && target_room.can_add_player?
 			@room_id = target_room_id
@@ -128,7 +143,7 @@ class RoomLobbyView < Live::View
 			@joined_room = true
 			@show_create_form = false
 			
-			@@room_manager.join_room(@player_id, @room_id)
+			room_manager.join_room(@player_id, @room_id)
 			@game_room.add_player(@player_id, self)
 			
 			send_room_update_to_all_players
@@ -169,10 +184,10 @@ class RoomLobbyView < Live::View
 	def handle_leave_room(request)
 		if @joined_room && @game_room
 			@game_room.remove_player(@player_id)
-			@@room_manager.leave_room(@player_id)
+			room_manager.leave_room(@player_id)
 			
 			# Cleanup room if empty
-			@@room_manager.cleanup_empty_room(@room_id) if @game_room.empty?
+			room_manager.cleanup_empty_room(@room_id) if @game_room.empty?
 			
 			reset_lobby_state
 			send_room_update_to_all_players
@@ -267,6 +282,14 @@ class RoomLobbyView < Live::View
 			
 			builder.tag(:style) do
 				builder.raw(<<~CSS)
+					body {
+						margin: 0;
+						padding: 0;
+						background: #1a1a1a;
+						color: #ffffff;
+						overflow-y: auto;
+					}
+					
 					.lobby-container {
 						max-width: 1200px;
 						margin: 0 auto;
@@ -274,6 +297,7 @@ class RoomLobbyView < Live::View
 						background: #1a1a1a;
 						color: #ffffff;
 						min-height: 100vh;
+						overflow-y: auto;
 					}
 					
 					.lobby-header {
@@ -559,7 +583,7 @@ class RoomLobbyView < Live::View
 	end
 
 	def render_available_rooms(builder)
-		room_list = @@room_manager.get_room_list
+		room_list = room_manager.get_room_list
 		
 		builder.tag(:div, class: "form-section") do
 			builder.tag(:h2) { builder.text("🏠 可用房間 (#{room_list.length})") }
@@ -579,7 +603,8 @@ class RoomLobbyView < Live::View
 	def render_room_item(builder, room_info)
 		builder.tag(:div, class: "room-item") do
 			builder.tag(:div) do
-				builder.tag(:h4) { builder.text("🏠 #{room_info[:room_id]}") }
+				builder.tag(:h4) { builder.text("🏠 #{room_info[:room_name] || room_info[:room_id]}") }
+				builder.tag(:p) { builder.text("房間 ID: #{room_info[:room_id]}") }
 				builder.tag(:p) { builder.text("玩家: #{room_info[:player_count]}/#{room_info[:max_players]}") }
 			end
 			
@@ -589,7 +614,7 @@ class RoomLobbyView < Live::View
 						builder.text("加入")
 					end
 				else
-					builder.tag(:span) { builder.text("房間已滿") }
+					builder.tag(:span, style: "color: #ff6666;") { builder.text("房間已滿") }
 				end
 			end
 		end
