@@ -6,3 +6,5 @@
 source "https://rubygems.org"
 
 gem "lively", path: "../../"
+gem "async-redis", "~> 0.10"
+gem "json", "~> 2.7"
