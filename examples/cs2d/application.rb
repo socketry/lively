@@ -61,27 +61,19 @@ class CS2DView < Live::View
 		puts "\n=== EVENT RECEIVED ==="
 		puts "Event: #{event.inspect}"
 		puts "=====================\n"
-		Console.info(self, "Event received: #{event.inspect}") rescue nil
 				
-		# Handle different event formats from Live.js
-		type = event[:type] || event["type"]
-		detail = event[:detail] || event["detail"] || event[:data] || event["data"]
-				
-		case type
-		when "click", "live:event"
-			# Handle both direct detail and nested data structures
-			if detail
-				action = detail["action"] || detail[:action] || (detail["data"] && detail["data"]["action"]) || (detail[:data] && detail[:data][:action])
-				team = detail["team"] || detail[:team] || (detail["data"] && detail["data"]["team"]) || (detail[:data] && detail[:data][:team])
-								
-				if action == "team_select" && team
-					puts "\n>>> TEAM SELECTED: #{team} <<<\n"
-					Console.info(self, "Team selection received: #{team}") rescue nil
-					select_team(team)
-				end
+		# Use standard Live gem event handling pattern
+		action = event.dig(:detail, :action)
+		
+		case action
+		when "team_select"
+			team = event.dig(:detail, :team)
+			if team
+				puts "\n>>> TEAM SELECTED: #{team} <<<\n"
+				select_team(team)
 			end
 		when "player_kill"
-			add_kill_to_feed(detail) if detail
+			add_kill_to_feed(event[:detail]) if event[:detail]
 		end
 	end
 		
@@ -212,9 +204,8 @@ class CS2DView < Live::View
 			builder.tag(:div, style: "display: flex; gap: 50px; margin-bottom: 30px;") do
 				# CT Team Button
 				builder.tag(:button,
-													data: { action: "team_select", team: "ct" },
 													style: "padding: 30px 60px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #4169e1, #1e90ff); color: white; border: 3px solid #0066cc; border-radius: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase;",
-													onclick: "window.selectTeam('ct')",
+													onclick: forward_event(action: "team_select", team: "ct"),
 													onmouseover: "this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(30,144,255,0.6)';",
 													onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.5)';") do
 					builder.tag(:div) { builder.text("Counter-Terrorists") }
@@ -225,9 +216,8 @@ class CS2DView < Live::View
 								
 				# T Team Button
 				builder.tag(:button,
-												data: { action: "team_select", team: "t" },
 												style: "padding: 30px 60px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #ff6b00, #ff8c00); color: white; border: 3px solid #cc5500; border-radius: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase;",
-												onclick: "window.selectTeam('t')",
+												onclick: forward_event(action: "team_select", team: "t"),
 												onmouseover: "this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255,140,0,0.6)';",
 												onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.5)';") do
 					builder.tag(:div) { builder.text("Terrorists") }
@@ -239,9 +229,8 @@ class CS2DView < Live::View
 							
 			# Auto-assign button
 			builder.tag(:button,
-										data: { action: "team_select", team: "auto" },
 										style: "padding: 15px 40px; font-size: 18px; background: rgba(255,255,255,0.1); color: white; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; cursor: pointer; transition: all 0.3s;",
-										onclick: "window.selectTeam('auto')",
+										onclick: forward_event(action: "team_select", team: "auto"),
 										onmouseover: "this.style.background='rgba(255,255,255,0.2)'; this.style.borderColor='rgba(255,255,255,0.5)';",
 										onmouseout: "this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='rgba(255,255,255,0.3)';") do
 				builder.text("Auto-Assign")
@@ -252,99 +241,6 @@ class CS2DView < Live::View
 				ct_count = @game_state[:players].values.count { |p| p[:team] == "ct" }
 				t_count = @game_state[:players].values.count { |p| p[:team] == "t" }
 				builder.text("CT: #{ct_count} players | T: #{t_count} players")
-			end
-							
-			# Add JavaScript for button click handling
-			builder.tag(:script, type: "text/javascript") do
-				builder.raw(<<~JAVASCRIPT)
-								// Define global selectTeam function
-								window.selectTeam = function(team) {
-									console.log('selectTeam called with:', team);
-									
-									const element = document.getElementById('team-selection');
-									console.log('Team selection element:', element);
-									
-									if (element && element.dataset.live) {
-										const liveId = element.dataset.live;
-										console.log('Element live ID:', liveId);
-										
-										// Multiple ways to get the Live instance
-										let live = null;
-										
-										// Method 1: Live.of
-										if (window.Live && window.Live.of) {
-											live = window.Live.of(element);
-											console.log('Live instance from Live.of:', live);
-										}
-										
-										// Method 2: Direct from Live.Connection
-										if (!live && window.Live && window.Live.Connection) {
-											// Try to find existing connection
-											const connections = document.querySelectorAll('[data-live]');
-											for (let conn of connections) {
-												if (conn.dataset.live === liveId) {
-													live = window.Live.of(conn);
-													if (live) break;
-												}
-											}
-										}
-										
-										// Method 3: Create new event and dispatch
-										if (!live) {
-											console.log('Trying custom event dispatch method...');
-											const event = new CustomEvent('live:event', {
-												detail: {
-													type: 'click',
-													data: {
-														action: 'team_select',
-														team: team
-													}
-												},
-												bubbles: true
-											});
-											element.dispatchEvent(event);
-											console.log('Dispatched custom event');
-											return;
-										}
-										
-										if (live && live.send) {
-											try {
-												live.send({
-													type: 'click',
-													detail: {
-														action: 'team_select',
-														team: team
-													}
-												});
-												console.log('Team selection sent successfully:', team);
-											} catch (error) {
-												console.error('Error sending team selection:', error);
-											}
-										} else {
-											console.error('Could not get Live instance or send method');
-										}
-									} else {
-										console.error('Team selection element not found or missing live data');
-									}
-								};
-								
-								// Also set up event listeners as backup
-								setTimeout(function() {
-									console.log('Setting up team selection button listeners...');
-									const buttons = document.querySelectorAll('[data-action="team_select"]');
-									console.log('Found buttons:', buttons.length);
-									
-									buttons.forEach(button => {
-										if (!button.onclick) {
-											console.log('Adding click listener to button with team:', button.dataset.team);
-											button.addEventListener('click', function(e) {
-												e.preventDefault();
-												window.selectTeam(this.dataset.team);
-											});
-										}
-									});
-								}, 100);
-				JAVASCRIPT
 			end
 		end
 	end
