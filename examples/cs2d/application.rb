@@ -1,123 +1,139 @@
 #!/usr/bin/env lively
 # frozen_string_literal: true
 
-require 'securerandom'
-require 'json'
+require "securerandom"
+require "json"
 
 class CS2DView < Live::View
-  def bind(page)
-    super
-    # Console.info(self, "CS2D bind method called - WebSocket connection established")
-    
-    # Initialize minimal game state
-    @player_id = SecureRandom.uuid
-    @game_state = {
-      players: {},
-      phase: 'waiting',
-      round_time: 30,
-      ct_score: 0,
-      t_score: 0,
-      round: 1
-    }
-    
-    # Add current player to game state
-    @game_state[:players][@player_id] = {
-      id: @player_id,
-      name: "Player_#{@player_id[0..7]}",
-      team: 'ct',
-      x: 640,
-      y: 360,
-      health: 100,
-      alive: true
-    }
-    
-    # Console.info(self, "CS2D game state initialized for player #{@player_id}")
-    self.update!
-    # Console.info(self, "CS2D render update sent via WebSocket")
-    
-    # Initialize JavaScript after render - proper Lively pattern
-    initialize_game_javascript
-  end
+	def initialize(...)
+		super
+		# Initialize game state early to prevent nil errors
+		@player_id = SecureRandom.uuid
+		@game_state = {
+						players: {},
+						phase: "waiting",
+						round_time: 30,
+						ct_score: 0,
+						t_score: 0,
+						round: 1
+				}
+	end
+		
+	def bind(page)
+		super
+		# Console.info(self, "CS2D bind method called - WebSocket connection established")
+				
+		# Re-initialize game state if needed
+		@player_id ||= SecureRandom.uuid
+		@game_state ||= {
+						players: {},
+						phase: "waiting",
+						round_time: 30,
+						ct_score: 0,
+						t_score: 0,
+						round: 1
+				}
+				
+		# Add current player to game state
+		@game_state[:players][@player_id] = {
+						id: @player_id,
+						name: "Player_#{@player_id[0..7]}",
+						team: "ct",
+						x: 640,
+						y: 360,
+						health: 100,
+						alive: true
+				}
+				
+		# Console.info(self, "CS2D game state initialized for player #{@player_id}")
+		self.update!
+		# Console.info(self, "CS2D render update sent via WebSocket")
+				
+		# Initialize JavaScript after render - proper Lively pattern
+		initialize_game_javascript
+	end
 
-  def render(builder)
-    # Render the complete game container
-    render_game_container(builder)
-    
-    # For large JavaScript games, use HTML-based inclusion
-    # This avoids WebSocket injection issues with 40K+ chars of code
-    render_game_javascript(builder)
-  end
-  
-  def render_game_container(builder)
-    builder.tag(:div, id: "cs2d-container", data: { live: @id }, 
-                style: "width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; position: relative; font-family: Arial, sans-serif;") do
-      # Main game canvas
-      builder.tag(:canvas, id: "game-canvas", width: 1280, height: 720,
-                 style: "display: block; margin: 0 auto; cursor: crosshair; border: 2px solid #333;",
-                 tabIndex: 0)
-      
-      # CS 1.6 style HUD
-      render_hud(builder)
-    end
-  end
-  
-  def render_hud(builder)
-    builder.tag(:div, id: "hud", style: "position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;") do
-      # Player info
-      builder.tag(:div, style: "position: absolute; top: 20px; left: 20px; color: #00ff00; font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-        player_name = @player_id ? "Player: #{@player_id[0..7]}" : "CS 1.6"
-        builder.text(player_name)
-      end
-      
-      # Health & Armor
-      builder.tag(:div, style: "position: absolute; bottom: 20px; left: 20px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-        builder.tag(:div, style: "font-size: 32px; font-weight: bold; color: #ff4444;") do
-          builder.text("❤ 100")
-        end
-        builder.tag(:div, style: "font-size: 32px; font-weight: bold; color: #4444ff;") do
-          builder.text("🛡 100")
-        end
-      end
-      
-      # Ammo
-      builder.tag(:div, style: "position: absolute; bottom: 20px; right: 20px; text-align: right; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-        builder.tag(:div, style: "font-size: 48px; font-weight: bold;") do
-          builder.text("30 / 90")
-        end
-        builder.tag(:div, style: "font-size: 24px; color: #ffaa00;") do
-          builder.text("M4A1")
-        end
-      end
-      
-      # Score
-      builder.tag(:div, style: "position: absolute; top: 20px; left: 50%; transform: translateX(-50%); text-align: center;") do
-        builder.tag(:div, style: "font-size: 28px; color: white; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-          builder.tag(:span, style: "color: #4444ff;") { builder.text("CT #{@game_state[:ct_score]}") }
-          builder.text(" - ")
-          builder.tag(:span, style: "color: #ff6600;") { builder.text("#{@game_state[:t_score]} T") }
-        end
-      end
-    end
-  end
-  
-  def render_game_javascript(builder)
-    # For production CS 1.6 with full features, use HTML-based JavaScript inclusion
-    # This prevents WebSocket injection failures with large code
-    builder.tag(:script, type: "text/javascript") do
-      builder.raw(generate_cs16_core_javascript)
-    end
-  end
+	def render(builder)
+		# Render the complete game container
+		render_game_container(builder)
+				
+		# For large JavaScript games, use HTML-based inclusion
+		# This avoids WebSocket injection issues with 40K+ chars of code
+		render_game_javascript(builder)
+	end
+		
+	def render_game_container(builder)
+		builder.tag(:div, id: "cs2d-container", data: { live: @id }, 
+																style: "width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; position: relative; font-family: Arial, sans-serif;") do
+			# Main game canvas
+			builder.tag(:canvas, id: "game-canvas", width: 1280, height: 720,
+																	style: "display: block; margin: 0 auto; cursor: crosshair; border: 2px solid #333;",
+																	tabIndex: 0)
+						
+			# CS 1.6 style HUD
+			render_hud(builder)
+		end
+	end
+		
+	def render_hud(builder)
+		builder.tag(:div, id: "hud", style: "position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;") do
+			# Player info
+			builder.tag(:div, style: "position: absolute; top: 20px; left: 20px; color: #00ff00; font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+				player_name = @player_id ? "Player: #{@player_id[0..7]}" : "CS 1.6"
+				builder.text(player_name)
+			end
+						
+			# Health & Armor
+			builder.tag(:div, style: "position: absolute; bottom: 20px; left: 20px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+				builder.tag(:div, style: "font-size: 32px; font-weight: bold; color: #ff4444;") do
+					builder.text("❤ 100")
+				end
+				builder.tag(:div, style: "font-size: 32px; font-weight: bold; color: #4444ff;") do
+					builder.text("🛡 100")
+				end
+			end
+						
+			# Ammo
+			builder.tag(:div, style: "position: absolute; bottom: 20px; right: 20px; text-align: right; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+				builder.tag(:div, style: "font-size: 48px; font-weight: bold;") do
+					builder.text("30 / 90")
+				end
+				builder.tag(:div, style: "font-size: 24px; color: #ffaa00;") do
+					builder.text("M4A1")
+				end
+			end
+						
+			# Score
+			builder.tag(:div, style: "position: absolute; top: 20px; left: 50%; transform: translateX(-50%); text-align: center;") do
+				builder.tag(:div, style: "font-size: 28px; color: white; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+					ct_score = @game_state ? @game_state[:ct_score] : 0
+					t_score = @game_state ? @game_state[:t_score] : 0
+					builder.tag(:span, style: "color: #4444ff;") { builder.text("CT #{ct_score}") }
+					builder.text(" - ")
+					builder.tag(:span, style: "color: #ff6600;") { builder.text("#{t_score} T") }
+				end
+			end
+		end
+	end
+		
+	def render_game_javascript(builder)
+		# For production CS 1.6 with full features, use HTML-based JavaScript inclusion
+		# This prevents WebSocket injection failures with large code
+		builder.tag(:script, type: "text/javascript") do
+			builder.raw(generate_cs16_core_javascript)
+		end
+	end
 
-  def initialize_game_javascript
-    # For small JavaScript, WebSocket injection is fine
-    # For large game code (>40K chars), use HTML-based inclusion in render method
-    
-    # Delay to ensure WebSocket connection is ready
-    Async do
-      sleep 1.5
-      
-      # Test JavaScript injection
-      self.script(<<~JAVASCRIPT)
+	def initialize_game_javascript
+		# For small JavaScript, WebSocket injection is fine
+		# For large game code (>40K chars), use HTML-based inclusion in render method
+				
+		# Delay to ensure WebSocket connection is ready
+		Async do
+			sleep 1.5
+						
+			# Test JavaScript injection
+			self.script(<<~JAVASCRIPT)
         console.log('CS 1.6: WebSocket JavaScript injection active!');
         document.body.style.backgroundColor = '#1a1a1a';
         
@@ -159,13 +175,13 @@ class CS2DView < Live::View
       statusDiv.style.cssText = 'position: fixed; bottom: 10px; right: 10px; background: yellow; color: black; padding: 10px; z-index: 99999; font-weight: bold;';
       statusDiv.textContent = 'Game Active';
       document.body.appendChild(statusDiv);
-      JAVASCRIPT
-    end
-  end
-  
-  def generate_cs16_core_javascript
-    # Complete CS 1.6 game implementation
-    <<~JAVASCRIPT
+						JAVASCRIPT
+		end
+	end
+		
+	def generate_cs16_core_javascript
+		# Complete CS 1.6 game implementation
+		<<~JAVASCRIPT
     (function() {
       console.log('CS 1.6: Initializing complete game engine...');
       
@@ -482,29 +498,62 @@ class CS2DView < Live::View
       // Game functions
       function shoot() {
         const player = gameState.players[gameState.localPlayerId];
-        if (!player || !player.alive) return;
+        if (!player || !player.alive || player.reloading) return;
         
         const weapon = WEAPONS[player.weapon || 'm4a1'];
+        
+        // Check ammo
+        if (!player.ammo || player.ammo <= 0) {
+          reload();
+          return;
+        }
         
         // Check fire rate
         const now = Date.now();
         if (player.lastShot && (now - player.lastShot) < weapon.fireRate * 1000) return;
         player.lastShot = now;
         
+        // Decrease ammo
+        player.ammo--;
+        
+        // Calculate spread based on movement and weapon
         const angle = player.angle || 0;
-        const spread = (Math.random() - 0.5) * 0.1;
+        let spread = 0.02;
+        if (player.velocity) {
+          const speed = Math.sqrt(player.velocity.x * player.velocity.x + player.velocity.y * player.velocity.y);
+          spread += speed * 0.0001;
+        }
+        if (player.jumping) spread += 0.05;
+        if (player.crouching) spread *= 0.5;
+        if (weapon === WEAPONS.awp || weapon === WEAPONS.scout) {
+          if (!player.scoped) spread *= 3;
+        }
+        
+        const finalSpread = (Math.random() - 0.5) * spread;
         
         const bullet = {
           x: player.x + Math.cos(angle) * 30,
           y: player.y + Math.sin(angle) * 30,
-          vx: Math.cos(angle + spread) * CONFIG.BULLET_SPEED,
-          vy: Math.sin(angle + spread) * CONFIG.BULLET_SPEED,
+          vx: Math.cos(angle + finalSpread) * CONFIG.BULLET_SPEED,
+          vy: Math.sin(angle + finalSpread) * CONFIG.BULLET_SPEED,
           damage: weapon.damage,
+          penetration: weapon === WEAPONS.awp ? 3 : weapon === WEAPONS.scout ? 2 : 1,
           owner: player.id,
           team: player.team
         };
         
         gameState.bullets.push(bullet);
+        
+        // Recoil effect
+        player.angle += (Math.random() - 0.5) * 0.05;
+        
+        // Muzzle flash effect
+        gameState.muzzleFlashes = gameState.muzzleFlashes || [];
+        gameState.muzzleFlashes.push({
+          x: bullet.x,
+          y: bullet.y,
+          time: 0.1
+        });
       }
       
       function reload() {
@@ -570,17 +619,168 @@ class CS2DView < Live::View
       
       function toggleBuyMenu() {
         gameState.buyMenuOpen = !gameState.buyMenuOpen;
-        console.log('Buy menu:', gameState.buyMenuOpen ? 'open' : 'closed');
+        if (gameState.buyMenuOpen) {
+          renderBuyMenu();
+        } else {
+          closeBuyMenu();
+        }
+      }
+      
+      function renderBuyMenu() {
+        const existing = document.getElementById('buy-menu');
+        if (existing) existing.remove();
+        
+        const menu = document.createElement('div');
+        menu.id = 'buy-menu';
+        menu.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #ff6600; padding: 20px; color: white; font-family: Arial; z-index: 1000;';
+        
+        menu.innerHTML = `
+          <h2 style="color: #ff6600; text-align: center;">Buy Menu</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <h3>Rifles</h3>
+              <button onclick="buyWeapon('m4a1')" style="display: block; width: 100%; margin: 5px 0;">M4A1 - $3100</button>
+              <button onclick="buyWeapon('ak47')" style="display: block; width: 100%; margin: 5px 0;">AK-47 - $2500</button>
+              <button onclick="buyWeapon('awp')" style="display: block; width: 100%; margin: 5px 0;">AWP - $4750</button>
+              <button onclick="buyWeapon('scout')" style="display: block; width: 100%; margin: 5px 0;">Scout - $2750</button>
+            </div>
+            <div>
+              <h3>SMGs & Pistols</h3>
+              <button onclick="buyWeapon('mp5')" style="display: block; width: 100%; margin: 5px 0;">MP5 - $1500</button>
+              <button onclick="buyWeapon('p90')" style="display: block; width: 100%; margin: 5px 0;">P90 - $2350</button>
+              <button onclick="buyWeapon('deagle')" style="display: block; width: 100%; margin: 5px 0;">Desert Eagle - $650</button>
+              <button onclick="buyWeapon('usp')" style="display: block; width: 100%; margin: 5px 0;">USP - $500</button>
+            </div>
+          </div>
+          <div style="margin-top: 10px;">
+            <button onclick="buyArmor()" style="margin-right: 10px;">Kevlar - $650</button>
+            <button onclick="buyDefuseKit()" style="margin-right: 10px;">Defuse Kit - $200</button>
+            <button onclick="buyGrenade('flashbang')" style="margin-right: 10px;">Flash - $200</button>
+            <button onclick="buyGrenade('smoke')" style="margin-right: 10px;">Smoke - $300</button>
+            <button onclick="buyGrenade('he')" style="margin-right: 10px;">HE - $300</button>
+          </div>
+          <p style="text-align: center; color: #00ff00;">Money: $${gameState.players[gameState.localPlayerId]?.money || 800}</p>
+        `;
+        
+        document.body.appendChild(menu);
+        
+        // Define buy functions
+        window.buyWeapon = function(weaponName) {
+          const player = gameState.players[gameState.localPlayerId];
+          if (!player) return;
+          
+          const weapon = WEAPONS[weaponName];
+          if (!weapon) return;
+          
+          player.money = player.money || 800;
+          if (player.money >= weapon.price) {
+            player.money -= weapon.price;
+            player.weapon = weaponName;
+            player.ammo = weapon.clipSize;
+            player.reserve = weapon.reserve;
+            console.log('Bought ' + weaponName);
+            renderBuyMenu(); // Update money display
+          }
+        };
+        
+        window.buyArmor = function() {
+          const player = gameState.players[gameState.localPlayerId];
+          if (!player) return;
+          
+          player.money = player.money || 800;
+          if (player.money >= 650 && player.armor < 100) {
+            player.money -= 650;
+            player.armor = 100;
+            renderBuyMenu();
+          }
+        };
+        
+        window.buyDefuseKit = function() {
+          const player = gameState.players[gameState.localPlayerId];
+          if (!player || player.team !== 'ct') return;
+          
+          player.money = player.money || 800;
+          if (player.money >= 200 && !player.defuseKit) {
+            player.money -= 200;
+            player.defuseKit = true;
+            renderBuyMenu();
+          }
+        };
+        
+        window.buyGrenade = function(type) {
+          const player = gameState.players[gameState.localPlayerId];
+          if (!player) return;
+          
+          const prices = { flashbang: 200, smoke: 300, he: 300 };
+          player.money = player.money || 800;
+          
+          if (player.money >= prices[type]) {
+            player.money -= prices[type];
+            player.grenades = player.grenades || {};
+            player.grenades[type] = (player.grenades[type] || 0) + 1;
+            renderBuyMenu();
+          }
+        };
+      }
+      
+      function closeBuyMenu() {
+        const menu = document.getElementById('buy-menu');
+        if (menu) menu.remove();
       }
       
       function toggleScoreboard(show) {
         gameState.scoreboardOpen = show;
-        console.log('Scoreboard:', show ? 'open' : 'closed');
+        if (show) {
+          renderScoreboard();
+        } else {
+          closeScoreboard();
+        }
+      }
+      
+      function renderScoreboard() {
+        const existing = document.getElementById('scoreboard');
+        if (existing) existing.remove();
+        
+        const board = document.createElement('div');
+        board.id = 'scoreboard';
+        board.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); border: 2px solid #666; padding: 20px; color: white; font-family: monospace; z-index: 999;';
+        
+        let html = '<h2 style="text-align: center;">SCOREBOARD</h2>';
+        html += '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<tr><th>Name</th><th>Team</th><th>K</th><th>D</th><th>Money</th><th>Ping</th></tr>';
+        
+        for (const player of Object.values(gameState.players)) {
+          const teamColor = player.team === 'ct' ? '#4444ff' : '#ff6600';
+          html += `<tr style="color: ${teamColor};">`;
+          html += `<td>${player.name}</td>`;
+          html += `<td>${player.team.toUpperCase()}</td>`;
+          html += `<td>${player.kills || 0}</td>`;
+          html += `<td>${player.deaths || 0}</td>`;
+          html += `<td>$${player.money || 800}</td>`;
+          html += `<td>${Math.floor(Math.random() * 50 + 20)}</td>`;
+          html += '</tr>';
+        }
+        
+        html += '</table>';
+        html += `<p style="text-align: center; margin-top: 10px;">Round ${gameState.round} | CT: ${gameState.ctScore} - T: ${gameState.tScore}</p>`;
+        
+        board.innerHTML = html;
+        document.body.appendChild(board);
+      }
+      
+      function closeScoreboard() {
+        const board = document.getElementById('scoreboard');
+        if (board) board.remove();
       }
       
       function throwGrenade(type) {
         const player = gameState.players[gameState.localPlayerId];
         if (!player || !player.alive) return;
+        
+        player.grenades = player.grenades || {};
+        if (!player.grenades[type] || player.grenades[type] <= 0) return;
+        
+        player.grenades[type]--;
         
         const grenade = {
           x: player.x,
@@ -593,6 +793,283 @@ class CS2DView < Live::View
         };
         
         gameState.grenades.push(grenade);
+      }
+      
+      // Advanced Bot AI System
+      function updateBotAI(deltaTime) {
+        for (const bot of Object.values(gameState.players)) {
+          if (bot.id === gameState.localPlayerId || !bot.alive) continue;
+          
+          // Initialize bot AI state
+          bot.ai = bot.ai || {
+            state: 'patrol',
+            target: null,
+            destination: null,
+            reactionTime: 0.2 + Math.random() * 0.3,
+            skill: Math.random() * 0.5 + 0.3,
+            lastDecision: 0,
+            patrolPoints: generatePatrolPoints(bot.team)
+          };
+          
+          // Decision making
+          const now = Date.now() / 1000;
+          if (now - bot.ai.lastDecision > bot.ai.reactionTime) {
+            bot.ai.lastDecision = now;
+            makeBotDecision(bot);
+          }
+          
+          // Execute current state
+          switch(bot.ai.state) {
+            case 'patrol':
+              executeBotPatrol(bot, deltaTime);
+              break;
+            case 'combat':
+              executeBotCombat(bot, deltaTime);
+              break;
+            case 'plant':
+              executeBotPlant(bot, deltaTime);
+              break;
+            case 'defuse':
+              executeBotDefuse(bot, deltaTime);
+              break;
+            case 'retreat':
+              executeBotRetreat(bot, deltaTime);
+              break;
+          }
+          
+          // Check for enemies
+          const enemy = findNearestEnemy(bot);
+          if (enemy && canSeeTarget(bot, enemy)) {
+            bot.ai.state = 'combat';
+            bot.ai.target = enemy;
+          }
+        }
+      }
+      
+      function makeBotDecision(bot) {
+        // Check health
+        if (bot.health < 30) {
+          bot.ai.state = 'retreat';
+          return;
+        }
+        
+        // Check for bomb objectives
+        if (bot.team === 't' && bot.bomb && !gameState.bomb?.planted) {
+          const site = Math.random() < 0.5 ? { x: 600, y: 200 } : { x: 300, y: 500 };
+          const dist = Math.sqrt(Math.pow(bot.x - site.x, 2) + Math.pow(bot.y - site.y, 2));
+          if (dist < 80) {
+            bot.ai.state = 'plant';
+            return;
+          }
+        }
+        
+        if (bot.team === 'ct' && gameState.bomb?.planted) {
+          const dist = Math.sqrt(Math.pow(bot.x - gameState.bomb.x, 2) + Math.pow(bot.y - gameState.bomb.y, 2));
+          if (dist < 50) {
+            bot.ai.state = 'defuse';
+            return;
+          }
+        }
+        
+        // Default to patrol if not in combat
+        if (bot.ai.state !== 'combat') {
+          bot.ai.state = 'patrol';
+        }
+      }
+      
+      function executeBotPatrol(bot, deltaTime) {
+        // Select destination
+        if (!bot.ai.destination || distanceToPoint(bot, bot.ai.destination) < 50) {
+          bot.ai.destination = bot.ai.patrolPoints[Math.floor(Math.random() * bot.ai.patrolPoints.length)];
+        }
+        
+        // Move towards destination
+        moveTowards(bot, bot.ai.destination, CONFIG.PLAYER_SPEED * 0.7, deltaTime);
+        
+        // Look around
+        bot.angle = (bot.angle || 0) + (Math.random() - 0.5) * deltaTime;
+      }
+      
+      function executeBotCombat(bot, deltaTime) {
+        if (!bot.ai.target || !bot.ai.target.alive) {
+          bot.ai.state = 'patrol';
+          bot.ai.target = null;
+          return;
+        }
+        
+        // Aim at target
+        const dx = bot.ai.target.x - bot.x;
+        const dy = bot.ai.target.y - bot.y;
+        const targetAngle = Math.atan2(dy, dx);
+        
+        // Add skill-based aim adjustment
+        const aimError = (1 - bot.ai.skill) * 0.2;
+        bot.angle = targetAngle + (Math.random() - 0.5) * aimError;
+        
+        // Shoot if aligned
+        const angleDiff = Math.abs(normalizeAngle(bot.angle - targetAngle));
+        if (angleDiff < 0.1) {
+          shootBot(bot);
+        }
+        
+        // Strafe
+        const strafeDir = Math.sin(Date.now() * 0.003) > 0 ? 1 : -1;
+        bot.x += strafeDir * CONFIG.PLAYER_SPEED * 0.5 * deltaTime;
+        
+        // Maintain distance
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > 300) {
+          moveTowards(bot, bot.ai.target, CONFIG.PLAYER_SPEED * 0.5, deltaTime);
+        } else if (distance < 100) {
+          moveTowards(bot, bot.ai.target, -CONFIG.PLAYER_SPEED * 0.3, deltaTime);
+        }
+      }
+      
+      function executeBotPlant(bot, deltaTime) {
+        // Plant bomb
+        bot.plantingProgress = (bot.plantingProgress || 0) + deltaTime;
+        if (bot.plantingProgress > 3) {
+          gameState.bomb = {
+            planted: true,
+            x: bot.x,
+            y: bot.y,
+            timeLeft: CONFIG.BOMB_TIMER,
+            site: 'A'
+          };
+          bot.bomb = false;
+          bot.plantingProgress = 0;
+          bot.ai.state = 'patrol';
+        }
+      }
+      
+      function executeBotDefuse(bot, deltaTime) {
+        // Defuse bomb
+        bot.defusingProgress = (bot.defusingProgress || 0) + deltaTime;
+        const defuseTime = bot.defuseKit ? 5 : 10;
+        if (bot.defusingProgress > defuseTime) {
+          gameState.bomb = null;
+          gameState.ctScore++;
+          bot.defusingProgress = 0;
+          bot.ai.state = 'patrol';
+        }
+      }
+      
+      function executeBotRetreat(bot, deltaTime) {
+        // Find safe spot
+        const safeSpot = bot.team === 'ct' ? { x: 100, y: 200 } : { x: 1100, y: 500 };
+        moveTowards(bot, safeSpot, CONFIG.PLAYER_SPEED, deltaTime);
+        
+        // Recover
+        if (bot.health > 50) {
+          bot.ai.state = 'patrol';
+        }
+      }
+      
+      function shootBot(bot) {
+        const weapon = WEAPONS[bot.weapon || (bot.team === 'ct' ? 'm4a1' : 'ak47')];
+        const now = Date.now();
+        
+        bot.ammo = bot.ammo || weapon.clipSize;
+        if (bot.ammo <= 0) {
+          // Reload
+          bot.reloading = true;
+          setTimeout(() => {
+            bot.ammo = weapon.clipSize;
+            bot.reloading = false;
+          }, weapon.reloadTime * 1000);
+          return;
+        }
+        
+        if (bot.lastShot && (now - bot.lastShot) < weapon.fireRate * 1000) return;
+        bot.lastShot = now;
+        bot.ammo--;
+        
+        const spread = (Math.random() - 0.5) * 0.05 * (2 - bot.ai.skill);
+        const bullet = {
+          x: bot.x + Math.cos(bot.angle) * 30,
+          y: bot.y + Math.sin(bot.angle) * 30,
+          vx: Math.cos(bot.angle + spread) * CONFIG.BULLET_SPEED,
+          vy: Math.sin(bot.angle + spread) * CONFIG.BULLET_SPEED,
+          damage: weapon.damage,
+          owner: bot.id,
+          team: bot.team
+        };
+        
+        gameState.bullets.push(bullet);
+      }
+      
+      // Helper functions
+      function findNearestEnemy(bot) {
+        let nearest = null;
+        let minDist = Infinity;
+        
+        for (const player of Object.values(gameState.players)) {
+          if (player.team === bot.team || !player.alive) continue;
+          
+          const dist = Math.sqrt(Math.pow(player.x - bot.x, 2) + Math.pow(player.y - bot.y, 2));
+          if (dist < minDist) {
+            minDist = dist;
+            nearest = player;
+          }
+        }
+        
+        return minDist < 500 ? nearest : null;
+      }
+      
+      function canSeeTarget(bot, target) {
+        // Simple line of sight check
+        const dx = target.x - bot.x;
+        const dy = target.y - bot.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Check angle
+        const targetAngle = Math.atan2(dy, dx);
+        const angleDiff = Math.abs(normalizeAngle(bot.angle - targetAngle));
+        
+        return dist < 400 && angleDiff < Math.PI / 3;
+      }
+      
+      function moveTowards(entity, target, speed, deltaTime) {
+        const dx = target.x - entity.x;
+        const dy = target.y - entity.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist > 0) {
+          entity.x += (dx / dist) * speed * deltaTime;
+          entity.y += (dy / dist) * speed * deltaTime;
+        }
+        
+        // Keep in bounds
+        entity.x = Math.max(CONFIG.PLAYER_RADIUS, Math.min(CONFIG.MAP_WIDTH - CONFIG.PLAYER_RADIUS, entity.x));
+        entity.y = Math.max(CONFIG.PLAYER_RADIUS, Math.min(CONFIG.MAP_HEIGHT - CONFIG.PLAYER_RADIUS, entity.y));
+      }
+      
+      function distanceToPoint(entity, point) {
+        return Math.sqrt(Math.pow(entity.x - point.x, 2) + Math.pow(entity.y - point.y, 2));
+      }
+      
+      function normalizeAngle(angle) {
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+        while (angle < -Math.PI) angle += 2 * Math.PI;
+        return angle;
+      }
+      
+      function generatePatrolPoints(team) {
+        if (team === 'ct') {
+          return [
+            { x: 200, y: 200 },
+            { x: 600, y: 200 },
+            { x: 300, y: 500 },
+            { x: 640, y: 360 }
+          ];
+        } else {
+          return [
+            { x: 1000, y: 200 },
+            { x: 600, y: 200 },
+            { x: 300, y: 500 },
+            { x: 640, y: 360 }
+          ];
+        }
       }
       
       // Update game
@@ -725,35 +1202,8 @@ class CS2DView < Live::View
           }
         }
         
-        // Simple bot AI
-        for (const bot of Object.values(gameState.players)) {
-          if (bot.id === gameState.localPlayerId || !bot.alive) continue;
-          
-          // Random movement
-          bot.x += (Math.random() - 0.5) * 100 * deltaTime;
-          bot.y += (Math.random() - 0.5) * 100 * deltaTime;
-          
-          // Keep in bounds
-          bot.x = Math.max(CONFIG.PLAYER_RADIUS, Math.min(CONFIG.MAP_WIDTH - CONFIG.PLAYER_RADIUS, bot.x));
-          bot.y = Math.max(CONFIG.PLAYER_RADIUS, Math.min(CONFIG.MAP_HEIGHT - CONFIG.PLAYER_RADIUS, bot.y));
-          
-          // Update angle
-          bot.angle = (bot.angle || 0) + (Math.random() - 0.5) * 2 * deltaTime;
-          
-          // Random shooting
-          if (Math.random() < 0.01) {
-            const bullet = {
-              x: bot.x + Math.cos(bot.angle) * 30,
-              y: bot.y + Math.sin(bot.angle) * 30,
-              vx: Math.cos(bot.angle) * CONFIG.BULLET_SPEED,
-              vy: Math.sin(bot.angle) * CONFIG.BULLET_SPEED,
-              damage: 30,
-              owner: bot.id,
-              team: bot.team
-            };
-            gameState.bullets.push(bullet);
-          }
-        }
+        // Advanced bot AI
+        updateBotAI(deltaTime);
       }
       
       // Game loop
@@ -793,7 +1243,16 @@ class CS2DView < Live::View
           alive: true,
           weapon: 'm4a1',
           ammo: 30,
-          bomb: false
+          reserve: 90,
+          money: 800,
+          kills: 0,
+          deaths: 0,
+          bomb: false,
+          grenades: {
+            flashbang: 2,
+            smoke: 1,
+            he: 1
+          }
         };
         
         // Add bots
@@ -812,7 +1271,16 @@ class CS2DView < Live::View
             alive: true,
             weapon: team === 'ct' ? 'm4a1' : 'ak47',
             ammo: 30,
-            bomb: team === 't' && i === 3
+            reserve: 90,
+            money: 800,
+            kills: 0,
+            deaths: 0,
+            bomb: team === 't' && i === 3,
+            grenades: {
+              flashbang: Math.random() > 0.5 ? 1 : 0,
+              smoke: Math.random() > 0.7 ? 1 : 0,
+              he: Math.random() > 0.6 ? 1 : 0
+            }
           };
         }
         
@@ -836,12 +1304,12 @@ class CS2DView < Live::View
       // Start
       init();
     })();
-    JAVASCRIPT
-  end
+				JAVASCRIPT
+	end
 
-  def close
-    # Clean up when view closes
-  end
+	def close
+		# Clean up when view closes
+	end
 end
 
 Application = Lively::Application[CS2DView]

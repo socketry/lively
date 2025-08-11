@@ -6,6 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Lively is a Ruby framework for building interactive web applications for creative coding. It provides real-time communication between client and server using WebSockets through the Live gem, and runs on the Falcon web server.
 
+## Coding Standards
+
+**IMPORTANT: This project enforces strict coding standards using RuboCop.**
+
+When writing or modifying Ruby code:
+1. **Always run RuboCop** after making changes: `bundle exec rubocop -a path/to/file.rb`
+2. **Use tabs for indentation** (not spaces) - this is enforced by the `.rubocop.yml` configuration
+3. **Use double quotes** for strings: `"string"` not `'string'`
+4. **Follow Ruby conventions** for naming: snake_case for methods/variables, CamelCase for classes
+5. **All code must pass RuboCop** without offenses before being considered complete
+
+The project's `.rubocop.yml` file defines the exact style rules. When in doubt, run RuboCop and follow its suggestions.
+
 ## Key Commands
 
 ### Dependencies
@@ -46,7 +59,17 @@ bundle exec rubocop
 
 # Run RuboCop with auto-fix
 bundle exec rubocop -a
+
+# Run RuboCop on specific file
+bundle exec rubocop path/to/file.rb
 ```
+
+**IMPORTANT: Always run RuboCop on any Ruby code you write or modify:**
+- Run `bundle exec rubocop -a` to auto-correct style issues before committing
+- The project uses **tabs for indentation** (not spaces)
+- Use **double quotes for strings** (not single quotes)
+- Follow the project's `.rubocop.yml` configuration
+- All Ruby files should pass RuboCop checks without offenses
 
 ## Architecture
 
