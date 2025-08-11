@@ -266,6 +266,10 @@ A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-t
 - **Canvas Context**: Always verify canvas and context exist before drawing operations
 - **Game Loop**: Use `requestAnimationFrame` for smooth 60 FPS rendering
 - **Delta Time**: Calculate deltaTime for frame-independent movement
+- **Camera System**: Implement proper canvas translation for player-centered views using save/restore
+- **Aim Calculation**: With camera follow, calculate angle from screen center to mouse position
+- **Rendering Order**: Apply camera transforms only to world elements, not UI elements
+- **Debug Visualization**: Add visual aim lines and coordinate displays for debugging game mechanics
 
 **Debugging JavaScript Execution Issues:**
 If you encounter black screen or JavaScript execution problems:
@@ -275,7 +279,71 @@ If you encounter black screen or JavaScript execution problems:
 4. **Use console logging**: Add extensive `console.log()` statements throughout initialization
 5. **Validate timing**: Ensure WebSocket connections are established before script injection
 
-#### Issue 4: Server Startup Errors
+#### Issue 4: Canvas-Based Game Development Patterns
+**Problem**: Incorrect camera implementation and coordinate systems can break game mechanics like aiming.
+
+**Key Implementation Patterns:**
+
+1. **Camera Follow System**: Always implement proper camera translation for player-centered views
+```javascript
+// Save context before applying camera transform
+ctx.save();
+
+// Center camera on player
+const cameraX = canvas.width / 2 - player.x;
+const cameraY = canvas.height / 2 - player.y;
+ctx.translate(cameraX, cameraY);
+
+// Draw world elements here
+
+// Restore context for UI rendering
+ctx.restore();
+
+// Draw UI elements (unaffected by camera)
+```
+
+2. **Aim System Calculation**: Calculate angle from screen center (where player is rendered) to mouse
+```javascript
+// With camera follow, player is always at screen center
+const screenCenterX = canvas.width / 2;
+const screenCenterY = canvas.height / 2;
+
+// Calculate aim angle
+const mouseOffsetX = mouse.x - screenCenterX;
+const mouseOffsetY = mouse.y - screenCenterY;
+player.angle = Math.atan2(mouseOffsetY, mouseOffsetX);
+```
+
+3. **Rendering Pipeline Order**:
+   - Clear canvas
+   - Save context
+   - Apply camera transform
+   - Render world elements (map, players, bullets)
+   - Restore context
+   - Render UI elements (crosshair, HUD, debug info)
+
+4. **Debug Visualization**: Always add visual debugging aids
+```javascript
+// Aim line for debugging
+ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+ctx.setLineDash([5, 5]);
+ctx.beginPath();
+ctx.moveTo(player.x, player.y);
+ctx.lineTo(player.x + Math.cos(player.angle) * 200, 
+           player.y + Math.sin(player.angle) * 200);
+ctx.stroke();
+```
+
+5. **Mouse Input Handling**: Get mouse coordinates relative to canvas
+```javascript
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = e.clientX - rect.left;
+  mouse.y = e.clientY - rect.top;
+});
+```
+
+#### Issue 5: Server Startup Errors
 **Problem**: Ruby syntax errors or missing modules can prevent the server from starting.
 
 **Common Errors and Solutions:**

@@ -649,6 +649,18 @@ class CS2DView < Live::View
           this.ctx.fillStyle = '#c4a57b';
           this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
           
+          // Save context state
+          this.ctx.save();
+          
+          // Camera follows player
+          const player = gameState.players[gameState.localPlayerId];
+          if (player) {
+            // Translate so player is at center of screen
+            const cameraX = this.canvas.width / 2 - player.x;
+            const cameraY = this.canvas.height / 2 - player.y;
+            this.ctx.translate(cameraX, cameraY);
+          }
+          
           // Draw map features
           this.renderMap();
           
@@ -672,8 +684,31 @@ class CS2DView < Live::View
             this.renderBomb();
           }
           
-          // Draw crosshair
+          // Restore context (removes translation for UI elements)
+          this.ctx.restore();
+          
+          // Draw UI elements (not affected by camera)
           this.renderCrosshair();
+          this.renderDebugInfo();
+        },
+        renderDebugInfo() {
+          const player = gameState.players[gameState.localPlayerId];
+          if (!player) return;
+          
+          // Debug overlay
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          this.ctx.fillRect(10, 10, 250, 90);
+          
+          this.ctx.fillStyle = '#00ff00';
+          this.ctx.font = '12px monospace';
+          this.ctx.textAlign = 'left';
+          
+          const angleDegrees = ((player.angle || 0) * 180 / Math.PI).toFixed(1);
+          this.ctx.fillText('Mouse: ' + input.mouse.x.toFixed(0) + ', ' + input.mouse.y.toFixed(0), 15, 25);
+          this.ctx.fillText('Angle: ' + angleDegrees + '°', 15, 40);
+          this.ctx.fillText('Position: ' + player.x.toFixed(0) + ', ' + player.y.toFixed(0), 15, 55);
+          this.ctx.fillText('Health: ' + player.health + ' | Ammo: ' + (player.ammo || 0) + '/' + (player.reserve || 0), 15, 70);
+          this.ctx.fillText('Weapon: ' + (player.weapon || 'none'), 15, 85);
         },
         renderMap() {
           // Simple de_dust2 style map elements
@@ -732,7 +767,7 @@ class CS2DView < Live::View
             this.ctx.arc(player.x, player.y, CONFIG.PLAYER_RADIUS, 0, Math.PI * 2);
             this.ctx.fill();
             
-            // Direction
+            // Direction indicator (weapon barrel)
             this.ctx.strokeStyle = '#000';
             this.ctx.lineWidth = 3;
             this.ctx.beginPath();
@@ -741,6 +776,20 @@ class CS2DView < Live::View
             const dirY = Math.sin(player.angle || 0) * 25;
             this.ctx.lineTo(player.x + dirX, player.y + dirY);
             this.ctx.stroke();
+            
+            // For local player, add extended aim line for debugging
+            if (player.id === gameState.localPlayerId) {
+              this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+              this.ctx.lineWidth = 1;
+              this.ctx.setLineDash([5, 5]);
+              this.ctx.beginPath();
+              this.ctx.moveTo(player.x, player.y);
+              const longDirX = Math.cos(player.angle || 0) * 200;
+              const longDirY = Math.sin(player.angle || 0) * 200;
+              this.ctx.lineTo(player.x + longDirX, player.y + longDirY);
+              this.ctx.stroke();
+              this.ctx.setLineDash([]);
+            }
             
             // Name and health
             this.ctx.fillStyle = '#fff';
@@ -1474,10 +1523,15 @@ class CS2DView < Live::View
           // Store velocity
           player.velocity = { x: dx * speed, y: dy * speed };
           
-          // Update angle
-          const centerX = renderer.canvas.width / 2;
-          const centerY = renderer.canvas.height / 2;
-          player.angle = Math.atan2(input.mouse.y - centerY, input.mouse.x - centerX);
+          // Update angle - calculate from screen center (where player is drawn) to mouse
+          // Since camera is centered on player, player is always at canvas center
+          const screenCenterX = renderer.canvas.width / 2;
+          const screenCenterY = renderer.canvas.height / 2;
+          
+          // Calculate angle from player position to mouse cursor
+          const mouseOffsetX = input.mouse.x - screenCenterX;
+          const mouseOffsetY = input.mouse.y - screenCenterY;
+          player.angle = Math.atan2(mouseOffsetY, mouseOffsetX);
           
           // Handle other inputs
           if (input.keys['KeyR']) reload();
