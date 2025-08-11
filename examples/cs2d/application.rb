@@ -9,13 +9,16 @@ class CS2DView < Live::View
 		super
 		# Initialize game state early to prevent nil errors
 		@player_id = SecureRandom.uuid
+		@team_selected = false
+		@player_team = nil
 		@game_state = {
 						players: {},
 						phase: "waiting",
 						round_time: 30,
 						ct_score: 0,
 						t_score: 0,
-						round: 1
+						round: 1,
+						kill_feed: []
 				}
 	end
 		
@@ -25,25 +28,19 @@ class CS2DView < Live::View
 				
 		# Re-initialize game state if needed
 		@player_id ||= SecureRandom.uuid
+		@team_selected ||= false
+		@player_team ||= nil
 		@game_state ||= {
 						players: {},
 						phase: "waiting",
 						round_time: 30,
 						ct_score: 0,
 						t_score: 0,
-						round: 1
+						round: 1,
+						kill_feed: []
 				}
 				
-		# Add current player to game state
-		@game_state[:players][@player_id] = {
-						id: @player_id,
-						name: "Player_#{@player_id[0..7]}",
-						team: "ct",
-						x: 640,
-						y: 360,
-						health: 100,
-						alive: true
-				}
+		# Don't add player to game state until team is selected
 				
 		# Console.info(self, "CS2D game state initialized for player #{@player_id}")
 		self.update!
@@ -51,15 +48,222 @@ class CS2DView < Live::View
 				
 		# Initialize JavaScript after render - proper Lively pattern
 		initialize_game_javascript
+				
+		# Test kill feed with some sample data after a delay
+		Async do
+			sleep 3
+			simulate_test_kill if @team_selected
+		end
+	end
+		
+	def handle(event)
+		case event[:type]
+		when "click"
+			detail = event[:detail]
+			if detail && detail[:action] == "team_select"
+				select_team(detail[:team])
+			end
+		when "player_kill"
+			detail = event[:detail]
+			add_kill_to_feed(detail) if detail
+		end
+	end
+		
+	def select_team(team)
+		# Determine actual team (auto-assign balances teams)
+		if team == "auto"
+			ct_count = @game_state[:players].values.count { |p| p[:team] == "ct" }
+			t_count = @game_state[:players].values.count { |p| p[:team] == "t" }
+			@player_team = ct_count <= t_count ? "ct" : "t"
+		else
+			@player_team = team
+		end
+				
+		# Set spawn position based on team
+		spawn_x = @player_team == "ct" ? 200 : 1080
+		spawn_y = @player_team == "ct" ? 360 : 360
+				
+		# Add player to game state with selected team
+		@game_state[:players][@player_id] = {
+						id: @player_id,
+						name: "Player_#{@player_id[0..7]}",
+						team: @player_team,
+						x: spawn_x,
+						y: spawn_y,
+						health: 100,
+						armor: @player_team == "ct" ? 100 : 0,
+						money: 800,
+						alive: true,
+						weapon: @player_team == "ct" ? "usp" : "glock"
+				}
+				
+		# Mark team as selected and update view
+		@team_selected = true
+		self.update!
+				
+		# Initialize game after team selection
+		Async do
+			sleep 0.5
+			inject_team_data
+		end
+	end
+		
+	def inject_team_data
+		# Inject player data into the game
+		self.script(<<~JAVASCRIPT)
+				console.log('Team selected: #{@player_team}');
+				if (window.gameState) {
+					gameState.localPlayerId = '#{@player_id}';
+					gameState.localPlayerTeam = '#{@player_team}';
+					gameState.players['#{@player_id}'] = #{@game_state[:players][@player_id].to_json};
+					console.log('Player data injected:', gameState.players['#{@player_id}']);
+				}
+		JAVASCRIPT
+	end
+		
+	def add_kill_to_feed(detail)
+		return unless @game_state
+				
+		# Create kill entry
+		kill_entry = {
+						killer_name: detail[:killer_name] || "Unknown",
+						killer_team: detail[:killer_team] || "t",
+						victim_name: detail[:victim_name] || "Unknown",
+						victim_team: detail[:victim_team] || "ct",
+						weapon: detail[:weapon] || "unknown",
+						headshot: detail[:headshot] || false,
+						timestamp: Time.now.to_f
+				}
+				
+		# Add to kill feed
+		@game_state[:kill_feed] ||= []
+		@game_state[:kill_feed] << kill_entry
+				
+		# Keep only last 10 kills in memory
+		@game_state[:kill_feed] = @game_state[:kill_feed].last(10)
+				
+		# Update the view to show new kill
+		self.update!
+				
+		# Optionally broadcast to other players in multiplayer
+		# broadcast_kill(kill_entry)
+	end
+		
+	def simulate_test_kill
+		# Method to test kill feed - can be called from console or JavaScript
+		test_kills = [
+						{ killer_name: "Player1", killer_team: "ct", victim_name: "Enemy1", victim_team: "t", weapon: "ak47", headshot: true },
+						{ killer_name: "Sniper", killer_team: "t", victim_name: "Defender", victim_team: "ct", weapon: "awp", headshot: false },
+						{ killer_name: "Rusher", killer_team: "ct", victim_name: "Camper", victim_team: "t", weapon: "knife", headshot: false }
+				]
+				
+		test_kills.each_with_index do |kill, index|
+			Async do
+				sleep(index * 2) # Stagger the kills
+				add_kill_to_feed(kill)
+			end
+		end
 	end
 
 	def render(builder)
-		# Render the complete game container
-		render_game_container(builder)
-				
-		# For large JavaScript games, use HTML-based inclusion
-		# This avoids WebSocket injection issues with 40K+ chars of code
-		render_game_javascript(builder)
+		if !@team_selected
+			# Render team selection screen
+			render_team_selection(builder)
+		else
+			# Render the complete game container
+			render_game_container(builder)
+						
+			# For large JavaScript games, use HTML-based inclusion
+			# This avoids WebSocket injection issues with 40K+ chars of code
+			render_game_javascript(builder)
+		end
+	end
+		
+	def render_team_selection(builder)
+		builder.tag(:div, id: "team-selection", data: { live: @id },
+												style: "width: 100%; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #1a1a1a, #2a2a2a); color: white; font-family: 'Arial', sans-serif;") do
+			# Title
+			builder.tag(:h1, style: "font-size: 64px; margin-bottom: 20px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); color: #ff6b00;") do
+				builder.text("COUNTER-STRIKE 1.6")
+			end
+							
+			# Subtitle
+			builder.tag(:h2, style: "font-size: 32px; margin-bottom: 50px; text-shadow: 2px 2px 4px rgba(0,0,0,0.7);") do
+				builder.text("Choose Your Team")
+			end
+							
+			# Team selection buttons container
+			builder.tag(:div, style: "display: flex; gap: 50px; margin-bottom: 30px;") do
+				# CT Team Button
+				builder.tag(:button, 
+												data: { action: "team_select", team: "ct" },
+												style: "padding: 30px 60px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #4169e1, #1e90ff); color: white; border: 3px solid #0066cc; border-radius: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase;",
+												onmouseover: "this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(30,144,255,0.6)';",
+												onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.5)';") do
+					builder.tag(:div) { builder.text("Counter-Terrorists") }
+					builder.tag(:div, style: "font-size: 16px; margin-top: 10px; opacity: 0.9;") do
+						builder.text("Prevent the bomb")
+					end
+				end
+								
+				# T Team Button
+				builder.tag(:button,
+												data: { action: "team_select", team: "t" },
+												style: "padding: 30px 60px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #ff6b00, #ff8c00); color: white; border: 3px solid #cc5500; border-radius: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase;",
+												onmouseover: "this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255,140,0,0.6)';",
+												onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.5)';") do
+					builder.tag(:div) { builder.text("Terrorists") }
+					builder.tag(:div, style: "font-size: 16px; margin-top: 10px; opacity: 0.9;") do
+						builder.text("Plant the bomb")
+					end
+				end
+			end
+							
+			# Auto-assign button
+			builder.tag(:button,
+										data: { action: "team_select", team: "auto" },
+										style: "padding: 15px 40px; font-size: 18px; background: rgba(255,255,255,0.1); color: white; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; cursor: pointer; transition: all 0.3s;",
+										onmouseover: "this.style.background='rgba(255,255,255,0.2)'; this.style.borderColor='rgba(255,255,255,0.5)';",
+										onmouseout: "this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='rgba(255,255,255,0.3)';") do
+				builder.text("Auto-Assign")
+			end
+							
+			# Current team counts
+			builder.tag(:div, style: "margin-top: 30px; font-size: 18px; opacity: 0.8;") do
+				ct_count = @game_state[:players].values.count { |p| p[:team] == "ct" }
+				t_count = @game_state[:players].values.count { |p| p[:team] == "t" }
+				builder.text("CT: #{ct_count} players | T: #{t_count} players")
+			end
+							
+			# Add JavaScript for button click handling
+			builder.tag(:script, type: "text/javascript") do
+				builder.raw(<<~JAVASCRIPT)
+								document.addEventListener('DOMContentLoaded', function() {
+									const buttons = document.querySelectorAll('[data-action="team_select"]');
+									buttons.forEach(button => {
+										button.addEventListener('click', function(e) {
+											e.preventDefault();
+											const team = this.dataset.team;
+											const element = document.getElementById('team-selection');
+											if (element && element.dataset.live) {
+												const live = window.Live.of(element);
+												if (live) {
+													live.send({
+														type: 'click',
+														detail: {
+															action: 'team_select',
+															team: team
+														}
+													});
+													console.log('Team selection sent:', team);
+												}
+											}
+										});
+									});
+								});
+				JAVASCRIPT
+			end
+		end
 	end
 		
 	def render_game_container(builder)
@@ -112,6 +316,191 @@ class CS2DView < Live::View
 					builder.text(" - ")
 					builder.tag(:span, style: "color: #ff6600;") { builder.text("#{t_score} T") }
 				end
+			end
+						
+			# Kill Feed
+			render_kill_feed(builder)
+						
+			# Minimap
+			render_minimap(builder)
+		end
+	end
+		
+	def render_kill_feed(builder)
+		builder.tag(:div, id: "kill-feed", style: "position: absolute; top: 60px; right: 20px; width: 350px;") do
+			if @game_state && @game_state[:kill_feed]
+				# Show last 5 kills
+				recent_kills = @game_state[:kill_feed].last(5)
+				recent_kills.each do |kill|
+					builder.tag(:div, style: "background: rgba(0,0,0,0.7); padding: 8px 12px; margin-bottom: 5px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; animation: slideInRight 0.3s;") do
+						# Killer name with team color
+						killer_color = kill[:killer_team] == "ct" ? "#4169e1" : "#ff6600"
+						builder.tag(:span, style: "color: #{killer_color}; font-weight: bold; font-size: 14px;") do
+							builder.text(kill[:killer_name] || "Unknown")
+						end
+												
+						# Weapon icon/name
+						builder.tag(:span, style: "color: #ffffff; font-size: 12px; margin: 0 10px; opacity: 0.8;") do
+							weapon_icon = get_weapon_icon(kill[:weapon])
+							builder.text(weapon_icon)
+						end
+												
+						# Victim name with team color
+						victim_color = kill[:victim_team] == "ct" ? "#4169e1" : "#ff6600"
+						builder.tag(:span, style: "color: #{victim_color}; font-weight: bold; font-size: 14px;") do
+							builder.text(kill[:victim_name] || "Unknown")
+						end
+												
+						# Headshot indicator
+						if kill[:headshot]
+							builder.tag(:span, style: "color: #ffaa00; font-size: 16px; margin-left: 5px;") do
+								builder.text("☠")
+							end
+						end
+					end
+				end
+			end
+						
+			# Add CSS animation
+			builder.tag(:style) do
+				builder.raw(<<~CSS)
+								@keyframes slideInRight {
+									from {
+										transform: translateX(100%);
+										opacity: 0;
+									}
+									to {
+										transform: translateX(0);
+										opacity: 1;
+									}
+								}
+				CSS
+			end
+		end
+	end
+		
+	def get_weapon_icon(weapon)
+		case weapon
+		when "ak47" then "[AK-47]"
+		when "m4a1" then "[M4A1]"
+		when "awp" then "[AWP]"
+		when "deagle" then "[Desert Eagle]"
+		when "usp" then "[USP]"
+		when "glock" then "[Glock]"
+		when "knife" then "[🔪]"
+		when "he_grenade" then "[💥]"
+		when "flashbang" then "[⚡]"
+		when "smoke" then "[💨]"
+		else "[#{weapon}]"
+		end
+	end
+		
+	def render_minimap(builder)
+		builder.tag(:div, id: "minimap-container", style: "position: absolute; top: 20px; right: 20px; width: 200px; height: 200px; background: rgba(0,0,0,0.8); border: 2px solid #333; border-radius: 4px;") do
+			# Canvas for minimap
+			builder.tag(:canvas, id: "minimap", width: 200, height: 200, style: "width: 100%; height: 100%;")
+							
+			# JavaScript to draw minimap
+			builder.tag(:script, type: "text/javascript") do
+				builder.raw(<<~JAVASCRIPT)
+								(function() {
+									const minimapCanvas = document.getElementById('minimap');
+									if (!minimapCanvas) return;
+																
+									const minimapCtx = minimapCanvas.getContext('2d');
+									const scale = 200 / 1280; // Scale from game size to minimap size
+																
+									function drawMinimap() {
+										if (!window.gameState) {
+											requestAnimationFrame(drawMinimap);
+											return;
+										}
+																		
+										// Clear minimap
+										minimapCtx.fillStyle = '#1a1a1a';
+										minimapCtx.fillRect(0, 0, 200, 200);
+																		
+										// Draw simplified map layout
+										minimapCtx.strokeStyle = '#444';
+										minimapCtx.lineWidth = 1;
+																		
+										// Draw bomb sites
+										minimapCtx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+										minimapCtx.font = 'bold 16px Arial';
+										minimapCtx.textAlign = 'center';
+																		
+										// Bomb site A (left side)
+										minimapCtx.fillRect(30 * scale, 300 * scale, 200 * scale, 150 * scale);
+										minimapCtx.fillStyle = '#ff6666';
+										minimapCtx.fillText('A', 130 * scale, 375 * scale);
+																		
+										// Bomb site B (right side)
+										minimapCtx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+										minimapCtx.fillRect(1050 * scale, 300 * scale, 200 * scale, 150 * scale);
+										minimapCtx.fillStyle = '#ff6666';
+										minimapCtx.fillText('B', 1150 * scale, 375 * scale);
+																		
+										// Draw walls (simplified)
+										minimapCtx.strokeStyle = '#666';
+										minimapCtx.strokeRect(0, 0, 200, 200);
+																		
+										// Draw players
+										if (gameState.players) {
+											for (const player of Object.values(gameState.players)) {
+												if (!player.alive) continue;
+																						
+												const x = player.x * scale;
+												const y = player.y * scale;
+																						
+												// Player dot
+												minimapCtx.fillStyle = player.team === 'ct' ? '#4169e1' : '#ff6600';
+												minimapCtx.beginPath();
+												minimapCtx.arc(x, y, 3, 0, Math.PI * 2);
+												minimapCtx.fill();
+																						
+												// Local player indicator
+												if (player.id === gameState.localPlayerId) {
+													minimapCtx.strokeStyle = '#00ff00';
+													minimapCtx.lineWidth = 2;
+													minimapCtx.beginPath();
+													minimapCtx.arc(x, y, 5, 0, Math.PI * 2);
+													minimapCtx.stroke();
+																								
+													// View direction indicator
+													if (player.angle !== undefined) {
+														const dirX = Math.cos(player.angle) * 8;
+														const dirY = Math.sin(player.angle) * 8;
+														minimapCtx.strokeStyle = '#00ff00';
+														minimapCtx.beginPath();
+														minimapCtx.moveTo(x, y);
+														minimapCtx.lineTo(x + dirX, y + dirY);
+														minimapCtx.stroke();
+													}
+												}
+											}
+										}
+																		
+										// Draw bomb if planted
+										if (gameState.bomb && gameState.bomb.planted) {
+											const bombX = gameState.bomb.x * scale;
+											const bombY = gameState.bomb.y * scale;
+																				
+											// Blinking bomb indicator
+											if (Math.floor(Date.now() / 500) % 2 === 0) {
+												minimapCtx.fillStyle = '#ff0000';
+												minimapCtx.font = 'bold 12px Arial';
+												minimapCtx.textAlign = 'center';
+												minimapCtx.fillText('💣', bombX, bombY + 4);
+											}
+										}
+																		
+										requestAnimationFrame(drawMinimap);
+									}
+																
+									// Start drawing minimap
+									drawMinimap();
+								})();
+				JAVASCRIPT
 			end
 		end
 	end
@@ -1140,6 +1529,28 @@ class CS2DView < Live::View
               if (target.health <= 0) {
                 target.alive = false;
                 console.log(target.name + ' was eliminated!');
+                
+                // Report kill to server for kill feed
+                const killer = gameState.players[bullet.owner];
+                if (killer) {
+                  const element = document.getElementById('cs2d-container');
+                  if (element && element.dataset.live && window.Live) {
+                    const live = window.Live.of(element);
+                    if (live) {
+                      live.send({
+                        type: 'player_kill',
+                        detail: {
+                          killer_name: killer.name || 'Unknown',
+                          killer_team: killer.team,
+                          victim_name: target.name || 'Unknown',
+                          victim_team: target.team,
+                          weapon: bullet.weapon || 'unknown',
+                          headshot: Math.random() < 0.3 // 30% chance for now
+                        }
+                      });
+                    }
+                  }
+                }
               }
               return false;
             }
