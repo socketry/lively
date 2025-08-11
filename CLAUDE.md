@@ -216,10 +216,27 @@ Async do
 end
 ```
 
+#### Script Tag Syntax Issues
+**Problem**: Self-closing script tags `<script src="..."/>` prevent subsequent scripts from executing.
+**Solution**: Always use proper HTML syntax with explicit closing tags:
+
+```ruby
+# WRONG - causes subsequent scripts to fail
+builder.tag(:script, src: "/static/game.js", type: "text/javascript")
+
+# CORRECT - ensures all scripts execute
+builder.tag(:script, src: "/static/game.js", type: "text/javascript") do
+  # Empty content but forces proper opening/closing tags
+end
+```
+
+**Critical Bug Pattern**: Invalid self-closing script tags can cause complete JavaScript initialization failure, resulting in black screens even when external files load correctly.
+
 **Best Practices:**
 - **HTML inclusion**: Large JavaScript (>10K chars)
 - **WebSocket injection**: Small, dynamic updates
 - **Mixed approach**: HTML for initial code, WebSocket for state updates
+- **Script tag syntax**: Always use explicit closing tags for proper HTML parsing
 
 ## Example Applications
 
@@ -286,6 +303,41 @@ gameState.bullets.push({
 - Initialize players immediately after gameState creation
 - Verify canvas context exists before drawing operations
 
+### Systematic JavaScript Debugging with Playwright
+For complex JavaScript loading issues, use automated browser testing for efficient debugging:
+
+**Debug Script Pattern:**
+```javascript
+const { chromium } = require('playwright');
+
+(async () => {
+  const browser = await chromium.launch({ headless: false, devtools: true });
+  const page = await browser.newPage();
+  
+  // Monitor console logs for initialization sequence
+  page.on('console', msg => console.log('BROWSER:', msg.text()));
+  
+  await page.goto('http://localhost:9292');
+  await page.waitForTimeout(3000);
+  
+  // Check final state and take screenshot
+  const state = await page.evaluate(() => ({
+    gameLoaded: typeof window.GameEngine !== 'undefined',
+    canvasReady: !!document.getElementById('game-canvas')
+  }));
+  
+  await page.screenshot({ path: 'debug.png' });
+  await browser.close();
+})();
+```
+
+**Critical Debugging Steps:**
+1. **Playwright setup**: Install with `npm install @playwright/test && npx playwright install`
+2. **Console monitoring**: Capture all browser logs to trace execution flow
+3. **State inspection**: Check object availability and DOM element existence
+4. **Visual confirmation**: Screenshots reveal actual rendering vs expected output
+5. **Script execution tracking**: Verify all initialization scripts actually run
+
 ## Code Refactoring
 
 ### When to Refactor
@@ -323,9 +375,16 @@ end
 
 ### JavaScript Integration Pattern
 ```ruby
-# External JS file with module export
+# External JS file with module export - CRITICAL: Use proper closing tags
 def render_javascript_integration(builder)
-  builder.tag(:script, src: "/_static/game_engine.js")
+  # WRONG: Self-closing tag breaks subsequent scripts
+  # builder.tag(:script, src: "/_static/game_engine.js", type: "text/javascript")
+  
+  # CORRECT: Explicit closing tag ensures proper HTML parsing
+  builder.tag(:script, src: "/_static/game_engine.js", type: "text/javascript") do
+    # Empty content but forces proper opening/closing tags
+  end
+  
   builder.tag(:script, type: "text/javascript") do
     builder.raw(<<~JAVASCRIPT)
       if (typeof window.GameEngine !== 'undefined') {
@@ -335,6 +394,9 @@ def render_javascript_integration(builder)
   end
 end
 ```
+
+**Recent Critical Fix (August 2025):**
+Fixed game initialization failure caused by invalid self-closing script tag syntax. The bug prevented initialization scripts from executing, causing black screens despite successful external JavaScript loading.
 
 **File size targets after refactoring:**
 - Main view: <400 lines
