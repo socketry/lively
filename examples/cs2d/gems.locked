@@ -37,6 +37,12 @@ GEM
       async-http (~> 0.56)
     async-pool (0.11.0)
       async (>= 2.0)
+    async-redis (0.11.2)
+      async (~> 2.10)
+      async-pool (~> 0.2)
+      io-endpoint (~> 0.10)
+      io-stream (~> 0.4)
+      protocol-redis (~> 0.9)
     async-service (0.13.0)
       async
       async-container (~> 0.16)
@@ -90,6 +96,7 @@ GEM
       io-stream (>= 0.10)
       protocol-http (~> 0.43)
       rack (>= 1.0)
+    protocol-redis (0.9.0)
     protocol-websocket (0.20.2)
       protocol-http (~> 0.2)
     rack (3.2.0)
@@ -104,6 +111,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  async-redis (~> 0.10)
+  json (~> 2.7)
   lively!
 
 BUNDLED WITH

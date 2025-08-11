@@ -34,7 +34,9 @@ class RoomManager
 		@rooms[room_id] = room
 		@player_to_room[creator_id] = room_id
 				
-		puts "Created new room: #{room_id}"
+		puts "[RoomManager #{self.object_id}] Created new room: #{room_id}"
+		puts "[RoomManager #{self.object_id}] Total rooms now: #{@rooms.size}"
+		puts "[RoomManager #{self.object_id}] Room list: #{@rooms.keys.join(', ')}"
 		room_id
 	end
 		
@@ -88,6 +90,7 @@ class RoomManager
 	end
 		
 	def get_room_list
+		puts "[RoomManager #{self.object_id}] Getting room list, total rooms: #{@rooms.size}"
 		@rooms.map do |room_id, room|
 			{
 								room_id: room_id,
