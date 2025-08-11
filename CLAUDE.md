@@ -422,6 +422,214 @@ progression/                   # Player progression system
 - **RuboCop Compliance**: Always run `bundle exec rubocop -a` after making changes to Ruby files
 - **Static vs Dynamic Testing**: Create HTML test pages for JavaScript validation before Lively integration
 
+### Critical Bug Fixes (August 2025)
+
+#### Buy Menu Visibility Issues in Dynamic DOM Environments
+**Problem**: Buy menus created server-side with Ruby builders may become invisible due to Lively framework DOM updates, CSS conflicts, or z-index stacking issues.
+
+**Root Cause**: Lively's real-time DOM updates can override CSS styles, hide elements, or place them behind other content, even when `display: block` and high z-index values are applied.
+
+**Solution**: Create fresh DOM elements client-side with maximum CSS specificity and bypass existing server-generated content:
+
+```javascript
+// Nuclear Option: Fresh DOM Element Creation
+const newBuyMenu = document.createElement('div');
+newBuyMenu.style.cssText = `
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 999999 !important;
+  background: rgba(20, 20, 20, 0.95) !important;
+  border: 3px solid #ff6b00 !important;
+`;
+
+// Remove any conflicting elements first
+document.querySelectorAll('[id*="buy"]').forEach(menu => menu.remove());
+
+// Add directly to body (not game container)
+document.body.appendChild(newBuyMenu);
+```
+
+**Key Principles for Dynamic DOM Compatibility:**
+- **Direct Body Insertion**: Add elements to `document.body`, not nested containers
+- **Maximum CSS Specificity**: Use `!important` declarations and inline styles
+- **Element Recreation**: Create fresh elements instead of modifying existing ones
+- **Conflict Removal**: Remove existing elements that might interfere
+- **Ultra-High Z-Index**: Use values like `999999` to ensure top-level rendering
+
+#### Bullet Positioning in Camera-Transformed Canvases  
+**Problem**: Bullets spawn from incorrect coordinates (fixed map positions) instead of player position when using camera transformations.
+
+**Root Cause**: Canvas rendering applies camera transforms (`ctx.translate()`) to center view on player, but bullet spawn coordinates aren't properly synchronized with the transformed coordinate system.
+
+**Solution**: Ensure bullets spawn in world coordinates and render within camera transform context:
+
+```javascript
+// CORRECT: Bullets spawn at actual player world position
+function shoot() {
+  const player = gameState.players[gameState.localPlayerId];
+  gameState.bullets.push({
+    x: player.x,           // World coordinates
+    y: player.y,           // World coordinates  
+    vx: Math.cos(player.angle) * speed,
+    vy: Math.sin(player.angle) * speed,
+    // ... other properties
+  });
+}
+
+// CORRECT: Render bullets within camera transform
+function renderBullets() {
+  // This runs inside ctx.save()/ctx.translate()/ctx.restore() block
+  for (const bullet of gameState.bullets) {
+    ctx.beginPath();
+    ctx.moveTo(bullet.x, bullet.y);  // Already in world coords
+    ctx.lineTo(bullet.x + bullet.vx * 0.05, bullet.y + bullet.vy * 0.05);
+    ctx.stroke();
+  }
+}
+```
+
+**Debug Verification**: Add console logging to confirm bullet spawn coordinates match player position:
+```javascript
+console.log(`Bullet created: player at (${player.x}, ${player.y}), bullet at (${bullet.x}, ${bullet.y})`);
+```
+
+#### Lively Framework Integration Best Practices
+**Essential Debugging Steps:**
+1. **Hard Browser Refresh**: Always use Ctrl+Shift+R to bypass cache when testing fixes
+2. **Version Logging**: Add unique console messages to verify JavaScript updates are loading
+3. **Element Inspection**: Log DOM element properties, styles, and bounding rectangles
+4. **Multiple Approaches**: Try both server-side Ruby builders AND client-side JavaScript creation
+5. **Incremental Testing**: Test individual fixes separately before combining solutions
+
+**Working Example - Compact Buy Menu**:
+```javascript
+// Compact, combat-safe buy menu that doesn't obstruct gameplay
+newBuyMenu.style.cssText = `
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 600px !important;
+  max-height: 80vh !important;
+  background: rgba(20, 20, 20, 0.95) !important;
+  border: 3px solid #ff6b00 !important;
+  z-index: 999999 !important;
+`;
+```
+
+This creates a professional, compact buy menu that doesn't cover the entire screen and allows continued gameplay while shopping.
+
+#### Player ID Synchronization Issues in Multiplayer Games
+**Problem**: Bullets spawn from wrong player positions (bot coordinates instead of local player) despite correct player data in debug logs.
+
+**Root Cause**: Player object references can become desynchronized in complex game states with multiple players (local player + AI bots). The `player` variable in functions may reference a cached or incorrect player object instead of the current local player.
+
+**Symptoms**:
+- Debug logs show correct local player position (e.g., `player.x: 200, player.y: 472`)
+- Bullets spawn at completely different coordinates (e.g., `(613, 281)` matching bot positions)
+- Player lookup appears correct but uses wrong data
+
+**Solution**: Force direct lookup of local player for critical operations instead of relying on function parameter references:
+
+```javascript
+// WRONG - May use cached/incorrect player reference
+function shoot() {
+  const player = gameState.players[gameState.localPlayerId];
+  // ... other code ...
+  gameState.bullets.push({
+    x: player.x,  // May be wrong player!
+    y: player.y,
+    // ...
+  });
+}
+
+// CORRECT - Force fresh lookup for critical operations  
+function shoot() {
+  const player = gameState.players[gameState.localPlayerId];
+  // ... other code ...
+  gameState.bullets.push({
+    x: gameState.players[gameState.localPlayerId].x,  // Guaranteed correct
+    y: gameState.players[gameState.localPlayerId].y,  // Guaranteed correct
+    playerId: gameState.localPlayerId,  // Use authoritative ID
+    // ...
+  });
+}
+```
+
+**Debug Verification**: Add comprehensive logging to detect synchronization issues:
+```javascript
+console.log('🚨 BULLET SPAWN VERIFICATION:');
+console.log('  Using player ID:', player.id);
+console.log('  Expected local player ID:', gameState.localPlayerId);
+console.log('  Player ID match:', player.id === gameState.localPlayerId);
+console.log('  Bullet will spawn at:', player.x, player.y);
+console.log('  Expected spawn:', gameState.players[gameState.localPlayerId]?.x, gameState.players[gameState.localPlayerId]?.y);
+```
+
+#### Number Key Weapon Purchase System
+**Implementation**: Authentic CS 1.6 style number key shortcuts for rapid weapon purchasing during buy time:
+
+```javascript
+// Number key purchase system
+const buyMenu = document.getElementById('claude-buy-menu');
+if (buyMenu) {
+  if (e.code === 'Digit1') buyWeapon('ak47', 2500);   // [1] AK-47
+  else if (e.code === 'Digit2') buyWeapon('m4a1', 3100);  // [2] M4A1  
+  else if (e.code === 'Digit3') buyWeapon('awp', 4750);   // [3] AWP
+  else if (e.code === 'Digit4') buyWeapon('deagle', 650); // [4] Desert Eagle
+  else if (e.code === 'Digit5') buyWeapon('usp', 500);    // [5] USP
+  else if (e.code === 'Digit0') buyWeapon('glock', 0);    // [0] Glock (free)
+}
+
+// Real weapon purchase with money deduction
+function buyWeapon(weaponId, price) {
+  const player = gameState.players[gameState.localPlayerId];
+  if (player.money < price) {
+    console.log(`❌ Not enough money! Need $${price}, have $${player.money}`);
+    return;
+  }
+  
+  player.money -= price;
+  if (['ak47', 'm4a1', 'awp'].includes(weaponId)) {
+    player.primaryWeapon = weaponId;
+    player.currentWeapon = 'primary';
+  } else {
+    player.secondaryWeapon = weaponId;
+    if (!player.primaryWeapon) player.currentWeapon = 'secondary';
+  }
+  
+  // Auto-close menu after purchase
+  setTimeout(() => {
+    document.getElementById('claude-buy-menu')?.remove();
+  }, 500);
+}
+```
+
+**Enhanced Buy Menu UI**: Professional compact design with clear number key indicators:
+```javascript
+newBuyMenu.innerHTML = `
+  <div style="text-align: center; color: #ffaa00; margin-bottom: 10px;">
+    💡 Use number keys to buy: 1-3 for rifles, 4-5 for pistols, 0 for Glock
+  </div>
+  <button onclick="buyWeapon('ak47', 2500);">
+    <strong style="color: #ffaa00;">[1]</strong> AK-47 - $2500
+  </button>
+  <!-- More weapons with highlighted number keys -->
+`;
+```
+
+**Key Features**:
+- **Lightning-fast purchases** without mouse interaction
+- **Real money deduction** and weapon equipping
+- **Visual number key indicators** in orange highlights
+- **Compact 600px menu** that doesn't obstruct gameplay
+- **Auto-closes after purchase** for quick buying
+- **ESC key support** for menu dismissal
+
+This system enables authentic CS 1.6 buying experience where players can rapidly purchase weapons during the 15-second buy time without taking hands off movement keys.
+
 **Debugging JavaScript Execution Issues:**
 If you encounter black screen or JavaScript execution problems:
 1. **Check HTML inclusion**: Verify JavaScript is properly included via `builder.raw()`

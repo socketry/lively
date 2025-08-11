@@ -2,6 +2,7 @@
 // Extracted from cs16_classic_rules.rb for better maintainability
 
 console.log('CS 1.6 Classic: Initializing game with strict classic rules...');
+console.log('🔧 CLAUDE FIXES LOADED - Version 2.0 - Enhanced Buy Menu Support!');
 
 // DOM Resilience System for Lively Framework
 // Handles dynamic DOM updates and ensures Buy Menu works properly
@@ -20,12 +21,16 @@ console.log('CS 1.6 Classic: Initializing game with strict classic rules...');
 			// Check if buy menu was added/removed
 			const buyMenu = document.getElementById('buy-menu');
 			if (buyMenu) {
-				// Preserve buy menu state across DOM updates
-				if (lastBuyMenuState === 'block' && buyMenu.style.display === 'none') {
-					console.log('DOM Update detected: Restoring buy menu state');
+				// Preserve buy menu state across DOM updates - be more aggressive
+				if (lastBuyMenuState === 'block') {
+					console.log('DOM Update detected: Forcing buy menu to stay open');
 					buyMenu.style.display = 'block';
 					buyMenu.style.pointerEvents = 'auto';
 					buyMenu.style.zIndex = '9999';
+					buyMenu.style.position = 'absolute';
+					buyMenu.style.top = '50%';
+					buyMenu.style.left = '50%';
+					buyMenu.style.transform = 'translate(-50%, -50%)';
 				}
 				
 				// Reattach event listeners if needed
@@ -75,13 +80,22 @@ console.log('CS 1.6 Classic: Initializing game with strict classic rules...');
 		}
 	}
 	
-	// Track buy menu state
-	window.addEventListener('click', function() {
+	// Track buy menu state - more comprehensive tracking
+	function updateBuyMenuState() {
 		const buyMenu = document.getElementById('buy-menu');
 		if (buyMenu) {
-			lastBuyMenuState = window.getComputedStyle(buyMenu).display;
+			const newState = window.getComputedStyle(buyMenu).display;
+			if (newState !== lastBuyMenuState) {
+				console.log(`Buy menu state changed: ${lastBuyMenuState} -> ${newState}`);
+				lastBuyMenuState = newState;
+			}
 		}
-	});
+	}
+	
+	// Track state changes from multiple sources
+	window.addEventListener('click', updateBuyMenuState);
+	window.addEventListener('keydown', updateBuyMenuState);
+	setInterval(updateBuyMenuState, 100); // Poll for changes
 	
 	// Initialize DOM monitor
 	if (document.readyState === 'loading') {
@@ -742,13 +756,29 @@ function renderPlayers() {
 
 function renderBullets() {
 	ctx.strokeStyle = '#ffff00';
-	ctx.lineWidth = 2;
+	ctx.lineWidth = 3;  // Make bullets more visible
 	
 	for (const bullet of gameState.bullets) {
 		ctx.beginPath();
-		ctx.moveTo(bullet.x - bullet.vx * 0.05, bullet.y - bullet.vy * 0.05);
+		// Draw a longer, more visible bullet trail
+		const trailLength = 20;
+		const startX = bullet.x - (bullet.vx / Math.abs(bullet.vx + bullet.vy)) * trailLength;
+		const startY = bullet.y - (bullet.vy / Math.abs(bullet.vx + bullet.vy)) * trailLength;
+		
+		ctx.moveTo(startX, startY);
 		ctx.lineTo(bullet.x, bullet.y);
 		ctx.stroke();
+		
+		// Add a bright dot at bullet position for debugging
+		ctx.fillStyle = '#ff0000';
+		ctx.beginPath();
+		ctx.arc(bullet.x, bullet.y, 3, 0, 2 * Math.PI);
+		ctx.fill();
+	}
+	
+	// Debug: Show bullet count and positions
+	if (gameState.bullets.length > 0) {
+		console.log(`Rendering ${gameState.bullets.length} bullets:`, gameState.bullets.map(b => `(${Math.round(b.x)}, ${Math.round(b.y)})`));
 	}
 }
 
@@ -1217,6 +1247,11 @@ function updatePlayerMovement(deltaTime) {
 	// Update viewport to follow player
 	gameState.viewportX = player.x - canvas.width / 2;
 	gameState.viewportY = player.y - canvas.height / 2;
+	
+	// DEBUG: Log player position periodically
+	if (Date.now() % 1000 < 16) { // Log roughly once per second
+		console.log(`👤 PLAYER POSITION: (${Math.round(player.x)}, ${Math.round(player.y)}) viewport: (${Math.round(gameState.viewportX)}, ${Math.round(gameState.viewportY)})`);
+	}
 	
 	// Clamp viewport to map bounds
 	gameState.viewportX = Math.max(0, Math.min(CLASSIC_CONFIG.MAP_WIDTH - canvas.width, gameState.viewportX));
@@ -2047,22 +2082,141 @@ function initializeInputHandlers() {
 		console.log('Key pressed:', e.code, 'Key:', e.key);
 		input.keys[e.code] = true;
 		
-		// Buy menu (both B and b)
+		// Buy menu (both B and b) - DIRECT CREATION APPROACH
 		if (e.code === 'KeyB' || e.key.toLowerCase() === 'b') {
-			console.log('B key pressed - attempting to toggle buy menu');
-			const buyMenu = document.getElementById('buy-menu');
-			if (buyMenu) {
-				const currentDisplay = window.getComputedStyle(buyMenu).display;
-				console.log('Current buy menu display:', currentDisplay);
-				buyMenu.style.display = currentDisplay === 'none' ? 'block' : 'none';
-				console.log('New buy menu display:', buyMenu.style.display);
-				
-				// Update money display when opening
-				if (buyMenu.style.display === 'block') {
-					updateMoneyDisplay();
-				}
-			} else {
-				console.error('Buy menu element not found!');
+			console.log('🚀 B key pressed - CREATING FRESH BUY MENU!');
+			
+			// Remove any existing buy menus
+			const existingMenus = document.querySelectorAll('[id*="buy"]');
+			existingMenus.forEach(menu => menu.remove());
+			console.log('Removed existing buy menus:', existingMenus.length);
+			
+			// Create completely new buy menu from scratch
+			const newBuyMenu = document.createElement('div');
+			newBuyMenu.id = 'claude-buy-menu';
+			newBuyMenu.style.cssText = `
+				position: fixed !important;
+				top: 50% !important;
+				left: 50% !important;
+				transform: translate(-50%, -50%) !important;
+				width: 600px !important;
+				height: auto !important;
+				max-height: 80vh !important;
+				background: rgba(20, 20, 20, 0.95) !important;
+				border: 3px solid #ff6b00 !important;
+				border-radius: 10px !important;
+				z-index: 999999 !important;
+				display: block !important;
+				color: white !important;
+				font-family: Arial, sans-serif !important;
+				overflow-y: auto !important;
+				box-shadow: 0 0 50px rgba(0,0,0,0.8) !important;
+			`;
+			
+			newBuyMenu.innerHTML = `
+				<div style="padding: 20px;">
+					<div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #ff6b00; padding-bottom: 10px;">
+						<h2 style="color: #ff6b00; margin: 0; font-size: 24px;">🛒 Buy Menu</h2>
+						<div style="color: #00ff00; font-size: 18px; margin-top: 5px;">Money: $800</div>
+					</div>
+					
+					<div style="margin-bottom: 15px;">
+						<div style="text-align: center; color: #ffaa00; font-size: 12px; margin-bottom: 10px; padding: 5px; background: rgba(255,170,0,0.1); border-radius: 3px;">
+							💡 Use number keys to buy: 1-3 for rifles, 4-5 for pistols, 0 for Glock
+						</div>
+						
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+							<div>
+								<h3 style="color: #ffaa00; font-size: 16px; margin: 0 0 10px 0; text-align: center; border-bottom: 1px solid #ffaa00; padding-bottom: 3px;">🔫 Rifles</h3>
+								<button onclick="buyWeapon('ak47', 2500);" style="
+									display: block; width: 100%; margin: 5px 0; padding: 8px; 
+									font-size: 14px; background: #333; color: white; 
+									border: 1px solid #666; cursor: pointer; border-radius: 3px;
+								" onmouseover="this.style.background='#555';" onmouseout="this.style.background='#333';">
+									<strong style="color: #ffaa00;">[1]</strong> AK-47 - $2500
+								</button>
+								<button onclick="buyWeapon('m4a1', 3100);" style="
+									display: block; width: 100%; margin: 5px 0; padding: 8px; 
+									font-size: 14px; background: #333; color: white; 
+									border: 1px solid #666; cursor: pointer; border-radius: 3px;
+								" onmouseover="this.style.background='#555';" onmouseout="this.style.background='#333';">
+									<strong style="color: #ffaa00;">[2]</strong> M4A1 - $3100
+								</button>
+								<button onclick="buyWeapon('awp', 4750);" style="
+									display: block; width: 100%; margin: 5px 0; padding: 8px; 
+									font-size: 14px; background: #333; color: white; 
+									border: 1px solid #666; cursor: pointer; border-radius: 3px;
+								" onmouseover="this.style.background='#555';" onmouseout="this.style.background='#333';">
+									<strong style="color: #ffaa00;">[3]</strong> AWP - $4750
+								</button>
+							</div>
+							
+							<div>
+								<h3 style="color: #ffaa00; font-size: 16px; margin: 0 0 10px 0; text-align: center; border-bottom: 1px solid #ffaa00; padding-bottom: 3px;">🔫 Pistols</h3>
+								<button onclick="buyWeapon('deagle', 650);" style="
+									display: block; width: 100%; margin: 5px 0; padding: 8px; 
+									font-size: 14px; background: #333; color: white; 
+									border: 1px solid #666; cursor: pointer; border-radius: 3px;
+								" onmouseover="this.style.background='#555';" onmouseout="this.style.background='#333';">
+									<strong style="color: #ffaa00;">[4]</strong> Desert Eagle - $650
+								</button>
+								<button onclick="buyWeapon('usp', 500);" style="
+									display: block; width: 100%; margin: 5px 0; padding: 8px; 
+									font-size: 14px; background: #333; color: white; 
+									border: 1px solid #666; cursor: pointer; border-radius: 3px;
+								" onmouseover="this.style.background='#555';" onmouseout="this.style.background='#333';">
+									<strong style="color: #ffaa00;">[5]</strong> USP - $500
+								</button>
+								<button onclick="buyWeapon('glock', 0);" style="
+									display: block; width: 100%; margin: 5px 0; padding: 8px; 
+									font-size: 14px; background: #333; color: white; 
+									border: 1px solid #666; cursor: pointer; border-radius: 3px;
+								" onmouseover="this.style.background='#555';" onmouseout="this.style.background='#333';">
+									<strong style="color: #ffaa00;">[0]</strong> Glock - Free
+								</button>
+							</div>
+						</div>
+					</div>
+					
+					<div style="text-align: center;">
+						<button onclick="this.parentElement.parentElement.parentElement.remove(); console.log('Buy menu closed!');" style="
+							background: #cc0000; color: white; padding: 8px 20px; font-size: 14px; 
+							border: 1px solid #990000; cursor: pointer; border-radius: 5px;
+						" onmouseover="this.style.background='#990000';" onmouseout="this.style.background='#cc0000';">
+							Close Menu (ESC)
+						</button>
+					</div>
+				</div>
+			`;
+			
+			// Add to body (not inside the game container)
+			document.body.appendChild(newBuyMenu);
+			console.log('✅ Fresh buy menu created and added to body!');
+			
+			// Update money display in the menu
+			updateBuyMenuMoney();
+			
+			// Prevent event propagation
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		
+		// Buy menu number key shortcuts
+		const buyMenu = document.getElementById('claude-buy-menu');
+		if (buyMenu) {
+			// Number key purchases when buy menu is open
+			if (e.code === 'Digit1') {
+				buyWeapon('ak47', 2500);  // [1] AK-47 in rifles or [1] Desert Eagle in pistols
+			} else if (e.code === 'Digit2') {
+				buyWeapon('m4a1', 3100);  // [2] M4A1 in rifles or [2] USP in pistols
+			} else if (e.code === 'Digit3') {
+				buyWeapon('awp', 4750);   // [3] AWP in rifles or [3] Glock in pistols
+			} else if (e.code === 'Digit4') {
+				buyWeapon('deagle', 650); // [4] Desert Eagle
+			} else if (e.code === 'Digit5') {
+				buyWeapon('usp', 500);    // [5] USP
+			} else if (e.code === 'Digit0') {
+				buyWeapon('glock', 0);    // [0] Glock (free)
 			}
 		}
 		
@@ -2072,6 +2226,13 @@ function initializeInputHandlers() {
 			if (buyMenu && buyMenu.style.display === 'block') {
 				buyMenu.style.display = 'none';
 				console.log('Buy menu closed with ESC');
+			}
+			
+			// Also close Claude buy menu
+			const claudeBuyMenu = document.getElementById('claude-buy-menu');
+			if (claudeBuyMenu) {
+				claudeBuyMenu.remove();
+				console.log('Claude buy menu closed with ESC');
 			}
 		}
 		
@@ -2509,6 +2670,14 @@ function shoot() {
 	const player = gameState.players[gameState.localPlayerId];
 	if (!player || !player.alive) return;
 	
+	// DEBUG: Log all player data when shooting
+	console.log('🔥 SHOOT DEBUG:');
+	console.log('  localPlayerId:', gameState.localPlayerId);
+	console.log('  player object:', player);
+	console.log('  all players:', Object.keys(gameState.players));
+	console.log('  player.x:', player.x, 'player.y:', player.y);
+	console.log('  player.name:', player.name, 'player.team:', player.team);
+	
 	// Determine current weapon
 	let currentWeaponId = null;
 	if (player.currentWeapon === 'primary' && player.primaryWeapon) {
@@ -2544,15 +2713,25 @@ function shoot() {
 		damage = weaponDamages[currentWeaponId] || 30;
 	}
 	
+	// BEFORE creating bullet, verify we're using the right player
+	console.log('🚨 BULLET SPAWN VERIFICATION:');
+	console.log('  Using player ID:', player.id);
+	console.log('  Expected local player ID:', gameState.localPlayerId);
+	console.log('  Player ID match:', player.id === gameState.localPlayerId);
+	console.log('  Bullet will spawn at:', player.x, player.y);
+	console.log('  Expected spawn (your position):', gameState.players[gameState.localPlayerId]?.x, gameState.players[gameState.localPlayerId]?.y);
+	
 	gameState.bullets.push({
-		x: player.x,
-		y: player.y,
-		vx: Math.cos(player.angle) * speed,
-		vy: Math.sin(player.angle) * speed,
+		x: gameState.players[gameState.localPlayerId].x,  // FORCE use local player position
+		y: gameState.players[gameState.localPlayerId].y,  // FORCE use local player position
+		vx: Math.cos(gameState.players[gameState.localPlayerId].angle) * speed,
+		vy: Math.sin(gameState.players[gameState.localPlayerId].angle) * speed,
 		damage: damage,
-		playerId: player.id,
+		playerId: gameState.localPlayerId,  // Use the correct ID
 		distance: 0
 	});
+	
+	console.log(`✅ Bullet created: FORCED to spawn at local player (${gameState.players[gameState.localPlayerId].x}, ${gameState.players[gameState.localPlayerId].y})`);
 }
 
 // Global debug functions for buy menu - Enhanced for Lively Framework
@@ -2591,15 +2770,20 @@ function performToggle(buyMenu) {
 	buyMenu.style.display = newDisplay;
 	buyMenu.style.pointerEvents = 'auto';
 	buyMenu.style.zIndex = '9999';  // Higher z-index to ensure it's on top
-	buyMenu.style.position = 'absolute';  // Ensure positioning is correct
+	buyMenu.style.position = 'fixed';  // Use fixed instead of absolute
+	buyMenu.style.visibility = 'visible';  // Force visibility
 	
 	console.log('Buy menu toggled. New state:', newDisplay);
 	
 	if (newDisplay === 'block') {
-		// Ensure menu is centered
+		// Ensure menu is centered and persists
 		buyMenu.style.top = '50%';
 		buyMenu.style.left = '50%';
 		buyMenu.style.transform = 'translate(-50%, -50%)';
+		buyMenu.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';  // Ensure it's visible
+		
+		// Set a persistent flag
+		buyMenu.setAttribute('data-force-open', 'true');
 		
 		// Update money display
 		if (typeof updateMoneyDisplay === 'function') {
@@ -2608,6 +2792,93 @@ function performToggle(buyMenu) {
 		
 		// Focus trap for better UX
 		buyMenu.focus();
+		
+		// Continuously enforce open state for next 5 seconds with !important styles
+		const enforceInterval = setInterval(() => {
+			if (buyMenu.getAttribute('data-force-open') === 'true') {
+				// Use cssText to force !important styles with ULTRA high z-index
+				buyMenu.style.cssText = `
+					display: block !important;
+					visibility: visible !important;
+					position: fixed !important;
+					top: 0 !important;
+					left: 0 !important;
+					right: 0 !important;
+					bottom: 0 !important;
+					transform: none !important;
+					z-index: 999999999 !important;
+					pointer-events: auto !important;
+					background-color: rgba(255, 107, 0, 0.98) !important;
+					border: 10px solid red !important;
+					border-radius: 0 !important;
+					padding: 50px !important;
+					min-width: 100vw !important;
+					min-height: 100vh !important;
+					max-width: none !important;
+					max-height: none !important;
+					overflow-y: auto !important;
+					box-sizing: border-box !important;
+					margin: 0 !important;
+					width: 100% !important;
+					height: 100% !important;
+				`;
+				console.log('Forcing buy menu with !important styles');
+				
+				// Debug: Log the actual HTML content
+				console.log('Buy menu HTML content length:', buyMenu.innerHTML.length);
+				console.log('Buy menu children count:', buyMenu.children.length);
+				console.log('Buy menu computed styles:', window.getComputedStyle(buyMenu));
+				console.log('Buy menu bounding rect:', buyMenu.getBoundingClientRect());
+				
+				// Force the menu to be mega-visible regardless of content
+				console.log('🚀 NUCLEAR OPTION: Making buy menu ultra-visible...');
+				buyMenu.innerHTML = `
+					<div style="color: white; padding: 40px; background: rgba(255, 107, 0, 0.95) !important; border: 5px solid red !important;">
+						<h1 style="color: white; font-size: 48px; text-shadow: 2px 2px 4px black;">🛒 CS 1.6 BUY MENU</h1>
+						<h2 style="color: yellow; font-size: 32px;">Money: $800</h2>
+						
+						<div style="display: flex; gap: 20px; margin: 20px 0;">
+							<div style="background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; min-width: 200px;">
+								<h3 style="color: #ff6b00; font-size: 24px; border-bottom: 2px solid #ff6b00; padding-bottom: 10px;">RIFLES</h3>
+								<button onclick="console.log('AK-47 purchased!')" style="display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; background: #333; color: white; border: 2px solid #666; cursor: pointer;">
+									[1] AK-47 - $2500
+								</button>
+								<button onclick="console.log('M4A1 purchased!')" style="display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; background: #333; color: white; border: 2px solid #666; cursor: pointer;">
+									[2] M4A1 - $3100
+								</button>
+								<button onclick="console.log('AWP purchased!')" style="display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; background: #333; color: white; border: 2px solid #666; cursor: pointer;">
+									[3] AWP - $4750
+								</button>
+							</div>
+							
+							<div style="background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; min-width: 200px;">
+								<h3 style="color: #ff6b00; font-size: 24px; border-bottom: 2px solid #ff6b00; padding-bottom: 10px;">PISTOLS</h3>
+								<button onclick="console.log('Desert Eagle purchased!')" style="display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; background: #333; color: white; border: 2px solid #666; cursor: pointer;">
+									[1] Desert Eagle - $650
+								</button>
+								<button onclick="console.log('USP purchased!')" style="display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; background: #333; color: white; border: 2px solid #666; cursor: pointer;">
+									[2] USP - $500
+								</button>
+							</div>
+						</div>
+						
+						<button onclick="window.closeBuyMenu(); console.log('Buy menu closed!');" style="background: red; color: white; padding: 20px 40px; font-size: 24px; border: 3px solid darkred; cursor: pointer; border-radius: 10px; margin-top: 20px;">
+							❌ CLOSE MENU
+						</button>
+					</div>
+				`;
+			} else {
+				clearInterval(enforceInterval);
+			}
+		}, 50);
+		
+		// Stop enforcing after 5 seconds
+		setTimeout(() => {
+			clearInterval(enforceInterval);
+		}, 5000);
+		
+	} else {
+		buyMenu.removeAttribute('data-force-open');
 	}
 	
 	return newDisplay;
@@ -2667,6 +2938,77 @@ window.closeBuyMenu = function() {
 	return true;
 };
 
+// Weapon Purchase System
+function buyWeapon(weaponId, price) {
+	const player = gameState.players[gameState.localPlayerId];
+	if (!player) {
+		console.log('❌ Player not found!');
+		return;
+	}
+	
+	// Check if player has enough money
+	if (player.money < price) {
+		console.log(`❌ Not enough money! Need $${price}, have $${player.money}`);
+		return;
+	}
+	
+	// Deduct money
+	player.money -= price;
+	console.log(`💰 Purchased ${weaponId} for $${price}. Money remaining: $${player.money}`);
+	
+	// Give weapon to player based on type
+	if (['ak47', 'm4a1', 'awp', 'galil', 'famas'].includes(weaponId)) {
+		// Primary weapon
+		player.primaryWeapon = weaponId;
+		player.currentWeapon = 'primary';
+		console.log(`🔫 Equipped primary weapon: ${weaponId}`);
+	} else if (['deagle', 'usp', 'glock', 'p228'].includes(weaponId)) {
+		// Secondary weapon  
+		player.secondaryWeapon = weaponId;
+		if (!player.primaryWeapon) {
+			player.currentWeapon = 'secondary';
+		}
+		console.log(`🔫 Equipped secondary weapon: ${weaponId}`);
+	}
+	
+	// Update buy menu money display
+	updateBuyMenuMoney();
+	
+	// Close buy menu after purchase
+	setTimeout(() => {
+		const buyMenu = document.getElementById('claude-buy-menu');
+		if (buyMenu) {
+			buyMenu.remove();
+		}
+	}, 500);
+}
+
+function updateBuyMenuMoney() {
+	const player = gameState.players[gameState.localPlayerId];
+	if (!player) return;
+	
+	// Update money display in buy menu
+	const moneyElements = document.querySelectorAll('#claude-buy-menu .money-display');
+	moneyElements.forEach(element => {
+		if (element) {
+			element.textContent = `Money: $${player.money}`;
+		}
+	});
+	
+	// Also update any money display in the buy menu content
+	const buyMenu = document.getElementById('claude-buy-menu');
+	if (buyMenu) {
+		const moneyDiv = buyMenu.querySelector('div:nth-child(1) div:nth-child(2)');
+		if (moneyDiv) {
+			moneyDiv.textContent = `Money: $${player.money}`;
+		}
+	}
+}
+
+// Make buyWeapon available globally
+window.buyWeapon = buyWeapon;
+window.updateBuyMenuMoney = updateBuyMenuMoney;
+
 // Export functions for Ruby integration
 window.CS16Classic = {
 	initializeGame,
@@ -2675,6 +3017,8 @@ window.CS16Classic = {
 	toggleBuyMenu: window.toggleBuyMenu,
 	openBuyMenu: window.openBuyMenu,
 	closeBuyMenu: window.closeBuyMenu,
+	buyWeapon: buyWeapon,
+	updateBuyMenuMoney: updateBuyMenuMoney,
 	// Newly added functions
 	formatTime,
 	plantBomb,
