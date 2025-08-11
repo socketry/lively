@@ -1564,8 +1564,58 @@ class CS16ClassicView < Live::View
 						bullet.y += bullet.vy * deltaTime;
 						bullet.distance += Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy) * deltaTime;
 						
-						// Remove bullets that are out of bounds or traveled too far
-						if (bullet.x < 0 || bullet.x > CLASSIC_CONFIG.MAP_WIDTH ||
+						// Check collision with players
+						let bulletHit = false;
+						for (const player of Object.values(gameState.players)) {
+							if (!player.alive || player.id === bullet.playerId) {
+								continue; // Skip dead players and bullet owner
+							}
+							
+							const distance = Math.sqrt(
+								Math.pow(player.x - bullet.x, 2) +
+								Math.pow(player.y - bullet.y, 2)
+							);
+							
+							// Player hit radius (16 pixels)
+							if (distance < 16) {
+								// Apply damage
+								player.health -= bullet.damage;
+								player.damage_taken += bullet.damage;
+								
+								// Update damage stats for shooter
+								if (gameState.players[bullet.playerId]) {
+									gameState.players[bullet.playerId].damage_given += bullet.damage;
+								}
+								
+								// Check if player died
+								if (player.health <= 0) {
+									player.alive = false;
+									player.health = 0;
+									
+									// Add kill to killfeed
+									if (gameState.players[bullet.playerId]) {
+										gameState.killfeed.unshift({
+											killer: gameState.players[bullet.playerId].name,
+											victim: player.name,
+											weapon: gameState.players[bullet.playerId].current_weapon,
+											headshot: false,
+											timestamp: Date.now()
+										});
+										
+										// Keep only last 5 kills in feed
+										if (gameState.killfeed.length > 5) {
+											gameState.killfeed.pop();
+										}
+									}
+								}
+								
+								bulletHit = true;
+								break; // Bullet can only hit one player
+							}
+						}
+						
+						// Remove bullets that hit something or are out of bounds/traveled too far
+						if (bulletHit || bullet.x < 0 || bullet.x > CLASSIC_CONFIG.MAP_WIDTH ||
 								bullet.y < 0 || bullet.y > CLASSIC_CONFIG.MAP_HEIGHT ||
 								bullet.distance > 1000) {
 							gameState.bullets.splice(i, 1);
