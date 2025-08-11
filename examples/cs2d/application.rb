@@ -57,11 +57,16 @@ class CS2DView < Live::View
 	end
 		
 	def handle(event)
+		# Log the event for debugging
+		# Console.info(self, "Event received: #{event.inspect}")
+				
 		case event[:type]
 		when "click"
 			detail = event[:detail]
-			if detail && detail[:action] == "team_select"
-				select_team(detail[:team])
+			# Handle both string and symbol keys
+			if detail && (detail["action"] == "team_select" || detail[:action] == "team_select")
+				team = detail["team"] || detail[:team]
+				select_team(team)
 			end
 		when "player_kill"
 			detail = event[:detail]
@@ -198,6 +203,7 @@ class CS2DView < Live::View
 				builder.tag(:button, 
 												data: { action: "team_select", team: "ct" },
 												style: "padding: 30px 60px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #4169e1, #1e90ff); color: white; border: 3px solid #0066cc; border-radius: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase;",
+												onclick: "window.selectTeam('ct')",
 												onmouseover: "this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(30,144,255,0.6)';",
 												onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.5)';") do
 					builder.tag(:div) { builder.text("Counter-Terrorists") }
@@ -210,6 +216,7 @@ class CS2DView < Live::View
 				builder.tag(:button,
 												data: { action: "team_select", team: "t" },
 												style: "padding: 30px 60px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #ff6b00, #ff8c00); color: white; border: 3px solid #cc5500; border-radius: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase;",
+												onclick: "window.selectTeam('t')",
 												onmouseover: "this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255,140,0,0.6)';",
 												onmouseout: "this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.5)';") do
 					builder.tag(:div) { builder.text("Terrorists") }
@@ -223,6 +230,7 @@ class CS2DView < Live::View
 			builder.tag(:button,
 										data: { action: "team_select", team: "auto" },
 										style: "padding: 15px 40px; font-size: 18px; background: rgba(255,255,255,0.1); color: white; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; cursor: pointer; transition: all 0.3s;",
+										onclick: "window.selectTeam('auto')",
 										onmouseover: "this.style.background='rgba(255,255,255,0.2)'; this.style.borderColor='rgba(255,255,255,0.5)';",
 										onmouseout: "this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='rgba(255,255,255,0.3)';") do
 				builder.text("Auto-Assign")
@@ -238,16 +246,23 @@ class CS2DView < Live::View
 			# Add JavaScript for button click handling
 			builder.tag(:script, type: "text/javascript") do
 				builder.raw(<<~JAVASCRIPT)
-								document.addEventListener('DOMContentLoaded', function() {
-									const buttons = document.querySelectorAll('[data-action="team_select"]');
-									buttons.forEach(button => {
-										button.addEventListener('click', function(e) {
-											e.preventDefault();
-											const team = this.dataset.team;
-											const element = document.getElementById('team-selection');
-											if (element && element.dataset.live) {
-												const live = window.Live.of(element);
-												if (live) {
+								// Define global selectTeam function
+								window.selectTeam = function(team) {
+									console.log('selectTeam called with:', team);
+									
+									const element = document.getElementById('team-selection');
+									console.log('Team selection element:', element);
+									
+									if (element && element.dataset.live) {
+										console.log('Element live ID:', element.dataset.live);
+										
+										// Try to get Live instance
+										if (window.Live && window.Live.of) {
+											const live = window.Live.of(element);
+											console.log('Live instance:', live);
+											
+											if (live && live.send) {
+												try {
 													live.send({
 														type: 'click',
 														detail: {
@@ -255,12 +270,37 @@ class CS2DView < Live::View
 															team: team
 														}
 													});
-													console.log('Team selection sent:', team);
+													console.log('Team selection sent successfully:', team);
+												} catch (error) {
+													console.error('Error sending team selection:', error);
 												}
+											} else {
+												console.error('Live instance does not have send method');
 											}
-										});
+										} else {
+											console.error('window.Live not available');
+										}
+									} else {
+										console.error('Team selection element not found or missing live data');
+									}
+								};
+								
+								// Also set up event listeners as backup
+								setTimeout(function() {
+									console.log('Setting up team selection button listeners...');
+									const buttons = document.querySelectorAll('[data-action="team_select"]');
+									console.log('Found buttons:', buttons.length);
+									
+									buttons.forEach(button => {
+										if (!button.onclick) {
+											console.log('Adding click listener to button with team:', button.dataset.team);
+											button.addEventListener('click', function(e) {
+												e.preventDefault();
+												window.selectTeam(this.dataset.team);
+											});
+										}
 									});
-								});
+								}, 100);
 				JAVASCRIPT
 			end
 		end
