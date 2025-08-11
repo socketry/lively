@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'webrick'
-require 'json'
+require "webrick"
+require "json"
 
 puts "🎮 Starting CS 1.6 2D MVP Server..."
 puts "📱 Mac touchpad optimized!"
@@ -10,10 +10,10 @@ puts "🌐 Open http://localhost:9292 in your browser"
 puts "Press Ctrl+C to stop"
 
 class CS16Server < WEBrick::HTTPServlet::AbstractServlet
-  def do_GET(request, response)
-    response.status = 200
-    response['Content-Type'] = 'text/html; charset=utf-8'
-    response.body = <<~HTML
+	def do_GET(request, response)
+		response.status = 200
+		response["Content-Type"] = "text/html; charset=utf-8"
+		response.body = <<~HTML
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -1175,12 +1175,12 @@ class CS16Server < WEBrick::HTTPServlet::AbstractServlet
   </script>
 </body>
 </html>
-    HTML
-  end
+				HTML
+	end
 end
 
 server = WEBrick::HTTPServer.new(Port: 9292)
-server.mount '/', CS16Server
-trap('INT') { server.shutdown }
+server.mount "/", CS16Server
+trap("INT") { server.shutdown }
 
 server.start

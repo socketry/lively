@@ -395,22 +395,22 @@ module CS16PlayerManager
 		
 		# Determine weapon category
 		category = case weapon
-		when "knife"
-			"knife"
-		when /usp|glock|p228|deagle|fiveseven|elite/
-			"pistol"
-		when /mac10|tmp|mp5|ump45|p90/
-			"smg"
-		when /m3|xm1014/
-			"shotgun"
-		when /ak47|m4a1|galil|famas|sg552|aug/
-			"rifle"
-		when /awp|scout|g3sg1|sg550/
-			"sniper"
-		when /hegrenade|flashbang|smokegrenade/
-			"grenade"
-		else
-			"rifle" # Default
+													when "knife"
+														"knife"
+													when /usp|glock|p228|deagle|fiveseven|elite/
+														"pistol"
+													when /mac10|tmp|mp5|ump45|p90/
+														"smg"
+													when /m3|xm1014/
+														"shotgun"
+													when /ak47|m4a1|galil|famas|sg552|aug/
+														"rifle"
+													when /awp|scout|g3sg1|sg550/
+														"sniper"
+													when /hegrenade|flashbang|smokegrenade/
+														"grenade"
+													else
+														"rifle" # Default
 		end
 		
 		classic_rewards[category] || 300
@@ -421,16 +421,16 @@ module CS16PlayerManager
 		if armor > 0
 			# Different weapons have different armor penetration
 			penetration = case weapon
-			when /ak47|awp|deagle/
-				0.9 # High penetration
-			when /m4a1|aug|sg552/
-				0.85
-			when /rifle/
-				0.8
-			when /pistol|smg/
-				0.7 # Lower penetration
-			else
-				0.75 # Default
+																	when /ak47|awp|deagle/
+																		0.9 # High penetration
+																	when /m4a1|aug|sg552/
+																		0.85
+																	when /rifle/
+																		0.8
+																	when /pistol|smg/
+																		0.7 # Lower penetration
+																	else
+																		0.75 # Default
 			end
 			
 			# Apply armor reduction

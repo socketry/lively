@@ -260,16 +260,16 @@ module CS16GameState
 			if player[:team] == winning_team
 				# Winner bonus
 				bonus = case reason
-				when "elimination"
-					@game_state[:economy][:round_bonuses][:win_elimination]
-				when "bomb_defused"
-					@game_state[:economy][:round_bonuses][:win_bomb_defused]
-				when "bomb_exploded"
-					@game_state[:economy][:round_bonuses][:win_bomb_exploded]
-				when "time_expired"
-					@game_state[:economy][:round_bonuses][:win_time_expired_ct]
-				else
-					@game_state[:economy][:round_bonuses][:win_elimination]
+												when "elimination"
+													@game_state[:economy][:round_bonuses][:win_elimination]
+												when "bomb_defused"
+													@game_state[:economy][:round_bonuses][:win_bomb_defused]
+												when "bomb_exploded"
+													@game_state[:economy][:round_bonuses][:win_bomb_exploded]
+												when "time_expired"
+													@game_state[:economy][:round_bonuses][:win_time_expired_ct]
+												else
+													@game_state[:economy][:round_bonuses][:win_elimination]
 				end
 				
 				player[:money] = [player[:money] + bonus, @game_state[:economy][:max_money]].min
