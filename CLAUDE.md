@@ -419,7 +419,52 @@ canvas.addEventListener('mousemove', e => {
    }
    ```
 
-#### Issue 5: Server Startup Errors
+#### Issue 5: Player Initialization and Game State Issues
+**Problem**: Null reference errors occur when game logic attempts to access player data before initialization is complete.
+
+**Common Issues and Solutions:**
+1. **Player initialization order**: Initialize local player immediately after gameState definition
+   ```javascript
+   // Initialize gameState
+   const gameState = { localPlayerId: '...', players: {}, ... };
+   
+   // IMMEDIATELY initialize local player to prevent null errors
+   gameState.players[gameState.localPlayerId] = {
+     id: gameState.localPlayerId,
+     name: 'You',
+     team: 'ct',
+     x: 200, y: 360,
+     // ... all required properties
+   };
+   ```
+
+2. **Bot player integration**: Ensure bot initialization happens in proper function structure
+   ```javascript
+   function initializeBotPlayers() {
+     // Create complete player objects with all required properties
+     for (let i = 0; i < 4; i++) {
+       const botId = `bot_ct_${i}`;
+       gameState.players[botId] = {
+         id: botId,
+         name: `CT Bot ${i + 1}`,
+         team: 'ct',
+         grenades: { he: 0, flash: 1, smoke: 0 },
+         // ... complete property set matching local player
+       };
+     }
+   }
+   ```
+
+3. **AI system integration**: Update game loop to include bot AI processing
+   ```javascript
+   function updateGame(deltaTime) {
+     updatePlayerMovement(deltaTime);
+     updateBotAI(deltaTime);  // Add bot AI updates
+     // ... other updates
+   }
+   ```
+
+#### Issue 6: Server Startup Errors
 **Problem**: Ruby syntax errors or missing modules can prevent the server from starting.
 
 **Common Errors and Solutions:**
