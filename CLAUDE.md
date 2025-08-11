@@ -287,11 +287,12 @@ A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-t
 - ✅ **WebSocket injection working** - Game initializes properly through Lively framework
 - ✅ **Complete Feature Set** - Added bomb system, scoreboard, bullet hit detection, time formatting
 - ✅ **All CS 1.6 rules validated** - Authentic gameplay mechanics fully implemented
+- ✅ **Buy Zone System** - Competitive buy zones with 15-second buy time and spawn-based restrictions
 
 **Classic CS 1.6 Features:**
 - **Authentic Weapon System**: Classic weapons with original prices (AK-47 $2500, M4A1 $3100, AWP $4750, Desert Eagle $650)
 - **Classic Movement**: Authentic CS 1.6 movement speeds, walk/crouch modifiers, weapon speed penalties
-- **Competitive Rules**: 1:55 round time, 15s freeze time, 35s C4 timer, 90s buy time
+- **Competitive Rules**: 1:55 round time, 15s freeze time, 35s C4 timer, 15s buy time
 - **Classic Economy**: $800 starting money, progressive loss bonuses ($1400-3400), authentic kill rewards
 - **Bomb Gameplay**: 3s plant time, 10s defuse (5s with kit), A/B bomb sites, $800 plant bonus
 - **5v5 Format**: Best of 30 rounds, halftime at round 15, first to 16 wins
@@ -301,6 +302,7 @@ A fully-featured Counter-Strike 1.6 clone built with Lively demonstrating real-t
 - **Map Design**: de_dust2 style layout with proper wall and box collision
 - **HUD Elements**: Classic CS 1.6 styling with health, armor, money, round timer, scoreboard
 - **Dynamic Crosshair**: Expands with movement, crouching reduces spread
+- **Buy Zone System**: Players must be within 200 units of spawn to buy, visual zone indicators on map
 
 **Controls:**
 - **WASD**: Movement

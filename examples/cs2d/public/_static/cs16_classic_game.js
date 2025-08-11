@@ -98,11 +98,16 @@ const CLASSIC_CONFIG = {
 	// Timing
 	ROUND_TIME: 115, // 1:55
 	FREEZE_TIME: 15, // 15 seconds freeze
-	BUY_TIME: 90, // Can buy for 90 seconds
+	BUY_TIME: 15, // Can buy for 15 seconds (competitive standard)
 	C4_TIMER: 35, // 35 second bomb timer
 	PLANT_TIME: 3, // 3 seconds to plant
 	DEFUSE_TIME: 10, // 10 seconds without kit
 	DEFUSE_TIME_KIT: 5, // 5 seconds with kit
+	
+	// Buy Zone Configuration
+	BUY_ZONE_RADIUS: 200, // Radius around spawn points for buy zones
+	CT_SPAWN: { x: 200, y: 360 },
+	T_SPAWN: { x: 1080, y: 360 },
 	
 	// Economy
 	STARTING_MONEY: 800,
@@ -573,6 +578,9 @@ function render() {
 	// Render bomb sites
 	renderBombSites();
 	
+	// Render buy zones
+	renderBuyZones();
+	
 	// Render smoke
 	renderSmoke();
 	
@@ -644,6 +652,40 @@ function renderBombSites() {
 	ctx.fillRect(900, 400, 200, 200);
 	ctx.fillStyle = '#ff6400';
 	ctx.fillText('B', 1000, 500);
+}
+
+function renderBuyZones() {
+	// Draw buy zones with subtle visual indicators
+	
+	// CT Buy Zone
+	ctx.strokeStyle = 'rgba(0, 100, 255, 0.3)';
+	ctx.lineWidth = 2;
+	ctx.setLineDash([5, 5]);
+	ctx.beginPath();
+	ctx.arc(CLASSIC_CONFIG.CT_SPAWN.x, CLASSIC_CONFIG.CT_SPAWN.y, CLASSIC_CONFIG.BUY_ZONE_RADIUS, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.setLineDash([]);
+	
+	// CT Buy Zone label
+	ctx.fillStyle = 'rgba(0, 100, 255, 0.2)';
+	ctx.beginPath();
+	ctx.arc(CLASSIC_CONFIG.CT_SPAWN.x, CLASSIC_CONFIG.CT_SPAWN.y, CLASSIC_CONFIG.BUY_ZONE_RADIUS, 0, Math.PI * 2);
+	ctx.fill();
+	
+	// T Buy Zone
+	ctx.strokeStyle = 'rgba(255, 170, 0, 0.3)';
+	ctx.lineWidth = 2;
+	ctx.setLineDash([5, 5]);
+	ctx.beginPath();
+	ctx.arc(CLASSIC_CONFIG.T_SPAWN.x, CLASSIC_CONFIG.T_SPAWN.y, CLASSIC_CONFIG.BUY_ZONE_RADIUS, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.setLineDash([]);
+	
+	// T Buy Zone label
+	ctx.fillStyle = 'rgba(255, 170, 0, 0.2)';
+	ctx.beginPath();
+	ctx.arc(CLASSIC_CONFIG.T_SPAWN.x, CLASSIC_CONFIG.T_SPAWN.y, CLASSIC_CONFIG.BUY_ZONE_RADIUS, 0, Math.PI * 2);
+	ctx.fill();
 }
 
 function renderPlayers() {
@@ -997,6 +1039,34 @@ function renderHUD() {
 	ctx.fillText(`CT: ${gameState.ctScore}`, canvas.width / 2 - 60, 70);
 	ctx.fillStyle = '#ffaa00';
 	ctx.fillText(`T: ${gameState.tScore}`, canvas.width / 2 + 60, 70);
+	
+	// Buy Zone & Buy Time Indicator
+	const buyTimeLeft = CLASSIC_CONFIG.BUY_TIME - (CLASSIC_CONFIG.ROUND_TIME - gameState.roundTime);
+	const inBuyZone = isInBuyZone(player);
+	const canBuy = buyTimeLeft > 0 && gameState.phase === 'playing';
+	
+	if (inBuyZone && canBuy) {
+		// Can buy - show green indicator
+		ctx.fillStyle = '#00ff00';
+		ctx.font = 'bold 16px Arial';
+		ctx.textAlign = 'center';
+		ctx.fillText('BUY ZONE', canvas.width / 2, 95);
+		ctx.font = '14px Arial';
+		ctx.fillText(`Buy Time: ${Math.ceil(buyTimeLeft)}s`, canvas.width / 2, 110);
+		ctx.fillText('Press B to buy', canvas.width / 2, 125);
+	} else if (inBuyZone && !canBuy) {
+		// In buy zone but can't buy - show yellow indicator
+		ctx.fillStyle = '#ffaa00';
+		ctx.font = '14px Arial';
+		ctx.textAlign = 'center';
+		ctx.fillText('Buy Zone (Buy time expired)', canvas.width / 2, 95);
+	} else if (!inBuyZone && canBuy) {
+		// Can still buy but not in zone - show hint
+		ctx.fillStyle = '#aaaaaa';
+		ctx.font = '14px Arial';
+		ctx.textAlign = 'center';
+		ctx.fillText(`Buy Time: ${Math.ceil(buyTimeLeft)}s (Return to buy zone)`, canvas.width / 2, 95);
+	}
 
 	// Killfeed
 	ctx.textAlign = 'right';
@@ -2123,9 +2193,33 @@ function initializeShopSystem() {
 	console.log('Shop system initialized');
 }
 
+// Check if player is in their team's buy zone
+function isInBuyZone(player) {
+	if (!player) return false;
+	
+	// Get the spawn point for player's team
+	const spawnPoint = player.team === 'ct' ? CLASSIC_CONFIG.CT_SPAWN : CLASSIC_CONFIG.T_SPAWN;
+	
+	// Calculate distance from spawn point
+	const dx = player.x - spawnPoint.x;
+	const dy = player.y - spawnPoint.y;
+	const distance = Math.sqrt(dx * dx + dy * dy);
+	
+	// Check if within buy zone radius
+	return distance <= CLASSIC_CONFIG.BUY_ZONE_RADIUS;
+}
+
 function purchaseWeapon(weaponId) {
 	const player = gameState.players[gameState.localPlayerId];
 	if (!player || !player.alive) return;
+	
+	// Check if player is in buy zone
+	if (!isInBuyZone(player)) {
+		const message = 'You must be in the buy zone to purchase weapons';
+		console.log(message);
+		showPurchaseError(message);
+		return;
+	}
 	
 	const weaponData = getWeaponData(weaponId);
 	if (!weaponData) {
