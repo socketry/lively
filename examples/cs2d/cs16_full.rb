@@ -1,385 +1,449 @@
 #!/usr/bin/env lively
 # frozen_string_literal: true
 
-require 'securerandom'
-require 'json'
-require 'async'
+require "securerandom"
+require "json"
+require "async"
 
 class CS16View < Live::View
-  def bind(page)
-    super
-    
-    @player_id = SecureRandom.uuid
-    @game_running = true
-    
-    # Full CS 1.6 game state
-    @game_state = {
-      players: {},
-      phase: 'warmup',
-      round_time: 115,
-      freeze_time: 15,
-      ct_score: 0,
-      t_score: 0,
-      round: 1,
-      max_rounds: 30,
-      bomb: {
-        planted: false,
-        time_left: 35,
-        x: nil,
-        y: nil,
-        planter_id: nil,
-        site: nil
-      },
-      economy: {
-        ct_money: {},
-        t_money: {},
-        round_bonus: { ct: 3250, t: 3250 }
-      },
-      weapons: {},
-      grenades: [],
-      smoke_areas: [],
-      flash_effects: [],
-      map: 'de_dust2',
-      server_tick: 0,
-      tick_rate: 64,
-      killfeed: [],
-      chat_messages: []
-    }
-    
-    # Add player with full CS 1.6 properties
-    @game_state[:players][@player_id] = create_player(@player_id, 'ct')
-    @game_state[:economy][:ct_money][@player_id] = 16000
-    
-    # Add bots with different skill levels
-    add_bots
-    
-    self.update!
-    
-    # Start game loop
-    start_game_loop
-  end
-  
-  def create_player(id, team)
-    {
-      id: id,
-      name: "Player_#{id[0..7]}",
-      team: team,
-      x: team == 'ct' ? 200 : 1080,
-      y: team == 'ct' ? 360 : 360,
-      angle: 0,
-      health: 100,
-      armor: 100,
-      helmet: true,
-      alive: true,
-      kills: 0,
-      deaths: 0,
-      assists: 0,
-      money: 16000,
-      primary_weapon: team == 'ct' ? 'm4a1' : 'ak47',
-      secondary_weapon: 'glock',
-      current_weapon: 'primary',
-      grenades: {
-        flashbang: 2,
-        smoke: 1,
-        he: 1
-      },
-      defuse_kit: team == 'ct',
-      bomb: team == 't' && id == @player_id,
-      velocity: { x: 0, y: 0 },
-      walking: false,
-      crouching: false,
-      reloading: false,
-      switching_weapon: false,
-      flash_duration: 0,
-      in_smoke: false,
-      ping: rand(10..50),
-      fps: 60 + rand(0..100),
-      skill_level: rand(1..10)
-    }
-  end
-  
-  def add_bots
-    # Add CT bots
-    3.times do |i|
-      bot_id = "bot_ct_#{i}"
-      @game_state[:players][bot_id] = create_player(bot_id, 'ct')
-      @game_state[:players][bot_id][:name] = ["Eagle", "Hawk", "Wolf", "Tiger"][i]
-      @game_state[:players][bot_id][:x] = 200 + (i * 50)
-      @game_state[:players][bot_id][:y] = 300 + (i * 30)
-      @game_state[:economy][:ct_money][bot_id] = 16000
-    end
-    
-    # Add T bots
-    4.times do |i|
-      bot_id = "bot_t_#{i}"
-      @game_state[:players][bot_id] = create_player(bot_id, 't')
-      @game_state[:players][bot_id][:name] = ["Phoenix", "Viper", "Shadow", "Ghost"][i]
-      @game_state[:players][bot_id][:x] = 1080 - (i * 50)
-      @game_state[:players][bot_id][:y] = 300 + (i * 30)
-      @game_state[:players][bot_id][:bomb] = (i == 0)
-      @game_state[:economy][:t_money][bot_id] = 16000
-    end
-  end
-  
-  def render(builder)
-    # Render full game interface
-    render_game_container(builder)
-    # Inject the complete CS 1.6 JavaScript game code
-    render_cs16_javascript(builder)
-  end
-  
-  def render_game_container(builder)
-    builder.tag(:div, id: "cs16-container", data: { live: @id }, 
-                style: "width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden; background: #000; position: relative; font-family: 'Counter-Strike', Arial, sans-serif;") do
-      
-      # Main game canvas
-      builder.tag(:canvas, id: "game-canvas", width: 1280, height: 720,
-                 style: "display: block; margin: 0 auto; cursor: crosshair; image-rendering: pixelated;",
-                 tabIndex: 0)
-      
-      # CS 1.6 HUD
-      render_hud(builder)
-      
-      # Buy menu (initially hidden)
-      render_buy_menu(builder)
-      
-      # Scoreboard (initially hidden)
-      render_scoreboard(builder)
-      
-      # Chat box
-      render_chatbox(builder)
-      
-      # Killfeed
-      render_killfeed(builder)
-      
-      # Loading screen
-      builder.tag(:div, id: "loading-screen", 
-                 style: "position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; z-index: 9999;") do
-        builder.tag(:div, style: "text-align: center; color: #fff;") do
-          builder.tag(:h1, style: "font-size: 48px; margin-bottom: 20px;") do
-            builder.text("Counter-Strike 1.6")
-          end
-          builder.tag(:div, style: "font-size: 24px;") do
-            builder.text("Loading #{@game_state[:map]}...")
-          end
-          builder.tag(:div, style: "margin-top: 30px;") do
-            builder.tag(:div, style: "width: 400px; height: 20px; background: #333; border: 2px solid #555;") do
-              builder.tag(:div, id: "loading-bar", style: "width: 0%; height: 100%; background: linear-gradient(90deg, #ff6b00, #ffaa00); transition: width 0.3s;")
-            end
-          end
-        end
-      end
-    end
-  end
-  
-  def render_hud(builder)
-    builder.tag(:div, id: "hud", style: "position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;") do
-      # Health & Armor
-      builder.tag(:div, style: "position: absolute; bottom: 20px; left: 20px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-        builder.tag(:div, style: "font-size: 36px; font-weight: bold;") do
-          builder.tag(:span, style: "color: #ff4444;") { builder.text("❤") }
-          builder.tag(:span, id: "health-display") { builder.text(" 100") }
-        end
-        builder.tag(:div, style: "font-size: 36px; font-weight: bold;") do
-          builder.tag(:span, style: "color: #4444ff;") { builder.text("🛡") }
-          builder.tag(:span, id: "armor-display") { builder.text(" 100") }
-        end
-      end
-      
-      # Ammo
-      builder.tag(:div, style: "position: absolute; bottom: 20px; right: 20px; color: #fff; text-align: right; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-        builder.tag(:div, style: "font-size: 48px; font-weight: bold;") do
-          builder.tag(:span, id: "ammo-current") { builder.text("30") }
-          builder.tag(:span, style: "color: #888; font-size: 32px;") { builder.text(" / ") }
-          builder.tag(:span, id: "ammo-reserve", style: "font-size: 32px;") { builder.text("120") }
-        end
-        builder.tag(:div, id: "weapon-name", style: "font-size: 24px; color: #ffaa00;") do
-          builder.text("M4A1")
-        end
-      end
-      
-      # Money
-      builder.tag(:div, style: "position: absolute; top: 100px; left: 20px; color: #00ff00; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-        builder.text("$ ")
-        builder.tag(:span, id: "money-display") { builder.text("16000") }
-      end
-      
-      # Round timer & score
-      builder.tag(:div, style: "position: absolute; top: 20px; left: 50%; transform: translateX(-50%); text-align: center;") do
-        builder.tag(:div, style: "font-size: 32px; color: #fff; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-          builder.tag(:span, id: "round-timer") { builder.text("1:55") }
-        end
-        builder.tag(:div, style: "margin-top: 10px; font-size: 28px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-          builder.tag(:span, style: "color: #4444ff;") do
-            builder.text("CT ")
-            builder.tag(:span, id: "ct-score") { builder.text("0") }
-          end
-          builder.tag(:span, style: "margin: 0 20px;") { builder.text("-") }
-          builder.tag(:span, style: "color: #ffaa00;") do
-            builder.tag(:span, id: "t-score") { builder.text("0") }
-            builder.text(" T")
-          end
-        end
-      end
-      
-      # Minimap
-      builder.tag(:div, style: "position: absolute; top: 150px; right: 20px; width: 200px; height: 200px; background: rgba(0,0,0,0.7); border: 2px solid #555;") do
-        builder.tag(:canvas, id: "minimap", width: 200, height: 200)
-      end
-      
-      # Spectator info
-      builder.tag(:div, id: "spectator-info", style: "position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 24px; display: none; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
-        builder.text("Spectating: ")
-        builder.tag(:span, id: "spectating-player")
-      end
-    end
-  end
-  
-  def render_buy_menu(builder)
-    builder.tag(:div, id: "buy-menu", style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; height: 600px; background: rgba(20,20,20,0.95); border: 3px solid #ff6b00; display: none; padding: 20px; color: #fff;") do
-      builder.tag(:h2, style: "text-align: center; color: #ff6b00; margin-bottom: 20px;") { builder.text("Buy Menu") }
-      
-      # Categories
-      builder.tag(:div, style: "display: flex; gap: 20px;") do
-        # Pistols
-        builder.tag(:div, style: "flex: 1;") do
-          builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px;") { builder.text("Pistols") }
-          builder.tag(:div, class: "weapon-list") do
-            [
-              { name: "Glock-18", price: 400, key: "1" },
-              { name: "USP", price: 500, key: "2" },
-              { name: "P228", price: 600, key: "3" },
-              { name: "Desert Eagle", price: 650, key: "4" },
-              { name: "Five-SeveN", price: 750, key: "5" }
-            ].each do |weapon|
-              builder.tag(:div, class: "weapon-item", style: "padding: 5px; cursor: pointer; hover: background: #333;") do
-                builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
-              end
-            end
-          end
-        end
-        
-        # SMGs
-        builder.tag(:div, style: "flex: 1;") do
-          builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px;") { builder.text("SMGs") }
-          builder.tag(:div, class: "weapon-list") do
-            [
-              { name: "MAC-10", price: 1400, key: "1" },
-              { name: "MP5", price: 1500, key: "2" },
-              { name: "UMP45", price: 1700, key: "3" },
-              { name: "P90", price: 2350, key: "4" }
-            ].each do |weapon|
-              builder.tag(:div, class: "weapon-item", style: "padding: 5px; cursor: pointer;") do
-                builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
-              end
-            end
-          end
-        end
-        
-        # Rifles
-        builder.tag(:div, style: "flex: 1;") do
-          builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px;") { builder.text("Rifles") }
-          builder.tag(:div, class: "weapon-list") do
-            [
-              { name: "Galil", price: 2000, key: "1" },
-              { name: "FAMAS", price: 2250, key: "2" },
-              { name: "AK-47", price: 2500, key: "3" },
-              { name: "M4A1", price: 3100, key: "4" },
-              { name: "AUG", price: 3500, key: "5" },
-              { name: "SG 552", price: 3500, key: "6" },
-              { name: "AWP", price: 4750, key: "7" }
-            ].each do |weapon|
-              builder.tag(:div, class: "weapon-item", style: "padding: 5px; cursor: pointer;") do
-                builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
-              end
-            end
-          end
-        end
-      end
-      
-      # Equipment
-      builder.tag(:div, style: "margin-top: 20px;") do
-        builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px;") { builder.text("Equipment") }
-        builder.tag(:div, style: "display: flex; gap: 20px;") do
-          [
-            { name: "Kevlar Vest", price: 650, key: "8" },
-            { name: "Kevlar + Helmet", price: 1000, key: "9" },
-            { name: "Flashbang", price: 200, key: "0" },
-            { name: "HE Grenade", price: 300, key: "-" },
-            { name: "Smoke Grenade", price: 300, key: "=" },
-            { name: "Defuse Kit", price: 200, key: "D", ct_only: true }
-          ].each do |item|
-            next if item[:ct_only] && @game_state[:players][@player_id][:team] != 'ct'
-            builder.tag(:span, style: "padding: 5px;") do
-              builder.text("[#{item[:key]}] #{item[:name]} - $#{item[:price]}")
-            end
-          end
-        end
-      end
-      
-      builder.tag(:div, style: "position: absolute; bottom: 20px; right: 20px; color: #888;") do
-        builder.text("Press B to close")
-      end
-    end
-  end
-  
-  def render_scoreboard(builder)
-    builder.tag(:div, id: "scoreboard", style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; background: rgba(20,20,20,0.95); border: 3px solid #555; display: none; padding: 20px; color: #fff;") do
-      builder.tag(:h2, style: "text-align: center; margin-bottom: 20px;") { builder.text("Scoreboard") }
-      
-      # CT Team
-      builder.tag(:div, style: "margin-bottom: 20px;") do
-        builder.tag(:h3, style: "color: #4444ff; border-bottom: 2px solid #4444ff; padding-bottom: 5px;") { builder.text("Counter-Terrorists") }
-        builder.tag(:table, style: "width: 100%; color: #fff;") do
-          builder.tag(:thead) do
-            builder.tag(:tr) do
-              ["Name", "K", "A", "D", "Score", "Ping"].each do |header|
-                builder.tag(:th, style: "text-align: left; padding: 5px;") { builder.text(header) }
-              end
-            end
-          end
-          builder.tag(:tbody, id: "ct-players")
-        end
-      end
-      
-      # T Team
-      builder.tag(:div) do
-        builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px;") { builder.text("Terrorists") }
-        builder.tag(:table, style: "width: 100%; color: #fff;") do
-          builder.tag(:thead) do
-            builder.tag(:tr) do
-              ["Name", "K", "A", "D", "Score", "Ping"].each do |header|
-                builder.tag(:th, style: "text-align: left; padding: 5px;") { builder.text(header) }
-              end
-            end
-          end
-          builder.tag(:tbody, id: "t-players")
-        end
-      end
-    end
-  end
-  
-  def render_chatbox(builder)
-    builder.tag(:div, id: "chatbox", style: "position: absolute; bottom: 150px; left: 20px; width: 400px; height: 200px;") do
-      builder.tag(:div, id: "chat-messages", style: "height: 170px; overflow-y: auto; color: #fff; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);")
-      builder.tag(:input, id: "chat-input", type: "text", placeholder: "Press Y to chat...",
-                 style: "width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #555; color: #fff; padding: 5px; display: none;")
-    end
-  end
-  
-  def render_killfeed(builder)
-    builder.tag(:div, id: "killfeed", style: "position: absolute; top: 20px; right: 20px; width: 300px; color: #fff; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);")
-  end
-  
-  def render_cs16_javascript(builder)
-    # Use HTML-based JavaScript inclusion for large game code
-    builder.tag(:script, type: "text/javascript") do
-      builder.raw(generate_cs16_javascript)
-    end
-  end
-  
-  def generate_cs16_javascript
-    <<~JAVASCRIPT
+	def bind(page)
+		super
+				
+		@player_id = SecureRandom.uuid
+		@game_running = true
+				
+		# Full CS 1.6 game state
+		@game_state = {
+						players: {},
+						phase: "warmup",
+						round_time: 115,
+						freeze_time: 15,
+						ct_score: 0,
+						t_score: 0,
+						round: 1,
+						max_rounds: 30,
+						bomb: {
+								planted: false,
+								time_left: 35,
+								x: nil,
+								y: nil,
+								planter_id: nil,
+								site: nil
+						},
+						economy: {
+								ct_money: {},
+								t_money: {},
+								round_bonus: { ct: 3250, t: 3250 }
+						},
+						weapons: {},
+						grenades: [],
+						smoke_areas: [],
+						flash_effects: [],
+						map: "de_dust2",
+						server_tick: 0,
+						tick_rate: 64,
+						killfeed: [],
+						chat_messages: []
+				}
+				
+		# Add player with full CS 1.6 properties
+		@game_state[:players][@player_id] = create_player(@player_id, "ct")
+		@game_state[:economy][:ct_money][@player_id] = 16000
+				
+		# Add bots with different skill levels
+		add_bots
+				
+		self.update!
+				
+		# Start game loop
+		start_game_loop
+	end
+		
+	def create_player(id, team)
+		{
+						id: id,
+						name: "Player_#{id[0..7]}",
+						team: team,
+						x: team == "ct" ? 200 : 1080,
+						y: team == "ct" ? 360 : 360,
+						angle: 0,
+						health: 100,
+						armor: 100,
+						helmet: true,
+						alive: true,
+						kills: 0,
+						deaths: 0,
+						assists: 0,
+						money: 16000,
+						primary_weapon: team == "ct" ? "m4a1" : "ak47",
+						secondary_weapon: "glock",
+						current_weapon: "primary",
+						grenades: {
+								flashbang: 2,
+								smoke: 1,
+								he: 1
+						},
+						defuse_kit: team == "ct",
+						bomb: team == "t" && id == @player_id,
+						velocity: { x: 0, y: 0 },
+						walking: false,
+						crouching: false,
+						reloading: false,
+						switching_weapon: false,
+						flash_duration: 0,
+						in_smoke: false,
+						ping: rand(10..50),
+						fps: 60 + rand(0..100),
+						skill_level: rand(1..10)
+				}
+	end
+		
+	def add_bots
+		# Add CT bots
+		3.times do |i|
+			bot_id = "bot_ct_#{i}"
+			@game_state[:players][bot_id] = create_player(bot_id, "ct")
+			@game_state[:players][bot_id][:name] = ["Eagle", "Hawk", "Wolf", "Tiger"][i]
+			@game_state[:players][bot_id][:x] = 200 + (i * 50)
+			@game_state[:players][bot_id][:y] = 300 + (i * 30)
+			@game_state[:economy][:ct_money][bot_id] = 16000
+		end
+				
+		# Add T bots
+		4.times do |i|
+			bot_id = "bot_t_#{i}"
+			@game_state[:players][bot_id] = create_player(bot_id, "t")
+			@game_state[:players][bot_id][:name] = ["Phoenix", "Viper", "Shadow", "Ghost"][i]
+			@game_state[:players][bot_id][:x] = 1080 - (i * 50)
+			@game_state[:players][bot_id][:y] = 300 + (i * 30)
+			@game_state[:players][bot_id][:bomb] = (i == 0)
+			@game_state[:economy][:t_money][bot_id] = 16000
+		end
+	end
+		
+	def render(builder)
+		# Render full game interface
+		render_game_container(builder)
+		# Inject the complete CS 1.6 JavaScript game code
+		render_cs16_javascript(builder)
+	end
+		
+	def render_game_container(builder)
+		builder.tag(:div, id: "cs16-container", data: { live: @id }, 
+																style: "width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden; background: #000; position: relative; font-family: 'Counter-Strike', Arial, sans-serif;") do
+						
+			# Main game canvas
+			builder.tag(:canvas, id: "game-canvas", width: 1280, height: 720,
+																	style: "display: block; margin: 0 auto; cursor: crosshair; image-rendering: pixelated;",
+																	tabIndex: 0)
+						
+			# CS 1.6 HUD
+			render_hud(builder)
+						
+			# Buy menu (initially hidden)
+			render_buy_menu(builder)
+						
+			# Scoreboard (initially hidden)
+			render_scoreboard(builder)
+						
+			# Chat box
+			render_chatbox(builder)
+						
+			# Killfeed
+			render_killfeed(builder)
+						
+			# Loading screen
+			builder.tag(:div, id: "loading-screen", 
+																	style: "position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; z-index: 9999;") do
+				builder.tag(:div, style: "text-align: center; color: #fff;") do
+					builder.tag(:h1, style: "font-size: 48px; margin-bottom: 20px;") do
+						builder.text("Counter-Strike 1.6")
+					end
+					builder.tag(:div, style: "font-size: 24px;") do
+						builder.text("Loading #{@game_state[:map]}...")
+					end
+					builder.tag(:div, style: "margin-top: 30px;") do
+						builder.tag(:div, style: "width: 400px; height: 20px; background: #333; border: 2px solid #555;") do
+							builder.tag(:div, id: "loading-bar", style: "width: 0%; height: 100%; background: linear-gradient(90deg, #ff6b00, #ffaa00); transition: width 0.3s;")
+						end
+					end
+				end
+			end
+		end
+	end
+		
+	def render_hud(builder)
+		builder.tag(:div, id: "hud", style: "position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;") do
+			# Health & Armor
+			builder.tag(:div, style: "position: absolute; bottom: 20px; left: 20px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+				builder.tag(:div, style: "font-size: 36px; font-weight: bold;") do
+					builder.tag(:span, style: "color: #ff4444;") { builder.text("❤") }
+					builder.tag(:span, id: "health-display") { builder.text(" 100") }
+				end
+				builder.tag(:div, style: "font-size: 36px; font-weight: bold;") do
+					builder.tag(:span, style: "color: #4444ff;") { builder.text("🛡") }
+					builder.tag(:span, id: "armor-display") { builder.text(" 100") }
+				end
+			end
+						
+			# Ammo
+			builder.tag(:div, style: "position: absolute; bottom: 20px; right: 20px; color: #fff; text-align: right; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+				builder.tag(:div, style: "font-size: 48px; font-weight: bold;") do
+					builder.tag(:span, id: "ammo-current") { builder.text("30") }
+					builder.tag(:span, style: "color: #888; font-size: 32px;") { builder.text(" / ") }
+					builder.tag(:span, id: "ammo-reserve", style: "font-size: 32px;") { builder.text("120") }
+				end
+				builder.tag(:div, id: "weapon-name", style: "font-size: 24px; color: #ffaa00;") do
+					builder.text("M4A1")
+				end
+			end
+						
+			# Money
+			builder.tag(:div, style: "position: absolute; top: 100px; left: 20px; color: #00ff00; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+				builder.text("$ ")
+				builder.tag(:span, id: "money-display") { builder.text("16000") }
+			end
+						
+			# Round timer & score
+			builder.tag(:div, style: "position: absolute; top: 20px; left: 50%; transform: translateX(-50%); text-align: center;") do
+				builder.tag(:div, style: "font-size: 32px; color: #fff; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+					builder.tag(:span, id: "round-timer") { builder.text("1:55") }
+				end
+				builder.tag(:div, style: "margin-top: 10px; font-size: 28px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+					builder.tag(:span, style: "color: #4444ff;") do
+						builder.text("CT ")
+						builder.tag(:span, id: "ct-score") { builder.text("0") }
+					end
+					builder.tag(:span, style: "margin: 0 20px;") { builder.text("-") }
+					builder.tag(:span, style: "color: #ffaa00;") do
+						builder.tag(:span, id: "t-score") { builder.text("0") }
+						builder.text(" T")
+					end
+				end
+			end
+						
+			# Minimap
+			builder.tag(:div, style: "position: absolute; top: 150px; right: 20px; width: 200px; height: 200px; background: rgba(0,0,0,0.7); border: 2px solid #555;") do
+				builder.tag(:canvas, id: "minimap", width: 200, height: 200)
+			end
+						
+			# Spectator info
+			builder.tag(:div, id: "spectator-info", style: "position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 24px; display: none; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);") do
+				builder.text("Spectating: ")
+				builder.tag(:span, id: "spectating-player")
+			end
+		end
+	end
+		
+	def render_buy_menu(builder)
+		builder.tag(:div, id: "buy-menu", style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; height: 650px; background: rgba(20,20,20,0.95); border: 3px solid #ff6b00; display: none; padding: 20px; color: #fff; overflow-y: auto;") do
+			builder.tag(:h2, style: "text-align: center; color: #ff6b00; margin-bottom: 20px;") { builder.text("Buy Menu") }
+						
+			# Money display
+			builder.tag(:div, style: "text-align: center; font-size: 24px; color: #00ff00; margin-bottom: 20px;") do
+				builder.text("Money: $")
+				builder.tag(:span, id: "buy-menu-money") { builder.text("16000") }
+			end
+						
+			# Categories in rows
+			builder.tag(:div, style: "display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;") do
+				# Pistols
+				builder.tag(:div) do
+					builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text("Pistols") }
+					builder.tag(:div, class: "weapon-list", style: "font-size: 14px;") do
+						[
+														{ name: "Glock-18", price: 400, key: "1", id: "glock" },
+														{ name: "USP", price: 500, key: "2", id: "usp" },
+														{ name: "P228", price: 600, key: "3", id: "p228" },
+														{ name: "Desert Eagle", price: 650, key: "4", id: "deagle" },
+														{ name: "Five-SeveN", price: 750, key: "5", id: "fiveseven" },
+														{ name: "Dual Berettas", price: 800, key: "6", id: "elite" }
+												].each do |weapon|
+													builder.tag(:div, class: "weapon-item", data: { weapon: weapon[:id] }, style: "padding: 3px; cursor: pointer; hover: background: #333;") do
+														builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
+													end
+												end
+					end
+				end
+								
+				# SMGs
+				builder.tag(:div) do
+					builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text("SMGs") }
+					builder.tag(:div, class: "weapon-list", style: "font-size: 14px;") do
+						[
+														{ name: "MAC-10", price: 1400, key: "1", id: "mac10" },
+														{ name: "TMP", price: 1250, key: "2", id: "tmp" },
+														{ name: "MP5", price: 1500, key: "3", id: "mp5" },
+														{ name: "UMP45", price: 1700, key: "4", id: "ump45" },
+														{ name: "P90", price: 2350, key: "5", id: "p90" }
+												].each do |weapon|
+													builder.tag(:div, class: "weapon-item", data: { weapon: weapon[:id] }, style: "padding: 3px; cursor: pointer;") do
+														builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
+													end
+												end
+					end
+				end
+								
+				# Shotguns
+				builder.tag(:div) do
+					builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text("Shotguns") }
+					builder.tag(:div, class: "weapon-list", style: "font-size: 14px;") do
+						[
+														{ name: "M3 Super 90", price: 1700, key: "1", id: "m3" },
+														{ name: "XM1014", price: 3000, key: "2", id: "xm1014" }
+												].each do |weapon|
+													builder.tag(:div, class: "weapon-item", data: { weapon: weapon[:id] }, style: "padding: 3px; cursor: pointer;") do
+														builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
+													end
+												end
+					end
+				end
+			end
+						
+			# Second row
+			builder.tag(:div, style: "display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;") do
+				# Rifles
+				builder.tag(:div) do
+					builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text("Rifles") }
+					builder.tag(:div, class: "weapon-list", style: "font-size: 14px;") do
+						[
+														{ name: "Galil", price: 2000, key: "1", id: "galil" },
+														{ name: "FAMAS", price: 2250, key: "2", id: "famas" },
+														{ name: "AK-47", price: 2500, key: "3", id: "ak47" },
+														{ name: "M4A1", price: 3100, key: "4", id: "m4a1" },
+														{ name: "AUG", price: 3500, key: "5", id: "aug" },
+														{ name: "SG 552", price: 3500, key: "6", id: "sg552" }
+												].each do |weapon|
+													builder.tag(:div, class: "weapon-item", data: { weapon: weapon[:id] }, style: "padding: 3px; cursor: pointer;") do
+														builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
+													end
+												end
+					end
+				end
+								
+				# Sniper Rifles
+				builder.tag(:div) do
+					builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text("Sniper Rifles") }
+					builder.tag(:div, class: "weapon-list", style: "font-size: 14px;") do
+						[
+														{ name: "Scout", price: 2750, key: "1", id: "scout" },
+														{ name: "AWP", price: 4750, key: "2", id: "awp" },
+														{ name: "G3SG1", price: 5000, key: "3", id: "g3sg1" },
+														{ name: "SG550", price: 4200, key: "4", id: "sg550" }
+												].each do |weapon|
+													builder.tag(:div, class: "weapon-item", data: { weapon: weapon[:id] }, style: "padding: 3px; cursor: pointer;") do
+														builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
+													end
+												end
+					end
+				end
+								
+				# Machine Gun
+				builder.tag(:div) do
+					builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text("Machine Gun") }
+					builder.tag(:div, class: "weapon-list", style: "font-size: 14px;") do
+						builder.tag(:div, class: "weapon-item", data: { weapon: "m249" }, style: "padding: 3px; cursor: pointer;") do
+							builder.text("[1] M249 - $5750")
+						end
+					end
+				end
+			end
+						
+			# Equipment
+			builder.tag(:div) do
+				builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text("Equipment & Grenades") }
+				builder.tag(:div, style: "display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 14px;") do
+					builder.tag(:div) do
+						builder.tag(:div, class: "equipment-item", data: { item: "kevlar" }, style: "padding: 3px; cursor: pointer;") do
+							builder.text("[8] Kevlar Vest - $650")
+						end
+						builder.tag(:div, class: "equipment-item", data: { item: "kevlarhelmet" }, style: "padding: 3px; cursor: pointer;") do
+							builder.text("[9] Kevlar + Helmet - $1000")
+						end
+						builder.tag(:div, class: "equipment-item", data: { item: "defusekit" }, style: "padding: 3px; cursor: pointer;") do
+							builder.text("[D] Defuse Kit (CT) - $200")
+						end if @game_state[:players][@player_id][:team] == "ct"
+						builder.tag(:div, class: "equipment-item", data: { item: "nightvision" }, style: "padding: 3px; cursor: pointer;") do
+							builder.text("[N] Night Vision - $1250")
+						end
+					end
+					builder.tag(:div) do
+						builder.tag(:div, class: "equipment-item", data: { item: "hegrenade" }, style: "padding: 3px; cursor: pointer;") do
+							builder.text("[-] HE Grenade - $300")
+						end
+						builder.tag(:div, class: "equipment-item", data: { item: "flashbang" }, style: "padding: 3px; cursor: pointer;") do
+							builder.text("[0] Flashbang - $200")
+						end
+						builder.tag(:div, class: "equipment-item", data: { item: "smokegrenade" }, style: "padding: 3px; cursor: pointer;") do
+							builder.text("[=] Smoke Grenade - $300")
+						end
+					end
+				end
+			end
+						
+			builder.tag(:div, style: "position: absolute; bottom: 20px; right: 20px; color: #888; font-size: 14px;") do
+				builder.text("Press B to close | Click or use number keys to buy")
+			end
+		end
+	end
+		
+	def render_scoreboard(builder)
+		builder.tag(:div, id: "scoreboard", style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; background: rgba(20,20,20,0.95); border: 3px solid #555; display: none; padding: 20px; color: #fff;") do
+			builder.tag(:h2, style: "text-align: center; margin-bottom: 20px;") { builder.text("Scoreboard") }
+						
+			# CT Team
+			builder.tag(:div, style: "margin-bottom: 20px;") do
+				builder.tag(:h3, style: "color: #4444ff; border-bottom: 2px solid #4444ff; padding-bottom: 5px;") { builder.text("Counter-Terrorists") }
+				builder.tag(:table, style: "width: 100%; color: #fff;") do
+					builder.tag(:thead) do
+						builder.tag(:tr) do
+							["Name", "K", "A", "D", "Score", "Ping"].each do |header|
+								builder.tag(:th, style: "text-align: left; padding: 5px;") { builder.text(header) }
+							end
+						end
+					end
+					builder.tag(:tbody, id: "ct-players")
+				end
+			end
+						
+			# T Team
+			builder.tag(:div) do
+				builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px;") { builder.text("Terrorists") }
+				builder.tag(:table, style: "width: 100%; color: #fff;") do
+					builder.tag(:thead) do
+						builder.tag(:tr) do
+							["Name", "K", "A", "D", "Score", "Ping"].each do |header|
+								builder.tag(:th, style: "text-align: left; padding: 5px;") { builder.text(header) }
+							end
+						end
+					end
+					builder.tag(:tbody, id: "t-players")
+				end
+			end
+		end
+	end
+		
+	def render_chatbox(builder)
+		builder.tag(:div, id: "chatbox", style: "position: absolute; bottom: 150px; left: 20px; width: 400px; height: 200px;") do
+			builder.tag(:div, id: "chat-messages", style: "height: 170px; overflow-y: auto; color: #fff; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);")
+			builder.tag(:input, id: "chat-input", type: "text", placeholder: "Press Y to chat...",
+																	style: "width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #555; color: #fff; padding: 5px; display: none;")
+		end
+	end
+		
+	def render_killfeed(builder)
+		builder.tag(:div, id: "killfeed", style: "position: absolute; top: 20px; right: 20px; width: 300px; color: #fff; font-size: 14px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);")
+	end
+		
+	def render_cs16_javascript(builder)
+		# Use HTML-based JavaScript inclusion for large game code
+		builder.tag(:script, type: "text/javascript") do
+			builder.raw(generate_cs16_javascript)
+		end
+	end
+		
+	def generate_cs16_javascript
+		<<~JAVASCRIPT
     // CS 1.6 Complete Game Implementation
     (function() {
       console.log('CS 1.6: Initializing complete game engine...');
@@ -407,38 +471,59 @@ class CS16View < Live::View
       
       // Weapon configurations
       const WEAPONS = {
+        // Melee
+        knife: { damage: 65, fireRate: 0.4, clipSize: 0, reserve: 0, reloadTime: 0, price: 0, automatic: false, penetration: 0, accuracy: 1, recoil: 0, range: 48, secondary: 90 },
+        
         // Pistols
-        glock: { damage: 28, fireRate: 0.15, clipSize: 20, reserve: 120, reloadTime: 2.2, price: 400, automatic: false, penetration: 1, accuracy: 0.9, recoil: 5 },
-        usp: { damage: 34, fireRate: 0.15, clipSize: 12, reserve: 100, reloadTime: 2.7, price: 500, automatic: false, penetration: 1, accuracy: 0.92, recoil: 4 },
+        glock: { damage: 28, fireRate: 0.15, clipSize: 20, reserve: 120, reloadTime: 2.2, price: 400, automatic: false, penetration: 1, accuracy: 0.9, recoil: 5, team: 't' },
+        usp: { damage: 34, fireRate: 0.15, clipSize: 12, reserve: 100, reloadTime: 2.7, price: 500, automatic: false, penetration: 1, accuracy: 0.92, recoil: 4, team: 'ct', silenced: true },
         p228: { damage: 32, fireRate: 0.15, clipSize: 13, reserve: 52, reloadTime: 2.7, price: 600, automatic: false, penetration: 1, accuracy: 0.9, recoil: 5 },
         deagle: { damage: 54, fireRate: 0.22, clipSize: 7, reserve: 35, reloadTime: 2.2, price: 650, automatic: false, penetration: 2, accuracy: 0.85, recoil: 12 },
-        fiveseven: { damage: 25, fireRate: 0.15, clipSize: 20, reserve: 100, reloadTime: 2.7, price: 750, automatic: false, penetration: 1, accuracy: 0.92, recoil: 3 },
-        elite: { damage: 36, fireRate: 0.12, clipSize: 30, reserve: 120, reloadTime: 4.5, price: 800, automatic: false, penetration: 1, accuracy: 0.88, recoil: 6 },
+        fiveseven: { damage: 25, fireRate: 0.15, clipSize: 20, reserve: 100, reloadTime: 2.7, price: 750, automatic: false, penetration: 1, accuracy: 0.92, recoil: 3, team: 'ct' },
+        elite: { damage: 36, fireRate: 0.12, clipSize: 30, reserve: 120, reloadTime: 4.5, price: 800, automatic: false, penetration: 1, accuracy: 0.88, recoil: 6, team: 't' },
         
         // SMGs
-        mac10: { damage: 29, fireRate: 0.075, clipSize: 30, reserve: 100, reloadTime: 3.1, price: 1400, automatic: true, penetration: 1, accuracy: 0.85, recoil: 7 },
+        mac10: { damage: 29, fireRate: 0.075, clipSize: 30, reserve: 100, reloadTime: 3.1, price: 1400, automatic: true, penetration: 1, accuracy: 0.85, recoil: 7, team: 't' },
+        tmp: { damage: 26, fireRate: 0.07, clipSize: 30, reserve: 120, reloadTime: 2.1, price: 1250, automatic: true, penetration: 1, accuracy: 0.87, recoil: 5, team: 'ct', silenced: true },
         mp5: { damage: 26, fireRate: 0.075, clipSize: 30, reserve: 120, reloadTime: 2.6, price: 1500, automatic: true, penetration: 1, accuracy: 0.88, recoil: 6 },
         ump45: { damage: 30, fireRate: 0.09, clipSize: 25, reserve: 100, reloadTime: 3.5, price: 1700, automatic: true, penetration: 1, accuracy: 0.87, recoil: 6 },
         p90: { damage: 26, fireRate: 0.066, clipSize: 50, reserve: 100, reloadTime: 3.3, price: 2350, automatic: true, penetration: 1, accuracy: 0.86, recoil: 7 },
         
+        // Shotguns
+        m3: { damage: 26, fireRate: 0.88, clipSize: 8, reserve: 32, reloadTime: 0.55, price: 1700, automatic: false, penetration: 1, accuracy: 0.7, recoil: 14, pellets: 9 },
+        xm1014: { damage: 22, fireRate: 0.25, clipSize: 7, reserve: 32, reloadTime: 0.45, price: 3000, automatic: true, penetration: 1, accuracy: 0.7, recoil: 12, pellets: 6 },
+        
         // Rifles
-        galil: { damage: 30, fireRate: 0.09, clipSize: 35, reserve: 90, reloadTime: 2.4, price: 2000, automatic: true, penetration: 2, accuracy: 0.88, recoil: 8 },
-        famas: { damage: 30, fireRate: 0.09, clipSize: 25, reserve: 90, reloadTime: 3.3, price: 2250, automatic: true, penetration: 2, accuracy: 0.9, recoil: 7 },
-        ak47: { damage: 36, fireRate: 0.1, clipSize: 30, reserve: 90, reloadTime: 2.5, price: 2500, automatic: true, penetration: 2, accuracy: 0.88, recoil: 10 },
-        m4a1: { damage: 33, fireRate: 0.09, clipSize: 30, reserve: 90, reloadTime: 3.0, price: 3100, automatic: true, penetration: 2, accuracy: 0.92, recoil: 8 },
-        aug: { damage: 32, fireRate: 0.09, clipSize: 30, reserve: 90, reloadTime: 3.8, price: 3500, automatic: true, penetration: 2, accuracy: 0.94, recoil: 6, scope: 2 },
-        sg552: { damage: 33, fireRate: 0.09, clipSize: 30, reserve: 90, reloadTime: 3.0, price: 3500, automatic: true, penetration: 2, accuracy: 0.93, recoil: 7, scope: 2 },
+        galil: { damage: 30, fireRate: 0.09, clipSize: 35, reserve: 90, reloadTime: 2.4, price: 2000, automatic: true, penetration: 2, accuracy: 0.88, recoil: 8, team: 't' },
+        famas: { damage: 30, fireRate: 0.09, clipSize: 25, reserve: 90, reloadTime: 3.3, price: 2250, automatic: true, penetration: 2, accuracy: 0.9, recoil: 7, team: 'ct' },
+        ak47: { damage: 36, fireRate: 0.1, clipSize: 30, reserve: 90, reloadTime: 2.5, price: 2500, automatic: true, penetration: 2, accuracy: 0.88, recoil: 10, team: 't' },
+        m4a1: { damage: 33, fireRate: 0.09, clipSize: 30, reserve: 90, reloadTime: 3.0, price: 3100, automatic: true, penetration: 2, accuracy: 0.92, recoil: 8, team: 'ct', silenced: true },
+        aug: { damage: 32, fireRate: 0.09, clipSize: 30, reserve: 90, reloadTime: 3.8, price: 3500, automatic: true, penetration: 2, accuracy: 0.94, recoil: 6, scope: 2, team: 'ct' },
+        sg552: { damage: 33, fireRate: 0.09, clipSize: 30, reserve: 90, reloadTime: 3.0, price: 3500, automatic: true, penetration: 2, accuracy: 0.93, recoil: 7, scope: 2, team: 't' },
         
         // Sniper Rifles
         scout: { damage: 75, fireRate: 1.25, clipSize: 10, reserve: 90, reloadTime: 2.0, price: 2750, automatic: false, penetration: 3, accuracy: 0.98, recoil: 15, scope: 4 },
         awp: { damage: 115, fireRate: 1.45, clipSize: 10, reserve: 30, reloadTime: 3.6, price: 4750, automatic: false, penetration: 3, accuracy: 0.99, recoil: 20, scope: 4 },
-        g3sg1: { damage: 80, fireRate: 0.25, clipSize: 20, reserve: 90, reloadTime: 4.7, price: 5000, automatic: true, penetration: 3, accuracy: 0.97, recoil: 12, scope: 4 },
-        sg550: { damage: 70, fireRate: 0.25, clipSize: 30, reserve: 90, reloadTime: 3.8, price: 4200, automatic: true, penetration: 3, accuracy: 0.97, recoil: 11, scope: 4 },
+        g3sg1: { damage: 80, fireRate: 0.25, clipSize: 20, reserve: 90, reloadTime: 4.7, price: 5000, automatic: true, penetration: 3, accuracy: 0.97, recoil: 12, scope: 4, team: 't' },
+        sg550: { damage: 70, fireRate: 0.25, clipSize: 30, reserve: 90, reloadTime: 3.8, price: 4200, automatic: true, penetration: 3, accuracy: 0.97, recoil: 11, scope: 4, team: 'ct' },
         
-        // Heavy
-        m3: { damage: 26, fireRate: 0.88, clipSize: 8, reserve: 32, reloadTime: 0.55, price: 1700, automatic: false, penetration: 1, accuracy: 0.7, recoil: 14, pellets: 9 },
-        xm1014: { damage: 22, fireRate: 0.25, clipSize: 7, reserve: 32, reloadTime: 0.45, price: 3000, automatic: true, penetration: 1, accuracy: 0.7, recoil: 12, pellets: 6 },
+        // Machine Gun
         m249: { damage: 32, fireRate: 0.08, clipSize: 100, reserve: 200, reloadTime: 5.7, price: 5750, automatic: true, penetration: 2, accuracy: 0.82, recoil: 11 }
+      };
+      
+      // Grenades
+      const GRENADES = {
+        hegrenade: { damage: 100, radius: 350, price: 300, maxCarry: 1, throwSpeed: 750, fuseTime: 1.5 },
+        flashbang: { duration: 2.0, radius: 1500, price: 200, maxCarry: 2, throwSpeed: 750, fuseTime: 1.5 },
+        smokegrenade: { duration: 15, radius: 150, price: 300, maxCarry: 1, throwSpeed: 750, fuseTime: 1.5 }
+      };
+      
+      // Equipment
+      const EQUIPMENT = {
+        kevlar: { price: 650, armor: 100, helmet: false, absorption: 0.7 },
+        kevlarhelmet: { price: 1000, armor: 100, helmet: true, absorption: 0.8 },
+        defusekit: { price: 200, defuseTime: 5, team: 'ct' },
+        nightvision: { price: 1250, enabled: false }
       };
       
       // Game state
@@ -1144,11 +1229,154 @@ class CS16View < Live::View
         gameState.buyMenuOpen = !gameState.buyMenuOpen;
         const menu = document.getElementById('buy-menu');
         menu.style.display = gameState.buyMenuOpen ? 'block' : 'none';
+        
+        if (gameState.buyMenuOpen) {
+          updateBuyMenuMoney();
+          setupBuyMenuHandlers();
+        }
       }
       
       function closeBuyMenu() {
         gameState.buyMenuOpen = false;
         document.getElementById('buy-menu').style.display = 'none';
+      }
+      
+      function updateBuyMenuMoney() {
+        const moneyDisplay = document.getElementById('buy-menu-money');
+        const player = gameState.players[gameState.localPlayerId];
+        if (moneyDisplay && player) {
+          moneyDisplay.textContent = player.money || 16000;
+        }
+      }
+      
+      function setupBuyMenuHandlers() {
+        // Weapon purchases
+        document.querySelectorAll('.weapon-item').forEach(item => {
+          item.onclick = function() {
+            const weaponId = this.dataset.weapon;
+            purchaseWeapon(weaponId);
+          };
+        });
+        
+        // Equipment purchases
+        document.querySelectorAll('.equipment-item').forEach(item => {
+          item.onclick = function() {
+            const itemId = this.dataset.item;
+            purchaseEquipment(itemId);
+          };
+        });
+      }
+      
+      function purchaseWeapon(weaponId) {
+        const player = gameState.players[gameState.localPlayerId];
+        if (!player) return;
+        
+        const weapon = WEAPONS[weaponId];
+        if (!weapon) return;
+        
+        // Check if player can afford it
+        if (player.money < weapon.price) {
+          showBuyError('Not enough money!');
+          return;
+        }
+        
+        // Check team restrictions
+        if (weapon.team && weapon.team !== player.team) {
+          showBuyError('Wrong team for this weapon!');
+          return;
+        }
+        
+        // Purchase the weapon
+        player.money -= weapon.price;
+        
+        // Determine weapon slot
+        if (['glock', 'usp', 'p228', 'deagle', 'fiveseven', 'elite'].includes(weaponId)) {
+          player.secondary_weapon = weaponId;
+          player.current_weapon = 'secondary';
+        } else if (weaponId === 'knife') {
+          // Knife is always available
+        } else {
+          player.primary_weapon = weaponId;
+          player.current_weapon = 'primary';
+        }
+        
+        // Reset ammo for new weapon
+        player.ammo = weapon.clipSize;
+        player.ammo_reserve = weapon.reserve;
+        
+        updateBuyMenuMoney();
+        updateHUD();
+        
+        // Auto-close buy menu after purchase
+        setTimeout(() => closeBuyMenu(), 500);
+      }
+      
+      function purchaseEquipment(itemId) {
+        const player = gameState.players[gameState.localPlayerId];
+        if (!player) return;
+        
+        if (itemId.includes('grenade')) {
+          const grenade = GRENADES[itemId];
+          if (!grenade) return;
+          
+          if (player.money < grenade.price) {
+            showBuyError('Not enough money!');
+            return;
+          }
+          
+          // Check grenade limits
+          player.grenades = player.grenades || {};
+          const currentCount = player.grenades[itemId] || 0;
+          if (currentCount >= grenade.maxCarry) {
+            showBuyError('Cannot carry more!');
+            return;
+          }
+          
+          player.money -= grenade.price;
+          player.grenades[itemId] = currentCount + 1;
+        } else {
+          const equipment = EQUIPMENT[itemId];
+          if (!equipment) return;
+          
+          if (player.money < equipment.price) {
+            showBuyError('Not enough money!');
+            return;
+          }
+          
+          // Check team restrictions
+          if (equipment.team && equipment.team !== player.team) {
+            showBuyError('Wrong team for this equipment!');
+            return;
+          }
+          
+          player.money -= equipment.price;
+          
+          // Apply equipment
+          if (itemId === 'kevlar') {
+            player.armor = 100;
+            player.helmet = false;
+          } else if (itemId === 'kevlarhelmet') {
+            player.armor = 100;
+            player.helmet = true;
+          } else if (itemId === 'defusekit') {
+            player.defuse_kit = true;
+          } else if (itemId === 'nightvision') {
+            player.nightvision = true;
+          }
+        }
+        
+        updateBuyMenuMoney();
+        updateHUD();
+      }
+      
+      function showBuyError(message) {
+        const menu = document.getElementById('buy-menu');
+        const error = document.createElement('div');
+        error.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,0,0,0.8); color: white; padding: 10px 20px; border-radius: 5px; font-size: 18px;';
+        error.textContent = message;
+        menu.appendChild(error);
+        
+        setTimeout(() => error.remove(), 1500);
       }
       
       function toggleScoreboard(show) {
@@ -1723,175 +1951,175 @@ class CS16View < Live::View
       // Start the game
       init();
     })();
-    JAVASCRIPT
-  end
-  
-  def start_game_loop
-    @async_task = Async do
-      while @game_running
-        sleep 1.0 / 20  # 20 FPS server update rate
-        
-        # Update game state
-        update_game_state
-        
-        # Broadcast to clients
-        broadcast_game_state
-      end
-    end
-  end
-  
-  def update_game_state
-    # Update round timer
-    if @game_state[:phase] == 'live'
-      @game_state[:round_time] -= 0.05
-      
-      if @game_state[:round_time] <= 0
-        end_round(@game_state[:bomb][:planted] ? 't' : 'ct')
-      end
-    elsif @game_state[:phase] == 'freeze'
-      @game_state[:freeze_time] -= 0.05
-      
-      if @game_state[:freeze_time] <= 0
-        @game_state[:phase] = 'live'
-      end
-    end
-    
-    # Update bomb timer
-    if @game_state[:bomb][:planted]
-      @game_state[:bomb][:time_left] -= 0.05
-      
-      if @game_state[:bomb][:time_left] <= 0
-        # Bomb explodes
-        end_round('t')
-      end
-    end
-    
-    # Update bot AI
-    update_bot_ai
-    
-    @game_state[:server_tick] += 1
-  end
-  
-  def update_bot_ai
-    @game_state[:players].each do |id, bot|
-      next if id == @player_id || !bot[:alive]
-      
-      # Simple movement AI
-      if rand < 0.05
-        bot[:x] += (rand - 0.5) * 20
-        bot[:y] += (rand - 0.5) * 20
-        
-        # Keep in bounds
-        bot[:x] = [[bot[:x], 50].max, 1230].min
-        bot[:y] = [[bot[:y], 50].max, 670].min
-      end
-      
-      # Update angle
-      bot[:angle] = (bot[:angle] + (rand - 0.5) * 0.2) % (Math::PI * 2)
-      
-      # Bot combat AI
-      if rand < 0.02
-        # Find nearest enemy
-        nearest_enemy = find_nearest_enemy(bot)
-        if nearest_enemy
-          # Aim at enemy
-          dx = nearest_enemy[:x] - bot[:x]
-          dy = nearest_enemy[:y] - bot[:y]
-          bot[:angle] = Math.atan2(dy, dx)
-          
-          # Shoot if close enough
-          distance = Math.sqrt(dx * dx + dy * dy)
-          if distance < 500 && rand < bot[:skill_level] * 0.1
-            # Bot shoots (would send to clients)
-          end
-        end
-      end
-      
-      # Bot bomb planting (T side)
-      if bot[:team] == 't' && bot[:bomb] && @game_state[:phase] == 'live' && !@game_state[:bomb][:planted]
-        @game_state[:bombSites].each do |site, data|
-          dist = Math.sqrt((bot[:x] - data[:x])**2 + (bot[:y] - data[:y])**2)
-          if dist < data[:radius] && rand < 0.01
-            @game_state[:bomb] = {
-              planted: true,
-              time_left: 35,
-              x: bot[:x],
-              y: bot[:y],
-              planter_id: id,
-              site: site
-            }
-            bot[:bomb] = false
-          end
-        end
-      end
-    end
-  end
-  
-  def find_nearest_enemy(bot)
-    nearest = nil
-    min_distance = Float::INFINITY
-    
-    @game_state[:players].each do |id, player|
-      next if player[:team] == bot[:team] || !player[:alive]
-      
-      distance = Math.sqrt((player[:x] - bot[:x])**2 + (player[:y] - bot[:y])**2)
-      if distance < min_distance
-        min_distance = distance
-        nearest = player
-      end
-    end
-    
-    nearest
-  end
-  
-  def end_round(winner)
-    if winner == 'ct'
-      @game_state[:ct_score] += 1
-    else
-      @game_state[:t_score] += 1
-    end
-    
-    # Check for match end
-    if @game_state[:ct_score] >= 16 || @game_state[:t_score] >= 16
-      @game_state[:phase] = 'ended'
-    else
-      # Reset for next round
-      @game_state[:round] += 1
-      @game_state[:phase] = 'freeze'
-      @game_state[:freeze_time] = 15
-      @game_state[:round_time] = 115
-      @game_state[:bomb] = {
-        planted: false,
-        time_left: 35,
-        x: nil,
-        y: nil,
-        planter_id: nil,
-        site: nil
-      }
-      
-      # Reset players
-      @game_state[:players].each do |id, player|
-        player[:health] = 100
-        player[:alive] = true
-        player[:x] = player[:team] == 'ct' ? 200 + rand(100) : 1080 - rand(100)
-        player[:y] = 300 + rand(200)
-      end
-    end
-  end
-  
-  def broadcast_game_state
-    # Send game state update via WebSocket
-    self.script(<<~JAVASCRIPT)
+				JAVASCRIPT
+	end
+		
+	def start_game_loop
+		@async_task = Async do
+			while @game_running
+				sleep 1.0 / 20  # 20 FPS server update rate
+								
+				# Update game state
+				update_game_state
+								
+				# Broadcast to clients
+				broadcast_game_state
+			end
+		end
+	end
+		
+	def update_game_state
+		# Update round timer
+		if @game_state[:phase] == "live"
+			@game_state[:round_time] -= 0.05
+						
+			if @game_state[:round_time] <= 0
+				end_round(@game_state[:bomb][:planted] ? "t" : "ct")
+			end
+		elsif @game_state[:phase] == "freeze"
+			@game_state[:freeze_time] -= 0.05
+						
+			if @game_state[:freeze_time] <= 0
+				@game_state[:phase] = "live"
+			end
+		end
+				
+		# Update bomb timer
+		if @game_state[:bomb][:planted]
+			@game_state[:bomb][:time_left] -= 0.05
+						
+			if @game_state[:bomb][:time_left] <= 0
+				# Bomb explodes
+				end_round("t")
+			end
+		end
+				
+		# Update bot AI
+		update_bot_ai
+				
+		@game_state[:server_tick] += 1
+	end
+		
+	def update_bot_ai
+		@game_state[:players].each do |id, bot|
+			next if id == @player_id || !bot[:alive]
+						
+			# Simple movement AI
+			if rand < 0.05
+				bot[:x] += (rand - 0.5) * 20
+				bot[:y] += (rand - 0.5) * 20
+								
+				# Keep in bounds
+				bot[:x] = [[bot[:x], 50].max, 1230].min
+				bot[:y] = [[bot[:y], 50].max, 670].min
+			end
+						
+			# Update angle
+			bot[:angle] = (bot[:angle] + (rand - 0.5) * 0.2) % (Math::PI * 2)
+						
+			# Bot combat AI
+			if rand < 0.02
+				# Find nearest enemy
+				nearest_enemy = find_nearest_enemy(bot)
+				if nearest_enemy
+					# Aim at enemy
+					dx = nearest_enemy[:x] - bot[:x]
+					dy = nearest_enemy[:y] - bot[:y]
+					bot[:angle] = Math.atan2(dy, dx)
+										
+					# Shoot if close enough
+					distance = Math.sqrt(dx * dx + dy * dy)
+					if distance < 500 && rand < bot[:skill_level] * 0.1
+						# Bot shoots (would send to clients)
+					end
+				end
+			end
+						
+			# Bot bomb planting (T side)
+			if bot[:team] == "t" && bot[:bomb] && @game_state[:phase] == "live" && !@game_state[:bomb][:planted]
+				@game_state[:bombSites].each do |site, data|
+					dist = Math.sqrt((bot[:x] - data[:x])**2 + (bot[:y] - data[:y])**2)
+					if dist < data[:radius] && rand < 0.01
+						@game_state[:bomb] = {
+														planted: true,
+														time_left: 35,
+														x: bot[:x],
+														y: bot[:y],
+														planter_id: id,
+														site: site
+												}
+						bot[:bomb] = false
+					end
+				end
+			end
+		end
+	end
+		
+	def find_nearest_enemy(bot)
+		nearest = nil
+		min_distance = Float::INFINITY
+				
+		@game_state[:players].each do |id, player|
+			next if player[:team] == bot[:team] || !player[:alive]
+						
+			distance = Math.sqrt((player[:x] - bot[:x])**2 + (player[:y] - bot[:y])**2)
+			if distance < min_distance
+				min_distance = distance
+				nearest = player
+			end
+		end
+				
+		nearest
+	end
+		
+	def end_round(winner)
+		if winner == "ct"
+			@game_state[:ct_score] += 1
+		else
+			@game_state[:t_score] += 1
+		end
+				
+		# Check for match end
+		if @game_state[:ct_score] >= 16 || @game_state[:t_score] >= 16
+			@game_state[:phase] = "ended"
+		else
+			# Reset for next round
+			@game_state[:round] += 1
+			@game_state[:phase] = "freeze"
+			@game_state[:freeze_time] = 15
+			@game_state[:round_time] = 115
+			@game_state[:bomb] = {
+								planted: false,
+								time_left: 35,
+								x: nil,
+								y: nil,
+								planter_id: nil,
+								site: nil
+						}
+						
+			# Reset players
+			@game_state[:players].each do |id, player|
+				player[:health] = 100
+				player[:alive] = true
+				player[:x] = player[:team] == "ct" ? 200 + rand(100) : 1080 - rand(100)
+				player[:y] = 300 + rand(200)
+			end
+		end
+	end
+		
+	def broadcast_game_state
+		# Send game state update via WebSocket
+		self.script(<<~JAVASCRIPT)
       if (window.updateGameState) {
         window.updateGameState(#{@game_state.to_json});
       }
-    JAVASCRIPT
-  end
-  
-  def close
-    @game_running = false
-    @async_task&.stop
-  end
+				JAVASCRIPT
+	end
+		
+	def close
+		@game_running = false
+		@async_task&.stop
+	end
 end
 
 Application = Lively::Application[CS16View]
