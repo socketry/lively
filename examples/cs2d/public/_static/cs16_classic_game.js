@@ -3,6 +3,96 @@
 
 console.log('CS 1.6 Classic: Initializing game with strict classic rules...');
 
+// DOM Resilience System for Lively Framework
+// Handles dynamic DOM updates and ensures Buy Menu works properly
+(function() {
+	// Monitor DOM changes to reattach events when needed
+	let domObserver = null;
+	let lastBuyMenuState = 'none';
+	
+	// Setup DOM observer for Lively updates
+	function setupDOMMonitor() {
+		if (domObserver) {
+			domObserver.disconnect();
+		}
+		
+		domObserver = new MutationObserver(function(mutations) {
+			// Check if buy menu was added/removed
+			const buyMenu = document.getElementById('buy-menu');
+			if (buyMenu) {
+				// Preserve buy menu state across DOM updates
+				if (lastBuyMenuState === 'block' && buyMenu.style.display === 'none') {
+					console.log('DOM Update detected: Restoring buy menu state');
+					buyMenu.style.display = 'block';
+					buyMenu.style.pointerEvents = 'auto';
+					buyMenu.style.zIndex = '9999';
+				}
+				
+				// Reattach event listeners if needed
+				ensureBuyMenuEvents();
+			}
+		});
+		
+		// Start observing when DOM is ready
+		if (document.body) {
+			domObserver.observe(document.body, {
+				childList: true,
+				subtree: true,
+				attributes: true,
+				attributeFilter: ['style', 'class']
+			});
+			console.log('DOM Monitor: Active and watching for changes');
+		} else {
+			// Retry when body is available
+			setTimeout(setupDOMMonitor, 100);
+		}
+	}
+	
+	// Ensure buy menu events are attached
+	function ensureBuyMenuEvents() {
+		// Use event delegation on document level to survive DOM updates
+		if (!window._buyMenuEventsAttached) {
+			document.addEventListener('click', function(e) {
+				// Handle buy button clicks
+				if (e.target.id === 'buy-button' || e.target.closest('#buy-button')) {
+					e.preventDefault();
+					e.stopPropagation();
+					window.toggleBuyMenu();
+				}
+				
+				// Handle weapon purchase clicks
+				if (e.target.classList.contains('weapon-item') || e.target.closest('.weapon-item')) {
+					const item = e.target.closest('.weapon-item');
+					const weaponId = item.getAttribute('data-weapon');
+					if (weaponId && typeof purchaseWeapon === 'function') {
+						purchaseWeapon(weaponId);
+					}
+				}
+			}, true);
+			
+			window._buyMenuEventsAttached = true;
+			console.log('Buy Menu: Event delegation attached');
+		}
+	}
+	
+	// Track buy menu state
+	window.addEventListener('click', function() {
+		const buyMenu = document.getElementById('buy-menu');
+		if (buyMenu) {
+			lastBuyMenuState = window.getComputedStyle(buyMenu).display;
+		}
+	});
+	
+	// Initialize DOM monitor
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', setupDOMMonitor);
+	} else {
+		setupDOMMonitor();
+	}
+	
+	console.log('DOM Resilience System: Initialized for Lively Framework');
+})();
+
 // Classic CS 1.6 Configuration
 const CLASSIC_CONFIG = {
 	// Timing
@@ -112,6 +202,8 @@ let minimapCtx = null;
 
 // Initialize game function - called from Ruby with player ID
 function initializeGame(localPlayerId) {
+	console.log('CS 1.6 Classic: Starting initialization with player ID:', localPlayerId);
+	
 	// Initialize game state
 	gameState = {
 		localPlayerId: localPlayerId,
@@ -136,6 +228,8 @@ function initializeGame(localPlayerId) {
 		chatMessages: [],
 		lastUpdate: Date.now()
 	};
+	
+	console.log('CS 1.6 Classic: Game state initialized');
 	
 	// Initialize local player immediately to prevent null reference errors
 	gameState.players[gameState.localPlayerId] = {
@@ -162,39 +256,118 @@ function initializeGame(localPlayerId) {
 	
 	// Get canvas and context
 	canvas = document.getElementById('game-canvas');
-	ctx = canvas ? canvas.getContext('2d') : null;
-	minimapCanvas = document.getElementById('minimap');
-	minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
-	
-	if (!ctx) {
-		console.error('CS 1.6 Classic: Failed to get canvas context');
+	if (!canvas) {
+		console.error('CS 1.6 Classic: Canvas element not found!');
 		return;
 	}
 	
+	ctx = canvas.getContext('2d');
+	if (!ctx) {
+		console.error('CS 1.6 Classic: Failed to get canvas 2D context');
+		return;
+	}
+	
+	console.log('CS 1.6 Classic: Canvas initialized successfully', canvas.width, 'x', canvas.height);
+	
+	minimapCanvas = document.getElementById('minimap');
+	minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
+	
+	// Prevent canvas from blocking keyboard events
+	canvas.addEventListener('click', (e) => {
+		// Don't focus canvas when clicked
+		e.preventDefault();
+		// Keep focus on document for keyboard events
+		canvas.blur();
+	});
+	
 	// Initialize bot players for classic 5v5 gameplay
-	initializeBotPlayers();
+	try {
+		initializeBotPlayers();
+		console.log('CS 1.6 Classic: Bot players initialized');
+	} catch (error) {
+		console.error('CS 1.6 Classic: Error initializing bots:', error);
+	}
 	
 	// Initialize input handlers
-	initializeInputHandlers();
+	try {
+		initializeInputHandlers();
+		console.log('CS 1.6 Classic: Input handlers initialized');
+	} catch (error) {
+		console.error('CS 1.6 Classic: Error initializing input:', error);
+	}
 	
 	// Initialize shop system after page load
 	setTimeout(() => {
-		initializeShopSystem();
-		updateMoneyDisplay();
-	}, 1000);
-	
-	// Hide loading screen after a delay
-	setTimeout(() => {
-		const loadingScreen = document.getElementById('loading-screen');
-		if (loadingScreen) {
-			loadingScreen.style.display = 'none';
+		try {
+			// Ensure buy menu exists and is properly initialized
+			const buyMenu = document.getElementById('buy-menu');
+			if (buyMenu) {
+				console.log('Buy menu found during initialization');
+				// Ensure it starts hidden but is ready to be shown
+				buyMenu.style.display = 'none';
+				buyMenu.style.pointerEvents = 'auto';
+				buyMenu.style.zIndex = '1000';
+			} else {
+				console.error('Buy menu not found during initialization!');
+			}
+			
+			initializeShopSystem();
+			updateMoneyDisplay();
+		} catch (error) {
+			console.error('CS 1.6 Classic: Error initializing shop:', error);
 		}
-		console.log('CS 1.6 Classic: Game ready with classic rules!');
-	}, 2000);
+	}, 100);
 	
-	// Start the game loop
-	console.log('CS 1.6 Classic: Starting game loop with classic competitive rules...');
-	gameLoop();
+	// Hide loading screen immediately
+	const loadingScreen = document.getElementById('loading-screen');
+	if (loadingScreen) {
+		loadingScreen.style.display = 'none';
+		console.log('CS 1.6 Classic: Loading screen hidden');
+	} else {
+		console.log('CS 1.6 Classic: No loading screen found');
+	}
+	console.log('CS 1.6 Classic: Game ready with classic rules!');
+	
+	// Start a simple test render instead of full game loop
+	console.log('CS 1.6 Classic: Starting test render...');
+	testRender();
+}
+
+// Simple test render to verify canvas works
+function testRender() {
+	console.log('CS 1.6 Classic: Test render starting...');
+	
+	if (!ctx) {
+		console.error('CS 1.6 Classic: No context for test render');
+		return;
+	}
+	
+	// Clear canvas with dark gray
+	ctx.fillStyle = '#2a2a2a';
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	
+	// Draw test text
+	ctx.fillStyle = '#ffffff';
+	ctx.font = '48px Arial';
+	ctx.textAlign = 'center';
+	ctx.fillText('CS 1.6 Classic', canvas.width / 2, canvas.height / 2 - 50);
+	
+	// Draw buy button reminder
+	ctx.font = '24px Arial';
+	ctx.fillStyle = '#ff6b00';
+	ctx.fillText('Press B for Buy Menu', canvas.width / 2, canvas.height / 2);
+	
+	// Draw money
+	ctx.fillStyle = '#00ff00';
+	ctx.fillText('Money: $800', canvas.width / 2, canvas.height / 2 + 50);
+	
+	console.log('CS 1.6 Classic: Test render complete!');
+	
+	// Start the actual game loop after a delay
+	setTimeout(() => {
+		console.log('CS 1.6 Classic: Starting real game loop...');
+		gameLoop();
+	}, 1000);
 }
 
 // Initialize all bot players
@@ -264,17 +437,22 @@ function initializeBotPlayers() {
 
 // Classic CS 1.6 game loop
 function gameLoop() {
-	const now = Date.now();
-	const deltaTime = (now - gameState.lastUpdate) / 1000;
-	gameState.lastUpdate = now;
-	
-	// Update game state
-	updateGame(deltaTime);
-	
-	// Render game
-	render();
-	
-	requestAnimationFrame(gameLoop);
+	try {
+		const now = Date.now();
+		const deltaTime = (now - gameState.lastUpdate) / 1000;
+		gameState.lastUpdate = now;
+		
+		// Update game state
+		updateGame(deltaTime);
+		
+		// Render game
+		render();
+		
+		requestAnimationFrame(gameLoop);
+	} catch (error) {
+		console.error('CS 1.6 Classic: Error in game loop:', error);
+		console.error('Stack trace:', error.stack);
+	}
 }
 
 function updateGame(deltaTime) {
@@ -1592,14 +1770,38 @@ function endGame() {
 
 // Input handlers - use document for reliable keyboard events
 function initializeInputHandlers() {
-	document.addEventListener('keydown', (e) => {
+	console.log('Initializing input handlers...');
+	
+	// Try multiple levels of event capture to ensure we get keyboard events
+	const captureKeyDown = (e) => {
+		console.log('Key pressed:', e.code, 'Key:', e.key);
 		input.keys[e.code] = true;
 		
-		// Buy menu
-		if (e.code === 'KeyB') {
+		// Buy menu (both B and b)
+		if (e.code === 'KeyB' || e.key.toLowerCase() === 'b') {
+			console.log('B key pressed - attempting to toggle buy menu');
 			const buyMenu = document.getElementById('buy-menu');
 			if (buyMenu) {
-				buyMenu.style.display = buyMenu.style.display === 'none' ? 'block' : 'none';
+				const currentDisplay = window.getComputedStyle(buyMenu).display;
+				console.log('Current buy menu display:', currentDisplay);
+				buyMenu.style.display = currentDisplay === 'none' ? 'block' : 'none';
+				console.log('New buy menu display:', buyMenu.style.display);
+				
+				// Update money display when opening
+				if (buyMenu.style.display === 'block') {
+					updateMoneyDisplay();
+				}
+			} else {
+				console.error('Buy menu element not found!');
+			}
+		}
+		
+		// ESC to close menus
+		if (e.code === 'Escape') {
+			const buyMenu = document.getElementById('buy-menu');
+			if (buyMenu && buyMenu.style.display === 'block') {
+				buyMenu.style.display = 'none';
+				console.log('Buy menu closed with ESC');
 			}
 		}
 		
@@ -1611,7 +1813,11 @@ function initializeInputHandlers() {
 				scoreboard.style.display = 'block';
 			}
 		}
-	});
+	};
+	
+	// Attach to multiple targets to ensure we capture events
+	document.addEventListener('keydown', captureKeyDown, true);
+	window.addEventListener('keydown', captureKeyDown, true);
 	
 	document.addEventListener('keyup', (e) => {
 		input.keys[e.code] = false;
@@ -1668,6 +1874,17 @@ function initializeShopSystem() {
 				purchaseWeapon(weaponId);
 			}
 		});
+		
+		// Add hover effects
+		item.addEventListener('mouseenter', (e) => {
+			item.style.border = '1px solid #ff6b00';
+			item.style.backgroundColor = 'rgba(255, 107, 0, 0.1)';
+		});
+		
+		item.addEventListener('mouseleave', (e) => {
+			item.style.border = '1px solid transparent';
+			item.style.backgroundColor = 'transparent';
+		});
 	});
 	
 	// Add click listeners to equipment items
@@ -1679,6 +1896,17 @@ function initializeShopSystem() {
 				purchaseWeapon(equipmentId);
 			}
 		});
+		
+		// Add hover effects
+		item.addEventListener('mouseenter', (e) => {
+			item.style.border = '1px solid #ff6b00';
+			item.style.backgroundColor = 'rgba(255, 107, 0, 0.1)';
+		});
+		
+		item.addEventListener('mouseleave', (e) => {
+			item.style.border = '1px solid transparent';
+			item.style.backgroundColor = 'transparent';
+		});
 	});
 	
 	// Add click listeners to grenade items
@@ -1689,6 +1917,17 @@ function initializeShopSystem() {
 			if (grenadeId) {
 				purchaseWeapon(grenadeId);
 			}
+		});
+		
+		// Add hover effects
+		item.addEventListener('mouseenter', (e) => {
+			item.style.border = '1px solid #ff6b00';
+			item.style.backgroundColor = 'rgba(255, 107, 0, 0.1)';
+		});
+		
+		item.addEventListener('mouseleave', (e) => {
+			item.style.border = '1px solid transparent';
+			item.style.backgroundColor = 'transparent';
 		});
 	});
 	
@@ -1720,20 +1959,26 @@ function purchaseWeapon(weaponId) {
 	
 	// Check team restrictions
 	if (weaponData.team && weaponData.team !== player.team) {
-		console.log(`${weaponData.name} is not available for ${player.team.toUpperCase()}`);
+		const message = `${weaponData.name} is not available for ${player.team.toUpperCase()}`;
+		console.log(message);
+		showPurchaseError(message);
 		return;
 	}
 	
 	// Check if player has enough money
 	if (player.money < weaponData.price) {
-		console.log(`Not enough money for ${weaponData.name}. Need $${weaponData.price}, have $${player.money}`);
+		const message = `Not enough money for ${weaponData.name}. Need $${weaponData.price}, have $${player.money}`;
+		console.log(message);
+		showPurchaseError(message);
 		return;
 	}
 	
 	// Check buy time
 	const buyTimeLeft = CLASSIC_CONFIG.BUY_TIME - (CLASSIC_CONFIG.ROUND_TIME - gameState.roundTime);
 	if (buyTimeLeft <= 0 && gameState.phase === 'playing') {
-		console.log('Buy time expired');
+		const message = 'Buy time expired';
+		console.log(message);
+		showPurchaseError(message);
 		return;
 	}
 	
@@ -1743,7 +1988,10 @@ function purchaseWeapon(weaponId) {
 	// Assign weapon based on type
 	if (['usp', 'glock', 'p228', 'deagle', 'fiveseven', 'elite'].includes(weaponId)) {
 		player.secondaryWeapon = weaponId;
-		player.currentWeapon = 'secondary';
+		// Only switch to secondary if player doesn't have a primary weapon
+		if (!player.primaryWeapon) {
+			player.currentWeapon = 'secondary';
+		}
 	} else if (['kevlar', 'kevlar_helmet'].includes(weaponId)) {
 		if (weaponId === 'kevlar') {
 			player.armor = 100;
@@ -1768,6 +2016,10 @@ function purchaseWeapon(weaponId) {
 	
 	console.log(`Purchased ${weaponData.name} for $${weaponData.price}`);
 	updateMoneyDisplay();
+	updateHudMoney();
+	
+	// Provide visual feedback
+	showPurchaseNotification(`${weaponData.name} purchased for $${weaponData.price}`);
 }
 
 function getWeaponData(weaponId) {
@@ -1824,9 +2076,36 @@ function getWeaponData(weaponId) {
 }
 
 function handleBuyShortcut(keyNum) {
-	// This would handle numbered shortcuts for quick buying
-	// For now, just log the attempt
-	console.log(`Buy shortcut ${keyNum} pressed`);
+	const player = gameState.players[gameState.localPlayerId];
+	if (!player) return;
+	
+	// Define shortcut mappings based on current focus
+	// This is a simplified implementation - real CS 1.6 has context-sensitive shortcuts
+	const shortcuts = {
+		'1': 'usp', // Pistol slot 1 (CT default)
+		'2': 'p228', // Pistol slot 2  
+		'3': 'deagle', // Pistol slot 3
+		'4': 'm4a1', // Rifle slot 1 (CT)
+		'5': 'ak47', // Rifle slot 2 (T)
+		'6': 'awp', // Sniper
+		'7': 'kevlar', // Armor
+		'8': 'kevlar_helmet', // Armor + Helmet
+		'9': 'hegrenade' // HE Grenade
+	};
+	
+	// Adjust shortcuts based on team
+	if (player.team === 't') {
+		shortcuts['1'] = 'glock'; // T default pistol
+		shortcuts['4'] = 'ak47'; // T primary rifle
+		shortcuts['5'] = 'm4a1'; // Just in case
+	}
+	
+	const weaponId = shortcuts[keyNum];
+	if (weaponId) {
+		purchaseWeapon(weaponId);
+	} else {
+		console.log(`No weapon mapped to shortcut ${keyNum}`);
+	}
 }
 
 function updateMoneyDisplay() {
@@ -1843,6 +2122,82 @@ function updateMoneyDisplay() {
 	if (hudMoney) {
 		hudMoney.textContent = player.money.toString();
 	}
+}
+
+function updateHudMoney() {
+	const player = gameState.players[gameState.localPlayerId];
+	if (!player) return;
+	
+	const hudMoney = document.getElementById('money-display');
+	if (hudMoney) {
+		hudMoney.textContent = player.money.toString();
+	}
+}
+
+function showPurchaseNotification(message) {
+	// Create or update notification element
+	let notification = document.getElementById('purchase-notification');
+	if (!notification) {
+		notification = document.createElement('div');
+		notification.id = 'purchase-notification';
+		notification.style.cssText = `
+			position: absolute;
+			top: 120px;
+			left: 50%;
+			transform: translateX(-50%);
+			background: rgba(0, 200, 0, 0.8);
+			color: white;
+			padding: 10px 20px;
+			border-radius: 5px;
+			font-size: 16px;
+			font-weight: bold;
+			z-index: 2000;
+			display: none;
+			text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+		`;
+		document.body.appendChild(notification);
+	}
+	
+	notification.textContent = message;
+	notification.style.display = 'block';
+	
+	// Hide after 2 seconds
+	setTimeout(() => {
+		notification.style.display = 'none';
+	}, 2000);
+}
+
+function showPurchaseError(message) {
+	// Create or update error notification element
+	let errorNotification = document.getElementById('purchase-error-notification');
+	if (!errorNotification) {
+		errorNotification = document.createElement('div');
+		errorNotification.id = 'purchase-error-notification';
+		errorNotification.style.cssText = `
+			position: absolute;
+			top: 120px;
+			left: 50%;
+			transform: translateX(-50%);
+			background: rgba(200, 0, 0, 0.8);
+			color: white;
+			padding: 10px 20px;
+			border-radius: 5px;
+			font-size: 16px;
+			font-weight: bold;
+			z-index: 2000;
+			display: none;
+			text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+		`;
+		document.body.appendChild(errorNotification);
+	}
+	
+	errorNotification.textContent = message;
+	errorNotification.style.display = 'block';
+	
+	// Hide after 3 seconds
+	setTimeout(() => {
+		errorNotification.style.display = 'none';
+	}, 3000);
 }
 
 function shoot() {
@@ -1862,9 +2217,124 @@ function shoot() {
 	});
 }
 
+// Global debug functions for buy menu - Enhanced for Lively Framework
+window.toggleBuyMenu = function() {
+	let buyMenu = document.getElementById('buy-menu');
+	
+	// Retry mechanism for dynamic DOM
+	if (!buyMenu) {
+		console.warn('Buy menu not found, attempting recovery...');
+		
+		// Wait for next animation frame and retry
+		requestAnimationFrame(() => {
+			buyMenu = document.getElementById('buy-menu');
+			if (buyMenu) {
+				console.log('Buy menu found after retry');
+				performToggle(buyMenu);
+			} else {
+				// Create buy menu dynamically if it doesn't exist
+				console.warn('Buy menu still not found, checking DOM state...');
+				console.log('Current DOM body children:', document.body.children.length);
+				console.log('All elements with buy in ID:', document.querySelectorAll('[id*="buy"]'));
+			}
+		});
+		return null;
+	}
+	
+	return performToggle(buyMenu);
+};
+
+function performToggle(buyMenu) {
+	// Ensure menu is properly styled even after DOM updates
+	const currentDisplay = window.getComputedStyle(buyMenu).display;
+	const newDisplay = currentDisplay === 'none' ? 'block' : 'none';
+	
+	// Force all necessary styles to ensure visibility
+	buyMenu.style.display = newDisplay;
+	buyMenu.style.pointerEvents = 'auto';
+	buyMenu.style.zIndex = '9999';  // Higher z-index to ensure it's on top
+	buyMenu.style.position = 'absolute';  // Ensure positioning is correct
+	
+	console.log('Buy menu toggled. New state:', newDisplay);
+	
+	if (newDisplay === 'block') {
+		// Ensure menu is centered
+		buyMenu.style.top = '50%';
+		buyMenu.style.left = '50%';
+		buyMenu.style.transform = 'translate(-50%, -50%)';
+		
+		// Update money display
+		if (typeof updateMoneyDisplay === 'function') {
+			updateMoneyDisplay();
+		}
+		
+		// Focus trap for better UX
+		buyMenu.focus();
+	}
+	
+	return newDisplay;
+}
+
+window.openBuyMenu = function() {
+	let buyMenu = document.getElementById('buy-menu');
+	
+	if (!buyMenu) {
+		console.warn('Buy menu not found for opening, retrying...');
+		requestAnimationFrame(() => {
+			buyMenu = document.getElementById('buy-menu');
+			if (buyMenu) {
+				showBuyMenu(buyMenu);
+			}
+		});
+		return false;
+	}
+	
+	return showBuyMenu(buyMenu);
+};
+
+function showBuyMenu(buyMenu) {
+	buyMenu.style.display = 'block';
+	buyMenu.style.pointerEvents = 'auto';
+	buyMenu.style.zIndex = '9999';
+	buyMenu.style.position = 'absolute';
+	buyMenu.style.top = '50%';
+	buyMenu.style.left = '50%';
+	buyMenu.style.transform = 'translate(-50%, -50%)';
+	
+	if (typeof updateMoneyDisplay === 'function') {
+		updateMoneyDisplay();
+	}
+	
+	console.log('Buy menu opened');
+	return true;
+}
+
+window.closeBuyMenu = function() {
+	let buyMenu = document.getElementById('buy-menu');
+	
+	if (!buyMenu) {
+		// Try again after a frame
+		requestAnimationFrame(() => {
+			buyMenu = document.getElementById('buy-menu');
+			if (buyMenu) {
+				buyMenu.style.display = 'none';
+				console.log('Buy menu closed (after retry)');
+			}
+		});
+		return false;
+	}
+	
+	buyMenu.style.display = 'none';
+	console.log('Buy menu closed');
+	return true;
+};
+
 // Export functions for Ruby integration
 window.CS16Classic = {
 	initializeGame,
 	gameState: () => gameState,
-	CLASSIC_CONFIG
+	CLASSIC_CONFIG,
+	toggleBuyMenu: window.toggleBuyMenu,
+	openBuyMenu: window.openBuyMenu,
+	closeBuyMenu: window.closeBuyMenu
 };

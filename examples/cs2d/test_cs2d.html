@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CS2D Test - Weapon Shop</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+        }
+        #game-canvas {
+            display: block;
+            margin: 0 auto;
+            cursor: crosshair;
+        }
+        #buy-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #ff6b00;
+            color: #fff;
+            border: 2px solid #fff;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 999;
+        }
+        #buy-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 900px;
+            height: 650px;
+            background: rgba(20,20,20,0.95);
+            border: 3px solid #ff6b00;
+            display: none;
+            padding: 20px;
+            color: #fff;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        #status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="game-canvas" width="1280" height="720"></canvas>
+    <button id="buy-button" onclick="toggleBuyMenu()">[B] Buy Menu</button>
+    
+    <div id="buy-menu">
+        <h2 style="text-align: center; color: #ff6b00;">Buy Menu - CS 1.6 Classic</h2>
+        <div style="text-align: center; color: #00ff00; font-size: 24px;">
+            Money: $<span id="money-display">800</span>
+        </div>
+        <div style="padding: 20px;">
+            <h3 style="color: #ffaa00;">Weapons</h3>
+            <div class="weapon-item" onclick="purchaseWeapon('ak47')" style="padding: 5px; cursor: pointer; border: 1px solid #444; margin: 5px 0;">
+                [1] AK-47 - $2500
+            </div>
+            <div class="weapon-item" onclick="purchaseWeapon('m4a1')" style="padding: 5px; cursor: pointer; border: 1px solid #444; margin: 5px 0;">
+                [2] M4A1 - $3100
+            </div>
+            <div class="weapon-item" onclick="purchaseWeapon('awp')" style="padding: 5px; cursor: pointer; border: 1px solid #444; margin: 5px 0;">
+                [3] AWP - $4750
+            </div>
+            <div class="weapon-item" onclick="purchaseWeapon('deagle')" style="padding: 5px; cursor: pointer; border: 1px solid #444; margin: 5px 0;">
+                [4] Desert Eagle - $650
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="toggleBuyMenu()" style="padding: 10px 20px; background: #ff0000; color: #fff; border: none; cursor: pointer;">
+                Close (ESC)
+            </button>
+        </div>
+    </div>
+    
+    <div id="status">Loading...</div>
+    
+    <script>
+        // Simple test without full game logic
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+        
+        let money = 800;
+        let buyMenuOpen = false;
+        
+        function toggleBuyMenu() {
+            const menu = document.getElementById('buy-menu');
+            buyMenuOpen = !buyMenuOpen;
+            menu.style.display = buyMenuOpen ? 'block' : 'none';
+            console.log('Buy menu toggled:', buyMenuOpen);
+            updateStatus('Buy menu ' + (buyMenuOpen ? 'opened' : 'closed'));
+        }
+        
+        function purchaseWeapon(weaponId) {
+            const prices = {
+                'ak47': 2500,
+                'm4a1': 3100,
+                'awp': 4750,
+                'deagle': 650
+            };
+            
+            const price = prices[weaponId];
+            if (money >= price) {
+                money -= price;
+                document.getElementById('money-display').textContent = money;
+                updateStatus(`Purchased ${weaponId.toUpperCase()} for $${price}`);
+                console.log(`Purchased ${weaponId} for $${price}. Money left: $${money}`);
+            } else {
+                updateStatus(`Not enough money for ${weaponId.toUpperCase()}`);
+                console.log(`Not enough money for ${weaponId}`);
+            }
+        }
+        
+        function updateStatus(message) {
+            statusDiv.textContent = message;
+            setTimeout(() => {
+                statusDiv.textContent = 'Ready';
+            }, 3000);
+        }
+        
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw title
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('CS2D - Weapon Shop Test', canvas.width / 2, 100);
+            
+            // Draw instructions
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#ff6b00';
+            ctx.fillText('Click [B] Buy Menu button or press B key', canvas.width / 2, 200);
+            
+            // Draw money
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '32px Arial';
+            ctx.fillText(`Money: $${money}`, canvas.width / 2, 300);
+            
+            // Draw buy menu status
+            ctx.fillStyle = '#ffaa00';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Buy Menu: ${buyMenuOpen ? 'OPEN' : 'CLOSED'}`, canvas.width / 2, 400);
+        }
+        
+        // Keyboard handler
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'b') {
+                toggleBuyMenu();
+            } else if (e.key === 'Escape' && buyMenuOpen) {
+                toggleBuyMenu();
+            }
+        });
+        
+        // Initial render
+        render();
+        updateStatus('Ready');
+        
+        // Update render when menu changes
+        setInterval(render, 100);
+        
+        console.log('CS2D Weapon Shop Test loaded successfully!');
+    </script>
+</body>
+</html>
