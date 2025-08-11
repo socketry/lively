@@ -1,0 +1,103 @@
+/* Pacman Game Styles */
+
+body {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: 100vh;
+	margin: 0;
+	background: #1a1a1a;
+	color: white;
+	font-family: 'Courier New', monospace;
+}
+
+.game-board {
+	position: relative;
+	background-color: #000;
+	border: 3px solid #00f;
+	margin: 0 auto;
+}
+
+.game-cell {
+	position: absolute;
+	width: 3rem;
+	height: 3rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 2rem;
+}
+
+.wall {
+	background-color: #00f;
+}
+
+.dot {
+	background-color: #000;
+	animation: dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+	0%, 100% { opacity: 0.8; }
+	50% { opacity: 1; }
+}
+
+.cherry {
+	background-color: #000;
+	animation: cherry-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes cherry-glow {
+	0% { transform: scale(1) rotate(0deg); }
+	100% { transform: scale(1.1) rotate(5deg); }
+}
+
+.ghost-home {
+	background-color: #333;
+}
+
+.pacman {
+	animation: pacman-chomp 0.4s ease-in-out infinite alternate;
+	transition: left 0.2s linear, top 0.2s linear;
+	z-index: 10;
+}
+
+@keyframes pacman-chomp {
+	0% { transform: scale(1); }
+	100% { transform: scale(0.9); }
+}
+
+.ghost {
+	animation: ghost-float 1s ease-in-out infinite alternate;
+	transition: left 0.2s linear, top 0.2s linear;
+	z-index: 9;
+}
+
+@keyframes ghost-float {
+	0% { transform: translateY(0rem) rotate(-2deg); }
+	100% { transform: translateY(-0.4rem) rotate(2deg); }
+}
+
+.frightened-ghost {
+	animation: frightened-shake 0.15s linear infinite;
+	transition: left 0.2s linear, top 0.2s linear;
+	z-index: 9;
+}
+
+@keyframes frightened-shake {
+	0%, 100% { transform: translateX(0rem) scale(1); }
+	25% { transform: translateX(-0.25rem) scale(0.95); }
+	50% { transform: translateX(0rem) scale(1.05); }
+	75% { transform: translateX(0.25rem) scale(0.95); }
+}
+
+.eaten-ghost {
+	animation: eaten-float 0.8s ease-in-out infinite alternate;
+	transition: left 0.1s linear, top 0.1s linear;
+	z-index: 8;
+}
+
+@keyframes eaten-float {
+	0% { transform: translateY(0rem) scale(1); }
+	100% { transform: translateY(-0.25rem) scale(1.1); }
+}
