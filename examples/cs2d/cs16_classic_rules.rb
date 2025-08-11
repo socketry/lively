@@ -670,6 +670,27 @@ class CS16ClassicView < Live::View
 					lastUpdate: Date.now()
 				};
 				
+				// Initialize local player immediately to prevent null reference errors
+				gameState.players[gameState.localPlayerId] = {
+					id: gameState.localPlayerId,
+					name: 'You',
+					team: 'ct',
+					x: 200,
+					y: 360,
+					angle: 0,
+					health: 100,
+					armor: 0,
+					alive: true,
+					money: 800,
+					currentWeapon: 'usp',
+					grenades: { he: 0, flash: 2, smoke: 1 },
+					hasDefuseKit: false,
+					kills: 0,
+					deaths: 0,
+					assists: 0,
+					score: 0
+				};
+				
 				// Input state
 				const input = {
 					keys: {},
@@ -747,6 +768,9 @@ class CS16ClassicView < Live::View
 					
 					// Update player movement
 					updatePlayerMovement(deltaTime);
+					
+					// Update bot AI
+					updateBotAI(deltaTime);
 					
 					// Update bullets
 					updateBullets(deltaTime);
@@ -969,35 +993,112 @@ class CS16ClassicView < Live::View
 				}
 				
 				function renderCrosshair() {
+					const player = gameState.players[gameState.localPlayerId];
+					if (!player || !player.alive) return;
+					
 					const centerX = canvas.width / 2;
 					const centerY = canvas.height / 2;
 					
+					// Dynamic crosshair based on CS 1.6 mechanics
+					let gap = 5;
+					let length = 10;
+					
+					// Expand crosshair based on movement and weapon
+					const isMoving = input.keys['KeyW'] || input.keys['KeyA'] || 
+									input.keys['KeyS'] || input.keys['KeyD'];
+					const isCrouching = input.keys['ControlLeft'] || input.keys['ControlRight'];
+					const isWalking = input.keys['ShiftLeft'] || input.keys['ShiftRight'];
+					
+					// Base crosshair expansion
+					let expansion = 0;
+					
+					if (isMoving) {
+						expansion += isCrouching ? 2 : isWalking ? 4 : 8;
+					}
+					
+					// Weapon-specific expansion
+					if (player.currentWeapon === 'primary') {
+						const primaryWeapon = player.primaryWeapon;
+						if (['ak47', 'm4a1'].includes(primaryWeapon)) {
+							expansion += isMoving ? 6 : 2;
+						} else if (['awp', 'scout'].includes(primaryWeapon)) {
+							expansion += isMoving ? 3 : 1;
+						}
+					}
+					
+					// Apply expansion
+					gap += expansion;
+					length = Math.max(8, 15 - expansion * 0.3);
+					
+					// Crosshair color - green for normal, red when aiming at enemy
 					ctx.strokeStyle = '#00ff00';
 					ctx.lineWidth = 2;
 					
-					// Classic static crosshair
-					const gap = 5;
-					const length = 10;
+					// Add slight transparency for better visibility
+					ctx.globalAlpha = 0.9;
+					
+					// Draw crosshair with classic CS 1.6 style
+					ctx.beginPath();
 					
 					// Horizontal lines
-					ctx.beginPath();
 					ctx.moveTo(centerX - gap - length, centerY);
 					ctx.lineTo(centerX - gap, centerY);
 					ctx.moveTo(centerX + gap, centerY);
 					ctx.lineTo(centerX + gap + length, centerY);
-					ctx.stroke();
 					
-					// Vertical lines
-					ctx.beginPath();
+					// Vertical lines  
 					ctx.moveTo(centerX, centerY - gap - length);
 					ctx.lineTo(centerX, centerY - gap);
 					ctx.moveTo(centerX, centerY + gap);
 					ctx.lineTo(centerX, centerY + gap + length);
+					
 					ctx.stroke();
 					
-					// Center dot
-					ctx.fillStyle = '#00ff00';
-					ctx.fillRect(centerX - 1, centerY - 1, 2, 2);
+					// Center dot (optional - classic CS had setting for this)
+					if (true) { // Could be made configurable
+						ctx.fillStyle = '#00ff00';
+						ctx.globalAlpha = 0.7;
+						ctx.fillRect(centerX - 1, centerY - 1, 2, 2);
+					}
+					
+					// Reset alpha
+					ctx.globalAlpha = 1.0;
+					
+					// Add scope overlay for sniper rifles
+					if (player.currentWeapon === 'primary' && 
+						['awp', 'scout', 'g3sg1', 'sg550'].includes(player.primaryWeapon) &&
+						input.mouse.down) {
+						renderScopeOverlay(centerX, centerY);
+					}
+				}
+				
+				function renderScopeOverlay(centerX, centerY) {
+					// Simple scope overlay for sniper rifles
+					ctx.strokeStyle = '#ffffff';
+					ctx.lineWidth = 2;
+					ctx.globalAlpha = 0.8;
+					
+					// Scope circle
+					ctx.beginPath();
+					ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+					ctx.stroke();
+					
+					// Scope crosshairs
+					ctx.beginPath();
+					ctx.moveTo(centerX - 80, centerY);
+					ctx.lineTo(centerX + 80, centerY);
+					ctx.moveTo(centerX, centerY - 80);
+					ctx.lineTo(centerX, centerY + 80);
+					ctx.stroke();
+					
+					// Darken areas outside scope
+					ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+					ctx.fillRect(0, 0, canvas.width, centerY - 80);
+					ctx.fillRect(0, centerY + 80, canvas.width, canvas.height - centerY - 80);
+					ctx.fillRect(0, centerY - 80, centerX - 80, 160);
+					ctx.fillRect(centerX + 80, centerY - 80, canvas.width - centerX - 80, 160);
+					
+					ctx.globalAlpha = 1.0;
 				}
 				
 				function renderMinimap() {
@@ -1166,6 +1267,294 @@ class CS16ClassicView < Live::View
 					// Clamp viewport to map bounds
 					gameState.viewportX = Math.max(0, Math.min(CLASSIC_CONFIG.MAP_WIDTH - canvas.width, gameState.viewportX));
 					gameState.viewportY = Math.max(0, Math.min(CLASSIC_CONFIG.MAP_HEIGHT - canvas.height, gameState.viewportY));
+				}
+				
+				// Bot AI System
+				function updateBotAI(deltaTime) {
+					for (const player of Object.values(gameState.players)) {
+						if (!player.id.includes('bot_') || !player.alive) continue;
+						
+						updateBotBehavior(player, deltaTime);
+					}
+				}
+				
+				function updateBotBehavior(bot, deltaTime) {
+					// Initialize bot AI state if not exists
+					if (!bot.ai) {
+						bot.ai = {
+							state: 'patrol', // patrol, combat, rush_bombsite, defuse_bomb, plant_bomb
+							target: null,
+							lastSeen: null,
+							patrolIndex: 0,
+							stateTimer: 0,
+							rushTarget: bot.team === 't' ? getBombSite('A') : null,
+							combatRange: 300,
+							patrolSpeed: 60,
+							combatSpeed: 100
+						};
+						
+						// Set patrol points based on team and spawn
+						if (bot.team === 'ct') {
+							bot.ai.patrolPoints = [
+								{ x: 200, y: 360 }, // CT spawn
+								{ x: 400, y: 300 }, // Mid approach
+								{ x: 640, y: 200 }, // Mid control
+								{ x: 500, y: 400 }, // Lower tunnels
+								{ x: 300, y: 200 }  // Upper area
+							];
+						} else {
+							bot.ai.patrolPoints = [
+								{ x: 1080, y: 360 }, // T spawn  
+								{ x: 900, y: 300 },  // T approach
+								{ x: 700, y: 250 },  // Mid approach
+								{ x: 800, y: 450 },  // Lower route
+								{ x: 950, y: 200 }   // Upper route
+							];
+						}
+					}
+					
+					bot.ai.stateTimer += deltaTime;
+					
+					// Check for nearby enemies
+					const nearbyEnemy = findNearbyEnemy(bot);
+					if (nearbyEnemy && bot.ai.state !== 'combat') {
+						bot.ai.state = 'combat';
+						bot.ai.target = nearbyEnemy;
+						bot.ai.stateTimer = 0;
+					}
+					
+					// Execute behavior based on current state
+					switch (bot.ai.state) {
+						case 'patrol':
+							updateBotPatrol(bot, deltaTime);
+							break;
+						case 'combat':
+							updateBotCombat(bot, deltaTime);
+							break;
+						case 'rush_bombsite':
+							updateBotRush(bot, deltaTime);
+							break;
+						case 'plant_bomb':
+							updateBotPlantBomb(bot, deltaTime);
+							break;
+						case 'defuse_bomb':
+							updateBotDefuseBomb(bot, deltaTime);
+							break;
+					}
+					
+					// Check for bomb objectives
+					if (gameState.bomb && gameState.bomb.planted && bot.team === 'ct' && bot.ai.state !== 'combat') {
+						bot.ai.state = 'defuse_bomb';
+						bot.ai.target = { x: gameState.bomb.x, y: gameState.bomb.y };
+					} else if (bot.team === 't' && bot.bomb && bot.ai.state !== 'combat') {
+						bot.ai.state = 'plant_bomb';
+						bot.ai.target = getBombSite('A'); // Prefer A site
+					}
+					
+					// Periodic state changes for variety
+					if (bot.ai.stateTimer > 10 && bot.ai.state === 'patrol' && Math.random() < 0.1) {
+						bot.ai.state = bot.team === 't' ? 'rush_bombsite' : 'patrol';
+						bot.ai.rushTarget = Math.random() < 0.6 ? getBombSite('A') : getBombSite('B');
+						bot.ai.stateTimer = 0;
+					}
+				}
+				
+				function updateBotPatrol(bot, deltaTime) {
+					if (!bot.ai.patrolPoints || bot.ai.patrolPoints.length === 0) return;
+					
+					const target = bot.ai.patrolPoints[bot.ai.patrolIndex];
+					const distance = Math.sqrt(
+						(target.x - bot.x) ** 2 + (target.y - bot.y) ** 2
+					);
+					
+					if (distance < 30) {
+						// Reached patrol point, move to next
+						bot.ai.patrolIndex = (bot.ai.patrolIndex + 1) % bot.ai.patrolPoints.length;
+					} else {
+						// Move towards patrol point
+						moveBotTowards(bot, target, bot.ai.patrolSpeed, deltaTime);
+					}
+				}
+				
+				function updateBotCombat(bot, deltaTime) {
+					if (!bot.ai.target || !bot.ai.target.alive) {
+						// Target lost, return to patrol
+						bot.ai.state = 'patrol';
+						bot.ai.target = null;
+						return;
+					}
+					
+					const distance = Math.sqrt(
+						(bot.ai.target.x - bot.x) ** 2 + (bot.ai.target.y - bot.y) ** 2
+					);
+					
+					if (distance > bot.ai.combatRange * 2) {
+						// Target too far, return to patrol
+						bot.ai.state = 'patrol';
+						bot.ai.target = null;
+						return;
+					}
+					
+					// Aim at target
+					bot.angle = Math.atan2(bot.ai.target.y - bot.y, bot.ai.target.x - bot.x);
+					
+					// Move to optimal range
+					if (distance > bot.ai.combatRange) {
+						moveBotTowards(bot, bot.ai.target, bot.ai.combatSpeed, deltaTime);
+					} else if (distance < bot.ai.combatRange * 0.6) {
+						// Too close, back away
+						const dx = bot.x - bot.ai.target.x;
+						const dy = bot.y - bot.ai.target.y;
+						const len = Math.sqrt(dx * dx + dy * dy);
+						if (len > 0) {
+							moveBotTowards(bot, { 
+								x: bot.x + (dx / len) * 50,
+								y: bot.y + (dy / len) * 50
+							}, bot.ai.combatSpeed * 0.7, deltaTime);
+						}
+					}
+					
+					// Shoot at target
+					if (distance <= bot.ai.combatRange && bot.ai.stateTimer > 0.5) {
+						botShoot(bot);
+						bot.ai.stateTimer = Math.random() * 0.3; // Random firing rate
+					}
+				}
+				
+				function updateBotRush(bot, deltaTime) {
+					if (!bot.ai.rushTarget) {
+						bot.ai.state = 'patrol';
+						return;
+					}
+					
+					const distance = Math.sqrt(
+						(bot.ai.rushTarget.x - bot.x) ** 2 + (bot.ai.rushTarget.y - bot.y) ** 2
+					);
+					
+					if (distance < 100) {
+						// Reached bombsite area
+						if (bot.team === 't' && bot.bomb) {
+							bot.ai.state = 'plant_bomb';
+						} else {
+							bot.ai.state = 'patrol';
+						}
+					} else {
+						// Rush towards bombsite
+						moveBotTowards(bot, bot.ai.rushTarget, bot.ai.combatSpeed * 1.2, deltaTime);
+					}
+				}
+				
+				function updateBotPlantBomb(bot, deltaTime) {
+					const bombSite = bot.ai.target || getBombSite('A');
+					const distance = Math.sqrt(
+						(bombSite.x - bot.x) ** 2 + (bombSite.y - bot.y) ** 2
+					);
+					
+					if (distance < 50) {
+						// In planting range
+						if (bot.bomb && bot.ai.stateTimer > 3) { // 3 second plant time
+							// Plant bomb (simplified)
+							gameState.bomb = {
+								planted: true,
+								x: bot.x,
+								y: bot.y,
+								timeLeft: CLASSIC_CONFIG.C4_TIMER,
+								planter: bot.id,
+								site: distance < 150 ? 'A' : 'B'
+							};
+							bot.bomb = false;
+							console.log(`${bot.name} planted the bomb!`);
+							bot.ai.state = 'patrol';
+						}
+					} else {
+						moveBotTowards(bot, bombSite, bot.ai.combatSpeed, deltaTime);
+					}
+				}
+				
+				function updateBotDefuseBomb(bot, deltaTime) {
+					if (!gameState.bomb || !gameState.bomb.planted) {
+						bot.ai.state = 'patrol';
+						return;
+					}
+					
+					const distance = Math.sqrt(
+						(gameState.bomb.x - bot.x) ** 2 + (gameState.bomb.y - bot.y) ** 2
+					);
+					
+					if (distance < 50) {
+						// In defusing range
+						const defuseTime = bot.defuseKit ? CLASSIC_CONFIG.DEFUSE_TIME_KIT : CLASSIC_CONFIG.DEFUSE_TIME;
+						if (bot.ai.stateTimer > defuseTime) {
+							// Defuse bomb (simplified)
+							gameState.bomb.planted = false;
+							console.log(`${bot.name} defused the bomb!`);
+							bot.ai.state = 'patrol';
+						}
+					} else {
+						moveBotTowards(bot, { x: gameState.bomb.x, y: gameState.bomb.y }, bot.ai.combatSpeed, deltaTime);
+					}
+				}
+				
+				function moveBotTowards(bot, target, speed, deltaTime) {
+					const dx = target.x - bot.x;
+					const dy = target.y - bot.y;
+					const distance = Math.sqrt(dx * dx + dy * dy);
+					
+					if (distance > 0) {
+						const moveX = (dx / distance) * speed * deltaTime;
+						const moveY = (dy / distance) * speed * deltaTime;
+						
+						// Check collisions before moving
+						const newX = bot.x + moveX;
+						const newY = bot.y + moveY;
+						
+						if (!checkWallCollision(newX, bot.y)) {
+							bot.x = newX;
+						}
+						if (!checkWallCollision(bot.x, newY)) {
+							bot.y = newY;
+						}
+						
+						// Keep bot in bounds
+						bot.x = Math.max(50, Math.min(CLASSIC_CONFIG.MAP_WIDTH - 50, bot.x));
+						bot.y = Math.max(50, Math.min(CLASSIC_CONFIG.MAP_HEIGHT - 50, bot.y));
+					}
+				}
+				
+				function findNearbyEnemy(bot) {
+					for (const player of Object.values(gameState.players)) {
+						if (player.team === bot.team || !player.alive) continue;
+						
+						const distance = Math.sqrt(
+							(player.x - bot.x) ** 2 + (player.y - bot.y) ** 2
+						);
+						
+						if (distance <= bot.ai.combatRange) {
+							return player;
+						}
+					}
+					return null;
+				}
+				
+				function botShoot(bot) {
+					const speed = 1000;
+					gameState.bullets.push({
+						x: bot.x,
+						y: bot.y,
+						vx: Math.cos(bot.angle) * speed,
+						vy: Math.sin(bot.angle) * speed,
+						damage: 30,
+						playerId: bot.id,
+						distance: 0
+					});
+				}
+				
+				function getBombSite(site) {
+					if (site === 'A') {
+						return { x: 250, y: 200 }; // A site location
+					} else {
+						return { x: 1000, y: 500 }; // B site location
+					}
 				}
 				
 				function updateBullets(deltaTime) {
@@ -1439,6 +1828,200 @@ class CS16ClassicView < Live::View
 					}
 				});
 				
+				// Shop System
+				function initializeShopSystem() {
+					// Add click listeners to weapon items
+					const weaponItems = document.querySelectorAll('.weapon-item');
+					weaponItems.forEach(item => {
+						item.addEventListener('click', (e) => {
+							const weaponId = item.getAttribute('data-weapon');
+							if (weaponId) {
+								purchaseWeapon(weaponId);
+							}
+						});
+					});
+					
+					// Add click listeners to equipment items
+					const equipmentItems = document.querySelectorAll('.equipment-item');
+					equipmentItems.forEach(item => {
+						item.addEventListener('click', (e) => {
+							const equipmentId = item.getAttribute('data-equipment');
+							if (equipmentId) {
+								purchaseWeapon(equipmentId);
+							}
+						});
+					});
+					
+					// Add click listeners to grenade items
+					const grenadeItems = document.querySelectorAll('.grenade-item');
+					grenadeItems.forEach(item => {
+						item.addEventListener('click', (e) => {
+							const grenadeId = item.getAttribute('data-grenade');
+							if (grenadeId) {
+								purchaseWeapon(grenadeId);
+							}
+						});
+					});
+					
+					// Add keyboard shortcuts for buying
+					document.addEventListener('keydown', (e) => {
+						const buyMenu = document.getElementById('buy-menu');
+						if (!buyMenu || buyMenu.style.display === 'none') return;
+						
+						// Handle number key shortcuts when buy menu is open
+						if (e.code >= 'Digit1' && e.code <= 'Digit9') {
+							const keyNum = e.code.replace('Digit', '');
+							handleBuyShortcut(keyNum);
+							e.preventDefault();
+						}
+					});
+					
+					console.log('Shop system initialized');
+				}
+				
+				function purchaseWeapon(weaponId) {
+					const player = gameState.players[gameState.localPlayerId];
+					if (!player || !player.alive) return;
+					
+					const weaponData = getWeaponData(weaponId);
+					if (!weaponData) {
+						console.log(`Unknown weapon: ${weaponId}`);
+						return;
+					}
+					
+					// Check team restrictions
+					if (weaponData.team && weaponData.team !== player.team) {
+						console.log(`${weaponData.name} is not available for ${player.team.toUpperCase()}`);
+						return;
+					}
+					
+					// Check if player has enough money
+					if (player.money < weaponData.price) {
+						console.log(`Not enough money for ${weaponData.name}. Need $${weaponData.price}, have $${player.money}`);
+						return;
+					}
+					
+					// Check buy time
+					const buyTimeLeft = CLASSIC_CONFIG.BUY_TIME - (CLASSIC_CONFIG.ROUND_TIME - gameState.roundTime);
+					if (buyTimeLeft <= 0 && gameState.phase === 'playing') {
+						console.log('Buy time expired');
+						return;
+					}
+					
+					// Process purchase
+					player.money -= weaponData.price;
+					
+					// Assign weapon based on type
+					if (['usp', 'glock', 'p228', 'deagle', 'fiveseven', 'elite'].includes(weaponId)) {
+						player.secondaryWeapon = weaponId;
+						player.currentWeapon = 'secondary';
+					} else if (['kevlar', 'kevlar_helmet'].includes(weaponId)) {
+						if (weaponId === 'kevlar') {
+							player.armor = 100;
+						} else if (weaponId === 'kevlar_helmet') {
+							player.armor = 100;
+							player.helmet = true;
+						}
+					} else if (weaponId === 'defuse') {
+						player.defuseKit = true;
+					} else if (['hegrenade', 'flashbang', 'smokegrenade'].includes(weaponId)) {
+						const grenadeType = weaponId.replace('grenade', '');
+						const maxGrenades = grenadeType === 'flashbang' ? 2 : 1;
+						
+						if (player.grenades[grenadeType] < maxGrenades) {
+							player.grenades[grenadeType]++;
+						}
+					} else {
+						// Primary weapons
+						player.primaryWeapon = weaponId;
+						player.currentWeapon = 'primary';
+					}
+					
+					console.log(`Purchased ${weaponData.name} for $${weaponData.price}`);
+					updateMoneyDisplay();
+				}
+				
+				function getWeaponData(weaponId) {
+					const weapons = {
+						// Pistols
+						usp: { name: 'USP', price: 0, team: 'ct' },
+						glock: { name: 'Glock-18', price: 0, team: 't' },
+						p228: { name: 'P228', price: 600 },
+						deagle: { name: 'Desert Eagle', price: 650 },
+						fiveseven: { name: 'Five-SeveN', price: 750, team: 'ct' },
+						elite: { name: 'Dual Berettas', price: 800 },
+						
+						// SMGs
+						mac10: { name: 'MAC-10', price: 1400, team: 't' },
+						tmp: { name: 'TMP', price: 1250, team: 'ct' },
+						mp5: { name: 'MP5-Navy', price: 1500 },
+						ump45: { name: 'UMP45', price: 1700 },
+						p90: { name: 'P90', price: 2350 },
+						
+						// Shotguns
+						m3: { name: 'M3 Super 90', price: 1700 },
+						xm1014: { name: 'XM1014', price: 3000 },
+						
+						// Rifles
+						galil: { name: 'Galil', price: 2000, team: 't' },
+						famas: { name: 'FAMAS', price: 2250, team: 'ct' },
+						ak47: { name: 'AK-47', price: 2500, team: 't' },
+						m4a1: { name: 'M4A1', price: 3100, team: 'ct' },
+						sg552: { name: 'SG 552', price: 3500, team: 't' },
+						aug: { name: 'AUG', price: 3500, team: 'ct' },
+						
+						// Snipers
+						scout: { name: 'Scout', price: 2750 },
+						awp: { name: 'AWP', price: 4750 },
+						g3sg1: { name: 'G3SG1', price: 5000, team: 't' },
+						sg550: { name: 'SG550', price: 4200, team: 'ct' },
+						
+						// Machine Gun
+						m249: { name: 'M249', price: 5750 },
+						
+						// Equipment
+						kevlar: { name: 'Kevlar Vest', price: 650 },
+						kevlar_helmet: { name: 'Kevlar + Helmet', price: 1000 },
+						defuse: { name: 'Defuse Kit', price: 200 },
+						nvg: { name: 'NightVision', price: 1250 },
+						
+						// Grenades
+						hegrenade: { name: 'HE Grenade', price: 300 },
+						flashbang: { name: 'Flashbang', price: 200 },
+						smokegrenade: { name: 'Smoke Grenade', price: 300 }
+					};
+					
+					return weapons[weaponId];
+				}
+				
+				function handleBuyShortcut(keyNum) {
+					// This would handle numbered shortcuts for quick buying
+					// For now, just log the attempt
+					console.log(`Buy shortcut ${keyNum} pressed`);
+				}
+				
+				function updateMoneyDisplay() {
+					const player = gameState.players[gameState.localPlayerId];
+					if (!player) return;
+					
+					const moneyDisplay = document.getElementById('buy-menu-money');
+					if (moneyDisplay) {
+						moneyDisplay.textContent = player.money.toString();
+					}
+					
+					// Update HUD money display as well
+					const hudMoney = document.getElementById('hud-money');
+					if (hudMoney) {
+						hudMoney.textContent = `$${player.money}`;
+					}
+				}
+				
+				// Initialize shop system after page load
+				setTimeout(() => {
+					initializeShopSystem();
+					updateMoneyDisplay();
+				}, 1000);
+				
 				function shoot() {
 					const player = gameState.players[gameState.localPlayerId];
 					if (!player || !player.alive) return;
@@ -1456,61 +2039,61 @@ class CS16ClassicView < Live::View
 					});
 				}
 				
-				// Initialize some test players
-				gameState.players[gameState.localPlayerId] = {
-					id: gameState.localPlayerId,
-					name: 'You',
-					team: 'ct',
-					x: 200,
-					y: 360,
-					angle: 0,
-					health: 100,
-					armor: 0,
-					alive: true,
-					money: 800,
-					currentWeapon: 'usp',
-					bomb: false,
-					defuseKit: false
-				};
-				
-				// Add some bot players for testing
-				for (let i = 0; i < 4; i++) {
-					const botId = `bot_ct_\${i}`;
-					gameState.players[botId] = {
-						id: botId,
-						name: `CT Bot \${i + 1}`,
-						team: 'ct',
-						x: 200 + i * 50,
-						y: 300 + i * 30,
-						angle: 0,
-						health: 100,
-						armor: 0,
-						alive: true,
-						money: 800,
-						currentWeapon: 'usp',
-						bomb: false,
-						defuseKit: false
-					};
+				// Initialize bot players for classic 5v5 gameplay
+				function initializeBotPlayers() {
+					// Add CT bots (4 more to make 5 total with local player)
+					for (let i = 0; i < 4; i++) {
+						const botId = `bot_ct_\${i}`;
+						gameState.players[botId] = {
+							id: botId,
+							name: `CT Bot \${i + 1}`,
+							team: 'ct',
+							x: 200 + (i * 30),
+							y: 330 + (i * 20),
+							angle: 0,
+							health: 100,
+							armor: 0,
+							alive: true,
+							money: 800,
+							currentWeapon: 'usp',
+							grenades: { he: 0, flash: 1, smoke: 0 },
+							hasDefuseKit: false,
+							kills: 0,
+							deaths: 0,
+							assists: 0,
+							score: 0
+						};
+					}
+					
+					// Add T bots (5 total)
+					for (let i = 0; i < 5; i++) {
+						const botId = `bot_t_\${i}`;
+						gameState.players[botId] = {
+							id: botId,
+							name: `T Bot \${i + 1}`,
+							team: 't',
+							x: 1080 - (i * 30),
+							y: 330 + (i * 20),
+							angle: Math.PI,
+							health: 100,
+							armor: 0,
+							alive: true,
+							money: 800,
+							currentWeapon: 'glock',
+							grenades: { he: 0, flash: 1, smoke: 0 },
+							hasDefuseKit: false,
+							kills: 0,
+							deaths: 0,
+							assists: 0,
+							score: 0
+						};
+					}
+					
+					console.log('CS 1.6 Classic: Initialized', Object.keys(gameState.players).length, 'players for 5v5 match');
 				}
 				
-				for (let i = 0; i < 5; i++) {
-					const botId = `bot_t_\${i}`;
-					gameState.players[botId] = {
-						id: botId,
-						name: `T Bot \${i + 1}`,
-						team: 't',
-						x: 1000 + i * 50,
-						y: 300 + i * 30,
-						angle: Math.PI,
-						health: 100,
-						armor: 0,
-						alive: true,
-						money: 800,
-						currentWeapon: 'glock',
-						bomb: i === 0, // First T bot carries bomb
-						defuseKit: false
-					};
-				}
+				// Initialize all bot players
+				initializeBotPlayers();
 				
 				// Collision detection function
 				function checkWallCollision(x, y) {
