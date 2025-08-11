@@ -171,9 +171,9 @@ class CS16ClassicView < Live::View
 		builder.tag(:div, id: "cs16-classic-container", data: { live: @id }, 
 			style: "width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden; background: #000; position: relative; font-family: 'Counter-Strike', Arial, sans-serif;") do
 			
-			# Main game canvas
+			# Main game canvas - add focus for keyboard events
 			builder.tag(:canvas, id: "game-canvas", width: 1280, height: 720,
-				style: "display: block; margin: 0 auto; cursor: crosshair; image-rendering: pixelated;",
+				style: "display: block; margin: 0 auto; cursor: crosshair; image-rendering: pixelated; outline: none;",
 				tabIndex: 0)
 			
 			# Classic CS 1.6 HUD
@@ -1123,19 +1123,19 @@ class CS16ClassicView < Live::View
 					}
 					
 					// Apply movement modifiers
-					if (input.keys['Shift']) { // Walking
+					if (input.keys['ShiftLeft'] || input.keys['ShiftRight']) { // Walking
 						speed = CLASSIC_CONFIG.MOVEMENT_SPEEDS.walk;
 					}
-					if (input.keys['Control']) { // Crouching
+					if (input.keys['ControlLeft'] || input.keys['ControlRight']) { // Crouching
 						speed = CLASSIC_CONFIG.MOVEMENT_SPEEDS.crouch;
 					}
 					
-					// Calculate movement
+					// Calculate movement using proper key codes
 					let dx = 0, dy = 0;
-					if (input.keys['w']) dy -= 1;
-					if (input.keys['s']) dy += 1;
-					if (input.keys['a']) dx -= 1;
-					if (input.keys['d']) dx += 1;
+					if (input.keys['KeyW']) dy -= 1;
+					if (input.keys['KeyS']) dy += 1;
+					if (input.keys['KeyA']) dx -= 1;
+					if (input.keys['KeyD']) dx += 1;
 					
 					// Normalize diagonal movement
 					if (dx !== 0 && dy !== 0) {
@@ -1143,9 +1143,17 @@ class CS16ClassicView < Live::View
 						dy *= 0.707;
 					}
 					
-					// Apply movement
-					player.x += dx * speed * deltaTime;
-					player.y += dy * speed * deltaTime;
+					// Apply movement with collision detection
+					const newX = player.x + dx * speed * deltaTime;
+					const newY = player.y + dy * speed * deltaTime;
+					
+					// Check wall collisions
+					if (!checkWallCollision(newX, player.y)) {
+						player.x = newX;
+					}
+					if (!checkWallCollision(player.x, newY)) {
+						player.y = newY;
+					}
 					
 					// Keep player in bounds
 					player.x = Math.max(50, Math.min(CLASSIC_CONFIG.MAP_WIDTH - 50, player.x));
@@ -1368,12 +1376,12 @@ class CS16ClassicView < Live::View
 					alert(`Game Over! \${winner} win \${gameState.ctScore}-\${gameState.tScore}`);
 				}
 				
-				// Input handlers
-				canvas.addEventListener('keydown', (e) => {
-					input.keys[e.key] = true;
+				// Input handlers - use document for reliable keyboard events
+				document.addEventListener('keydown', (e) => {
+					input.keys[e.code] = true;
 					
 					// Buy menu
-					if (e.key === 'b' || e.key === 'B') {
+					if (e.code === 'KeyB') {
 						const buyMenu = document.getElementById('buy-menu');
 						if (buyMenu) {
 							buyMenu.style.display = buyMenu.style.display === 'none' ? 'block' : 'none';
@@ -1381,7 +1389,7 @@ class CS16ClassicView < Live::View
 					}
 					
 					// Scoreboard
-					if (e.key === 'Tab') {
+					if (e.code === 'Tab') {
 						e.preventDefault();
 						const scoreboard = document.getElementById('scoreboard');
 						if (scoreboard) {
@@ -1390,10 +1398,10 @@ class CS16ClassicView < Live::View
 					}
 				});
 				
-				canvas.addEventListener('keyup', (e) => {
-					input.keys[e.key] = false;
+				document.addEventListener('keyup', (e) => {
+					input.keys[e.code] = false;
 					
-					if (e.key === 'Tab') {
+					if (e.code === 'Tab') {
 						const scoreboard = document.getElementById('scoreboard');
 						if (scoreboard) {
 							scoreboard.style.display = 'none';
@@ -1502,6 +1510,50 @@ class CS16ClassicView < Live::View
 						bomb: i === 0, // First T bot carries bomb
 						defuseKit: false
 					};
+				}
+				
+				// Collision detection function
+				function checkWallCollision(x, y) {
+					const playerRadius = 16;
+					
+					// Simple wall collision based on de_dust2 layout
+					const walls = [
+						// CT spawn walls
+						{ x1: 50, y1: 100, x2: 70, y2: 300 },
+						{ x1: 50, y1: 100, x2: 200, y2: 120 },
+						// T spawn walls  
+						{ x1: 1200, y1: 100, x2: 1220, y2: 300 },
+						{ x1: 1070, y1: 100, x2: 1220, y2: 120 },
+						// Mid walls
+						{ x1: 400, y1: 50, x2: 420, y2: 350 },
+						{ x1: 860, y1: 50, x2: 880, y2: 350 },
+						{ x1: 400, y1: 400, x2: 880, y2: 420 }
+					];
+					
+					const boxes = [
+						{ x: 250, y: 250, w: 60, h: 60 },
+						{ x: 550, y: 150, w: 40, h: 40 },
+						{ x: 750, y: 300, w: 50, h: 50 },
+						{ x: 950, y: 200, w: 60, h: 60 }
+					];
+					
+					// Check wall collisions
+					for (const wall of walls) {
+						if (x + playerRadius > wall.x1 && x - playerRadius < wall.x2 &&
+								y + playerRadius > wall.y1 && y - playerRadius < wall.y2) {
+							return true;
+						}
+					}
+					
+					// Check box collisions
+					for (const box of boxes) {
+						if (x + playerRadius > box.x && x - playerRadius < box.x + box.w &&
+								y + playerRadius > box.y && y - playerRadius < box.y + box.h) {
+							return true;
+						}
+					}
+					
+					return false;
 				}
 				
 				// Start the game loop
