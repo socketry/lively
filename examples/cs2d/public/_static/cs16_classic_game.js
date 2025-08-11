@@ -978,6 +978,10 @@ function renderFlashEffects() {
 }
 
 function renderHUD() {
+	if (!gameState) {
+		console.error('gameState is null in renderHUD!');
+		return;
+	}
 	const player = gameState.players[gameState.localPlayerId];
 	if (!player) return;
 
@@ -1044,6 +1048,16 @@ function renderHUD() {
 	const buyTimeLeft = CLASSIC_CONFIG.BUY_TIME - (CLASSIC_CONFIG.ROUND_TIME - gameState.roundTime);
 	const inBuyZone = isInBuyZone(player);
 	const canBuy = (gameState.phase === 'freeze') || (buyTimeLeft > 0 && gameState.phase === 'playing');
+	
+	// Debug logging
+	if (gameState.phase === 'freeze' && !canBuy) {
+		console.error('BUG: canBuy is false during freeze time!', {
+			phase: gameState.phase,
+			canBuy: canBuy,
+			buyTimeLeft: buyTimeLeft,
+			inBuyZone: inBuyZone
+		});
+	}
 	
 	if (inBuyZone && canBuy) {
 		// Can buy - show green indicator

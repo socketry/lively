@@ -97,6 +97,18 @@ module CS16HudComponents
 				builder.tag(:span, id: "freeze-time-left") { builder.text("15") }
 			end
 		end
+		
+		# Render the buy menu (hidden by default)
+		render_classic_buy_menu(builder)
+		
+		# Render the scoreboard (hidden by default)
+		render_classic_scoreboard(builder)
+		
+		# Render the chatbox
+		render_classic_chatbox(builder)
+		
+		# Render the killfeed
+		render_classic_killfeed(builder)
 	end
 
 	def render_classic_buy_menu(builder)
