@@ -501,6 +501,30 @@ function updateGame(deltaTime) {
 		updateC4Timer(Math.ceil(gameState.bomb.timeLeft));
 	}
 	
+	// Handle automatic weapon firing
+	if (input.mouse.down) {
+		const player = gameState.players[gameState.localPlayerId];
+		if (player && player.alive) {
+			// Check if weapon is automatic
+			let currentWeaponId = null;
+			if (player.currentWeapon === 'primary' && player.primaryWeapon) {
+				currentWeaponId = player.primaryWeapon;
+			} else if (player.currentWeapon === 'secondary' && player.secondaryWeapon) {
+				currentWeaponId = player.secondaryWeapon;
+			}
+			
+			// List of automatic weapons
+			const automaticWeapons = [
+				'ak47', 'm4a1', 'galil', 'famas', 'sg552', 'aug',
+				'mp5', 'p90', 'mac10', 'tmp', 'ump45', 'm249'
+			];
+			
+			if (currentWeaponId && automaticWeapons.includes(currentWeaponId)) {
+				shoot(); // Continuous firing for automatic weapons
+			}
+		}
+	}
+	
 	// Update player movement
 	updatePlayerMovement(deltaTime);
 	
@@ -643,13 +667,13 @@ function renderPlayers() {
 		);
 		ctx.stroke();
 		
-		// Player name
+		// Player name (moved higher for better spacing)
 		ctx.fillStyle = '#fff';
 		ctx.font = '12px Arial';
 		ctx.textAlign = 'center';
-		ctx.fillText(player.name, player.x, player.y - 25);
+		ctx.fillText(player.name, player.x, player.y - 45);
 		
-		// Health bar
+		// Health bar (with better spacing from name)
 		const barWidth = 30;
 		const barHeight = 4;
 		const healthPercent = player.health / 100;
@@ -807,8 +831,8 @@ function renderCrosshair() {
 	
 	ctx.stroke();
 	
-	// Center dot (optional - classic CS had setting for this)
-	if (true) { // Could be made configurable
+	// Center dot (disabled - not needed for this game)
+	if (false) { // Disabled crosshair center dot
 		ctx.fillStyle = '#00ff00';
 		ctx.globalAlpha = 0.7;
 		ctx.fillRect(centerX - 1, centerY - 1, 2, 2);
@@ -2352,18 +2376,66 @@ function showPurchaseError(message) {
 	}, 3000);
 }
 
+// Auto-fire configuration for weapons
+const WEAPON_FIRE_RATES = {
+	// Automatic weapons (shots per second)
+	ak47: 10, m4a1: 10, galil: 10, famas: 10, sg552: 10, aug: 10,
+	mp5: 10, p90: 11, mac10: 11, tmp: 11, ump45: 9,
+	m249: 8, 
+	// Semi-auto/single shot
+	awp: 0.8, scout: 1.2, g3sg1: 2, sg550: 2,
+	deagle: 2, usp: 3, glock: 3, p228: 3, fiveseven: 3, elite: 3,
+	m3: 1, xm1014: 3
+};
+
+// Track last shot time for fire rate limiting
+let lastShotTime = 0;
+
 function shoot() {
 	const player = gameState.players[gameState.localPlayerId];
 	if (!player || !player.alive) return;
 	
+	// Determine current weapon
+	let currentWeaponId = null;
+	if (player.currentWeapon === 'primary' && player.primaryWeapon) {
+		currentWeaponId = player.primaryWeapon;
+	} else if (player.currentWeapon === 'secondary' && player.secondaryWeapon) {
+		currentWeaponId = player.secondaryWeapon;
+	}
+	
+	// Check fire rate limit
+	const now = Date.now();
+	const fireRate = currentWeaponId ? WEAPON_FIRE_RATES[currentWeaponId] : 3;
+	const minTimeBetweenShots = 1000 / fireRate;
+	
+	if (now - lastShotTime < minTimeBetweenShots) {
+		return; // Too soon to shoot again
+	}
+	
+	lastShotTime = now;
+	
 	// Create bullet
 	const speed = 1000; // Bullet speed
+	
+	// Determine damage based on weapon
+	let damage = 30; // default
+	if (currentWeaponId) {
+		const weaponDamages = {
+			ak47: 36, m4a1: 33, galil: 30, famas: 30, sg552: 33, aug: 32,
+			awp: 115, scout: 75, g3sg1: 80, sg550: 70,
+			deagle: 48, usp: 34, glock: 28, p228: 32, fiveseven: 32, elite: 36,
+			mp5: 26, p90: 26, mac10: 29, tmp: 26, ump45: 30,
+			m249: 32, m3: 20, xm1014: 22
+		};
+		damage = weaponDamages[currentWeaponId] || 30;
+	}
+	
 	gameState.bullets.push({
 		x: player.x,
 		y: player.y,
 		vx: Math.cos(player.angle) * speed,
 		vy: Math.sin(player.angle) * speed,
-		damage: 30,
+		damage: damage,
 		playerId: player.id,
 		distance: 0
 	});
