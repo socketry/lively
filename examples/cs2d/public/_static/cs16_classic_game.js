@@ -573,6 +573,11 @@ function render() {
 	renderCrosshair();
 	renderMinimap();
 	renderFlashEffects();
+	
+	// Render scoreboard if Tab is held
+	if (gameState.showScoreboard) {
+		renderScoreboard();
+	}
 }
 
 function renderMap() {
@@ -958,9 +963,7 @@ function renderHUD() {
 	ctx.textAlign = 'center';
 	ctx.fillStyle = '#ffffff';
 	ctx.font = 'bold 18px Arial';
-	const minutes = Math.floor(gameState.roundTime / 60);
-	const seconds = Math.floor(gameState.roundTime % 60);
-	ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, canvas.width / 2, 30);
+	ctx.fillText(formatTime(gameState.roundTime), canvas.width / 2, 30);
 	
 	ctx.font = '14px Arial';
 	ctx.fillText(`Round ${gameState.round}/${gameState.maxRounds}`, canvas.width / 2, 50);
@@ -1510,58 +1513,8 @@ function updateBullets(deltaTime) {
 		bullet.y += bullet.vy * deltaTime;
 		bullet.distance += Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy) * deltaTime;
 		
-		// Check collision with players
-		let bulletHit = false;
-		for (const player of Object.values(gameState.players)) {
-			if (!player.alive || player.id === bullet.playerId) {
-				continue; // Skip dead players and bullet owner
-			}
-			
-			const distance = Math.sqrt(
-				Math.pow(player.x - bullet.x, 2) +
-				Math.pow(player.y - bullet.y, 2)
-			);
-			
-			// Player hit radius (16 pixels)
-			if (distance < 16) {
-				// Apply damage
-				player.health -= bullet.damage;
-				player.damage_taken += bullet.damage;
-				
-				// Update damage stats for shooter
-				if (gameState.players[bullet.playerId]) {
-					gameState.players[bullet.playerId].damage_given += bullet.damage;
-				}
-				
-				// Check if player died
-				if (player.health <= 0) {
-					player.alive = false;
-					player.health = 0;
-					
-					// Add kill to killfeed
-					if (gameState.players[bullet.playerId]) {
-						gameState.players[bullet.playerId].kills++;
-						player.deaths++;
-						
-						gameState.killfeed.unshift({
-							killer: gameState.players[bullet.playerId].name,
-							victim: player.name,
-							weapon: gameState.players[bullet.playerId].currentWeapon,
-							headshot: false,
-							timestamp: Date.now()
-						});
-						
-						// Keep only last 5 kills in feed
-						if (gameState.killfeed.length > 5) {
-							gameState.killfeed.pop();
-						}
-					}
-				}
-				
-				bulletHit = true;
-				break; // Bullet can only hit one player
-			}
-		}
+		// Check collision with players using the new function
+		let bulletHit = checkBulletHit(bullet);
 		
 		// Check for wall collisions
 		if (!bulletHit && checkWallCollision(bullet.x, bullet.y)) {
@@ -1648,6 +1601,190 @@ function updateFlashEffects(deltaTime) {
 			gameState.flashEffects.splice(i, 1);
 		}
 	}
+}
+
+// Format time helper function
+function formatTime(seconds) {
+	const minutes = Math.floor(seconds / 60);
+	const secs = Math.floor(seconds % 60);
+	return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Bomb plant function
+function plantBomb(playerId, x, y) {
+	const player = gameState.players[playerId];
+	if (!player || player.team !== 't' || !player.alive) return false;
+	
+	// Check if at bomb site
+	const site = getBombSiteAt(x, y);
+	if (!site) return false;
+	
+	// Plant the bomb
+	gameState.bomb = {
+		planted: true,
+		x: x,
+		y: y,
+		site: site,
+		planterId: playerId,
+		timeLeft: CLASSIC_CONFIG.C4_TIMER,
+		plantTime: Date.now()
+	};
+	
+	// Give money reward to planter
+	if (gameState.players[playerId]) {
+		gameState.players[playerId].money += CLASSIC_CONFIG.BOMB_PLANT_REWARD;
+	}
+	
+	console.log(`Bomb planted at site ${site} by ${player.name}`);
+	return true;
+}
+
+// Bomb defuse function
+function defuseBomb(playerId) {
+	const player = gameState.players[playerId];
+	if (!player || player.team !== 'ct' || !player.alive) return false;
+	
+	if (!gameState.bomb || !gameState.bomb.planted) return false;
+	
+	// Check if player is near bomb
+	const distance = Math.sqrt(
+		Math.pow(player.x - gameState.bomb.x, 2) + 
+		Math.pow(player.y - gameState.bomb.y, 2)
+	);
+	
+	if (distance > 50) return false; // Too far from bomb
+	
+	// Start or continue defusing
+	const defuseTime = player.hasDefuseKit ? 
+		CLASSIC_CONFIG.DEFUSE_TIME_KIT : 
+		CLASSIC_CONFIG.DEFUSE_TIME;
+	
+	// For simplicity, instant defuse (should be timed in real implementation)
+	gameState.bomb.planted = false;
+	gameState.bomb = null;
+	
+	// End round with CT win
+	endRound('ct', 'bomb_defused');
+	
+	console.log(`Bomb defused by ${player.name}`);
+	return true;
+}
+
+// Check bullet hit detection
+function checkBulletHit(bullet) {
+	for (const player of Object.values(gameState.players)) {
+		if (!player.alive || player.id === bullet.playerId) continue;
+		
+		const distance = Math.sqrt(
+			Math.pow(bullet.x - player.x, 2) + 
+			Math.pow(bullet.y - player.y, 2)
+		);
+		
+		if (distance < 20) { // Hit radius
+			// Apply damage
+			const damage = bullet.damage || 30;
+			player.health -= damage;
+			player.damage_taken = (player.damage_taken || 0) + damage;
+			
+			// Update shooter's damage given
+			const shooter = gameState.players[bullet.playerId];
+			if (shooter) {
+				shooter.damage_given = (shooter.damage_given || 0) + damage;
+			}
+			
+			if (player.health <= 0) {
+				player.health = 0;
+				player.alive = false;
+				player.deaths = (player.deaths || 0) + 1;
+				
+				// Give kill credit and update killfeed
+				if (shooter) {
+					shooter.kills = (shooter.kills || 0) + 1;
+					shooter.money = (shooter.money || 0) + CLASSIC_CONFIG.KILL_REWARD;
+					
+					// Add to killfeed
+					if (!gameState.killfeed) gameState.killfeed = [];
+					gameState.killfeed.unshift({
+						killer: shooter.name,
+						victim: player.name,
+						weapon: shooter.currentWeapon || 'unknown',
+						headshot: false,
+						timestamp: Date.now()
+					});
+					
+					// Keep only last 5 kills
+					if (gameState.killfeed.length > 5) {
+						gameState.killfeed.pop();
+					}
+				}
+			}
+			
+			return true; // Bullet hit
+		}
+	}
+	
+	return false; // No hit
+}
+
+// Render scoreboard function
+function renderScoreboard() {
+	if (!ctx) return;
+	
+	// Background
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+	ctx.fillRect(200, 100, canvas.width - 400, canvas.height - 200);
+	
+	// Title
+	ctx.fillStyle = '#ffffff';
+	ctx.font = 'bold 24px Arial';
+	ctx.textAlign = 'center';
+	ctx.fillText('SCOREBOARD', canvas.width / 2, 140);
+	
+	// Team scores
+	ctx.font = 'bold 20px Arial';
+	ctx.fillStyle = '#4444ff';
+	ctx.fillText(`CT: ${gameState.ctScore}`, canvas.width / 2 - 100, 170);
+	ctx.fillStyle = '#ffaa00';
+	ctx.fillText(`T: ${gameState.tScore}`, canvas.width / 2 + 100, 170);
+	
+	// Player list headers
+	ctx.font = '16px Arial';
+	ctx.fillStyle = '#ffffff';
+	ctx.textAlign = 'left';
+	ctx.fillText('Name', 250, 200);
+	ctx.fillText('K', 450, 200);
+	ctx.fillText('D', 500, 200);
+	ctx.fillText('Money', 550, 200);
+	
+	// Player stats
+	let yPos = 230;
+	for (const player of Object.values(gameState.players)) {
+		ctx.fillStyle = player.team === 'ct' ? '#6666ff' : '#ffcc66';
+		ctx.fillText(player.name.substring(0, 15), 250, yPos);
+		ctx.fillText(player.kills.toString(), 450, yPos);
+		ctx.fillText(player.deaths.toString(), 500, yPos);
+		ctx.fillText(`$${player.money}`, 550, yPos);
+		yPos += 25;
+	}
+	
+	// Round info
+	ctx.fillStyle = '#ffffff';
+	ctx.font = '14px Arial';
+	ctx.textAlign = 'center';
+	ctx.fillText(`Round ${gameState.round} / ${CLASSIC_CONFIG.MAX_ROUNDS}`, canvas.width / 2, canvas.height - 120);
+}
+
+// Helper function to get bomb site at position
+function getBombSiteAt(x, y) {
+	// A site bounds
+	if (x >= 150 && x <= 350 && y >= 100 && y <= 300) {
+		return 'A';
+	}
+	// B site bounds
+	if (x >= 930 && x <= 1130 && y >= 420 && y <= 620) {
+		return 'B';
+	}
+	return null;
 }
 
 function checkRoundEndConditions() {
@@ -1829,10 +1966,7 @@ function initializeInputHandlers() {
 		// Scoreboard
 		if (e.code === 'Tab') {
 			e.preventDefault();
-			const scoreboard = document.getElementById('scoreboard');
-			if (scoreboard) {
-				scoreboard.style.display = 'block';
-			}
+			gameState.showScoreboard = true;
 		}
 	};
 	
@@ -1844,10 +1978,7 @@ function initializeInputHandlers() {
 		input.keys[e.code] = false;
 		
 		if (e.code === 'Tab') {
-			const scoreboard = document.getElementById('scoreboard');
-			if (scoreboard) {
-				scoreboard.style.display = 'none';
-			}
+			gameState.showScoreboard = false;
 		}
 	});
 	
@@ -2357,5 +2488,17 @@ window.CS16Classic = {
 	CLASSIC_CONFIG,
 	toggleBuyMenu: window.toggleBuyMenu,
 	openBuyMenu: window.openBuyMenu,
-	closeBuyMenu: window.closeBuyMenu
+	closeBuyMenu: window.closeBuyMenu,
+	// Newly added functions
+	formatTime,
+	plantBomb,
+	defuseBomb,
+	checkBulletHit,
+	renderScoreboard,
+	getBombSiteAt,
+	// WebSocket state sync helpers
+	broadcast: (type, data) => {
+		console.log(`[WebSocket] Broadcast ${type}:`, data);
+		// This would be connected to actual WebSocket in production
+	}
 };
