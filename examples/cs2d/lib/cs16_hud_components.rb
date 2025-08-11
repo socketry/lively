@@ -84,6 +84,13 @@ module CS16HudComponents
 				builder.text("s")
 			end
 			
+			# Buy button (visual fallback)
+			builder.tag(:button, id: "buy-button", 
+				style: "position: absolute; top: 140px; left: 20px; padding: 10px 20px; background: #ff6b00; color: #fff; border: 2px solid #fff; cursor: pointer; font-size: 18px; font-weight: bold; z-index: 999; pointer-events: auto;",
+				onclick: "window.toggleBuyMenu ? window.toggleBuyMenu() : console.error('toggleBuyMenu not found')") do
+				builder.text("[B] Buy Menu")
+			end
+			
 			# Freeze time indicator
 			builder.tag(:div, id: "freeze-time-indicator", style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ffaa00; font-size: 48px; font-weight: bold; display: none; text-shadow: 3px 3px 6px rgba(0,0,0,0.9);") do
 				builder.text("Freeze Time: ")
@@ -93,7 +100,7 @@ module CS16HudComponents
 	end
 
 	def render_classic_buy_menu(builder)
-		builder.tag(:div, id: "buy-menu", style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; height: 650px; background: rgba(20,20,20,0.95); border: 3px solid #ff6b00; display: none; padding: 20px; color: #fff; overflow-y: auto;") do
+		builder.tag(:div, id: "buy-menu", style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; height: 650px; background: rgba(20,20,20,0.95); border: 3px solid #ff6b00; display: none; padding: 20px; color: #fff; overflow-y: auto; pointer-events: auto; z-index: 1000;") do
 			builder.tag(:h2, style: "text-align: center; color: #ff6b00; margin-bottom: 20px;") { builder.text("Buy Menu - Classic CS 1.6") }
 			
 			# Money display
@@ -247,7 +254,7 @@ module CS16HudComponents
 			builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text(title) }
 			builder.tag(:div, class: "weapon-list", style: "font-size: 14px;") do
 				weapons.each do |weapon|
-					builder.tag(:div, class: "weapon-item", data: { weapon: weapon[:id] }, style: "padding: 3px; cursor: pointer;") do
+					builder.tag(:div, class: "weapon-item", data: { weapon: weapon[:id] }, style: "padding: 5px; cursor: pointer; border: 1px solid transparent; border-radius: 3px; margin: 2px 0; transition: all 0.2s;") do
 						builder.text("[#{weapon[:key]}] #{weapon[:name]} - $#{weapon[:price]}")
 						builder.text(" (#{weapon[:team].upcase} only)") if weapon[:team]
 					end
@@ -261,7 +268,7 @@ module CS16HudComponents
 			builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text(title) }
 			builder.tag(:div, class: "equipment-list", style: "font-size: 14px;") do
 				equipment.each do |item|
-					builder.tag(:div, class: "equipment-item", data: { equipment: item[:id] }, style: "padding: 3px; cursor: pointer;") do
+					builder.tag(:div, class: "equipment-item", data: { equipment: item[:id] }, style: "padding: 5px; cursor: pointer; border: 1px solid transparent; border-radius: 3px; margin: 2px 0; transition: all 0.2s;") do
 						builder.text("[#{item[:key]}] #{item[:name]} - $#{item[:price]}")
 						builder.text(" (#{item[:team].upcase} only)") if item[:team]
 					end
@@ -275,7 +282,7 @@ module CS16HudComponents
 			builder.tag(:h3, style: "color: #ffaa00; border-bottom: 2px solid #ffaa00; padding-bottom: 5px; font-size: 16px;") { builder.text(title) }
 			builder.tag(:div, class: "grenade-list", style: "font-size: 14px;") do
 				grenades.each do |grenade|
-					builder.tag(:div, class: "grenade-item", data: { grenade: grenade[:id] }, style: "padding: 3px; cursor: pointer;") do
+					builder.tag(:div, class: "grenade-item", data: { grenade: grenade[:id] }, style: "padding: 5px; cursor: pointer; border: 1px solid transparent; border-radius: 3px; margin: 2px 0; transition: all 0.2s;") do
 						builder.text("[#{grenade[:key]}] #{grenade[:name]} - $#{grenade[:price]} (Max: #{grenade[:max]})")
 					end
 				end

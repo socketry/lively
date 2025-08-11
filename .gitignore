@@ -6,3 +6,7 @@
 
 /.github/workflows/test-external.yaml
 /examples/*/*.sqlite3*
+
+# macOS system files
+.DS_Store
+**/.DS_Store
