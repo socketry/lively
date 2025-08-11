@@ -128,7 +128,7 @@ function initializeGame(localPlayerId) {
 		roundTime: CLASSIC_CONFIG.ROUND_TIME,
 		ctScore: 0,
 		tScore: 0,
-		phase: 'warmup',
+		phase: 'freeze',
 		consecutiveLosses: { ct: 0, t: 0 },
 		viewportX: 0,
 		viewportY: 0,
@@ -155,7 +155,9 @@ function initializeGame(localPlayerId) {
 		kills: 0,
 		deaths: 0,
 		assists: 0,
-		score: 0
+		score: 0,
+		damage_taken: 0,
+		damage_given: 0
 	};
 	
 	// Get canvas and context
@@ -217,7 +219,9 @@ function initializeBotPlayers() {
 			kills: 0,
 			deaths: 0,
 			assists: 0,
-			score: 0
+			score: 0,
+			damage_taken: 0,
+			damage_given: 0
 		};
 	}
 	
@@ -241,11 +245,21 @@ function initializeBotPlayers() {
 			kills: 0,
 			deaths: 0,
 			assists: 0,
-			score: 0
+			score: 0,
+			damage_taken: 0,
+			damage_given: 0
 		};
 	}
 	
 	console.log('CS 1.6 Classic: Initialized', Object.keys(gameState.players).length, 'players for 5v5 match');
+	
+	// Give bomb to random T player
+	const tPlayers = Object.values(gameState.players).filter(p => p.team === 't');
+	if (tPlayers.length > 0) {
+		const bombCarrier = tPlayers[Math.floor(Math.random() * tPlayers.length)];
+		bombCarrier.bomb = true;
+		console.log(`${bombCarrier.name} has the bomb!`);
+	}
 }
 
 // Classic CS 1.6 game loop
@@ -314,6 +328,9 @@ function updateGame(deltaTime) {
 	
 	// Update flash effects
 	updateFlashEffects(deltaTime);
+	
+	// Check round end conditions
+	checkRoundEndConditions();
 }
 
 function render() {
@@ -353,6 +370,7 @@ function render() {
 	ctx.restore();
 	
 	// Render HUD elements (not affected by viewport)
+	renderHUD();
 	renderCrosshair();
 	renderMinimap();
 	renderFlashEffects();
@@ -689,6 +707,101 @@ function renderFlashEffects() {
 	}
 }
 
+function renderHUD() {
+	const player = gameState.players[gameState.localPlayerId];
+	if (!player) return;
+
+	// HUD Background
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+	ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
+
+	// Health
+	ctx.fillStyle = '#ffffff';
+	ctx.font = 'bold 24px Arial';
+	ctx.textAlign = 'left';
+	ctx.fillText('Health:', 20, canvas.height - 80);
+	
+	const healthPercent = player.health / 100;
+	ctx.fillStyle = healthPercent > 0.5 ? '#00ff00' : healthPercent > 0.25 ? '#ffaa00' : '#ff0000';
+	ctx.fillRect(110, canvas.height - 95, 100 * healthPercent, 20);
+	ctx.strokeStyle = '#ffffff';
+	ctx.strokeRect(110, canvas.height - 95, 100, 20);
+	
+	ctx.fillStyle = '#ffffff';
+	ctx.font = '16px Arial';
+	ctx.fillText(player.health.toString(), 120, canvas.height - 80);
+
+	// Armor
+	if (player.armor > 0) {
+		ctx.fillText('Armor:', 20, canvas.height - 50);
+		const armorPercent = player.armor / 100;
+		ctx.fillStyle = '#4444ff';
+		ctx.fillRect(110, canvas.height - 65, 100 * armorPercent, 20);
+		ctx.strokeStyle = '#ffffff';
+		ctx.strokeRect(110, canvas.height - 65, 100, 20);
+		
+		ctx.fillStyle = '#ffffff';
+		ctx.fillText(player.armor.toString(), 120, canvas.height - 50);
+	}
+
+	// Money
+	ctx.fillStyle = '#00ff00';
+	ctx.font = 'bold 20px Arial';
+	ctx.textAlign = 'left';
+	ctx.fillText(`$${player.money}`, 240, canvas.height - 80);
+
+	// Current weapon
+	ctx.fillStyle = '#ffffff';
+	ctx.font = '16px Arial';
+	ctx.fillText(`Weapon: ${player.currentWeapon.toUpperCase()}`, 240, canvas.height - 55);
+
+	// Round info
+	ctx.textAlign = 'center';
+	ctx.fillStyle = '#ffffff';
+	ctx.font = 'bold 18px Arial';
+	const minutes = Math.floor(gameState.roundTime / 60);
+	const seconds = Math.floor(gameState.roundTime % 60);
+	ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, canvas.width / 2, 30);
+	
+	ctx.font = '14px Arial';
+	ctx.fillText(`Round ${gameState.round}/${gameState.maxRounds}`, canvas.width / 2, 50);
+
+	// Score
+	ctx.fillStyle = '#4444ff';
+	ctx.fillText(`CT: ${gameState.ctScore}`, canvas.width / 2 - 60, 70);
+	ctx.fillStyle = '#ffaa00';
+	ctx.fillText(`T: ${gameState.tScore}`, canvas.width / 2 + 60, 70);
+
+	// Killfeed
+	ctx.textAlign = 'right';
+	ctx.font = '12px Arial';
+	for (let i = 0; i < Math.min(5, gameState.killfeed.length); i++) {
+		const kill = gameState.killfeed[i];
+		const yPos = 100 + (i * 15);
+		ctx.fillStyle = '#ffffff';
+		ctx.fillText(`${kill.killer} killed ${kill.victim}`, canvas.width - 20, yPos);
+	}
+
+	// Phase indicator
+	ctx.textAlign = 'center';
+	ctx.font = 'bold 16px Arial';
+	if (gameState.phase === 'freeze') {
+		ctx.fillStyle = '#ffaa00';
+		ctx.fillText(`FREEZE TIME: ${Math.ceil(gameState.freezeTime)}`, canvas.width / 2, canvas.height - 25);
+	} else if (gameState.phase === 'warmup') {
+		ctx.fillStyle = '#00ff00';
+		ctx.fillText('WARMUP', canvas.width / 2, canvas.height - 25);
+	}
+
+	// Bomb timer if planted
+	if (gameState.bomb && gameState.bomb.planted) {
+		ctx.fillStyle = '#ff0000';
+		ctx.font = 'bold 24px Arial';
+		const bombTime = Math.ceil(gameState.bomb.timeLeft);
+		ctx.fillText(`BOMB: ${bombTime}s`, canvas.width / 2, 100);
+	}
+}
+
 // Helper functions for UI updates
 function updateRoundTimer(seconds) {
 	const minutes = Math.floor(seconds / 60);
@@ -878,12 +991,12 @@ function updateBotBehavior(bot, deltaTime) {
 			state: 'patrol', // patrol, combat, rush_bombsite, defuse_bomb, plant_bomb
 			target: null,
 			lastSeen: null,
-			patrolIndex: 0,
-			stateTimer: 0,
+			patrolIndex: Math.floor(Math.random() * 5), // Random starting patrol point
+			stateTimer: Math.random() * -2, // Random negative timer to stagger movement
 			rushTarget: bot.team === 't' ? getBombSite('A') : null,
 			combatRange: 300,
-			patrolSpeed: 60,
-			combatSpeed: 100
+			patrolSpeed: 120,
+			combatSpeed: 180
 		};
 		
 		// Set patrol points based on team and spawn
@@ -935,17 +1048,27 @@ function updateBotBehavior(bot, deltaTime) {
 			break;
 	}
 	
-	// Check for bomb objectives
-	if (gameState.bomb && gameState.bomb.planted && bot.team === 'ct' && bot.ai.state !== 'combat') {
-		bot.ai.state = 'defuse_bomb';
-		bot.ai.target = { x: gameState.bomb.x, y: gameState.bomb.y };
+	// Check for bomb objectives - higher priority
+	if (gameState.bomb && gameState.bomb.planted && bot.team === 'ct') {
+		// CTs should prioritize defusing over everything except direct combat
+		if (bot.ai.state !== 'combat') {
+			bot.ai.state = 'defuse_bomb';
+			bot.ai.target = { x: gameState.bomb.x, y: gameState.bomb.y };
+		}
 	} else if (bot.team === 't' && bot.bomb && bot.ai.state !== 'combat') {
 		bot.ai.state = 'plant_bomb';
 		bot.ai.target = getBombSite('A'); // Prefer A site
+	} else if (bot.team === 't' && gameState.phase === 'playing' && gameState.roundTime < 30) {
+		// T side should rush bomb sites when time is running low
+		if (bot.ai.state === 'patrol' && Math.random() < 0.7) {
+			bot.ai.state = 'rush_bombsite';
+			bot.ai.rushTarget = Math.random() < 0.5 ? getBombSite('A') : getBombSite('B');
+			bot.ai.stateTimer = 0;
+		}
 	}
 	
-	// Periodic state changes for variety
-	if (bot.ai.stateTimer > 10 && bot.ai.state === 'patrol' && Math.random() < 0.1) {
+	// Periodic state changes for variety - make bots more active
+	if (bot.ai.stateTimer > 5 && bot.ai.state === 'patrol' && Math.random() < 0.3) {
 		bot.ai.state = bot.team === 't' ? 'rush_bombsite' : 'patrol';
 		bot.ai.rushTarget = Math.random() < 0.6 ? getBombSite('A') : getBombSite('B');
 		bot.ai.stateTimer = 0;
@@ -960,9 +1083,11 @@ function updateBotPatrol(bot, deltaTime) {
 		(target.x - bot.x) ** 2 + (target.y - bot.y) ** 2
 	);
 	
-	if (distance < 30) {
+	if (distance < 50) {
 		// Reached patrol point, move to next
 		bot.ai.patrolIndex = (bot.ai.patrolIndex + 1) % bot.ai.patrolPoints.length;
+		// Add small random delay to make movement less predictable
+		bot.ai.stateTimer = -Math.random() * 1;
 	} else {
 		// Move towards patrol point
 		moveBotTowards(bot, target, bot.ai.patrolSpeed, deltaTime);
@@ -1007,10 +1132,10 @@ function updateBotCombat(bot, deltaTime) {
 		}
 	}
 	
-	// Shoot at target
-	if (distance <= bot.ai.combatRange && bot.ai.stateTimer > 0.5) {
+	// Shoot at target - more frequent shooting
+	if (distance <= bot.ai.combatRange && bot.ai.stateTimer > 0.2) {
 		botShoot(bot);
-		bot.ai.stateTimer = Math.random() * 0.3; // Random firing rate
+		bot.ai.stateTimer = Math.random() * 0.15 + 0.1; // Faster random firing rate (0.1-0.25s)
 	}
 }
 
@@ -1043,20 +1168,29 @@ function updateBotPlantBomb(bot, deltaTime) {
 		(bombSite.x - bot.x) ** 2 + (bombSite.y - bot.y) ** 2
 	);
 	
-	if (distance < 50) {
+	if (distance < 100) {
 		// In planting range
 		if (bot.bomb && bot.ai.stateTimer > 3) { // 3 second plant time
-			// Plant bomb (simplified)
+			// Determine which bomb site based on position
+			const aSiteDistance = Math.sqrt((bot.x - 250) ** 2 + (bot.y - 200) ** 2);
+			const bSiteDistance = Math.sqrt((bot.x - 1000) ** 2 + (bot.y - 500) ** 2);
+			const plantSite = aSiteDistance < bSiteDistance ? 'A' : 'B';
+			
+			// Plant bomb
 			gameState.bomb = {
 				planted: true,
 				x: bot.x,
 				y: bot.y,
 				timeLeft: CLASSIC_CONFIG.C4_TIMER,
 				planter: bot.id,
-				site: distance < 150 ? 'A' : 'B'
+				site: plantSite
 			};
 			bot.bomb = false;
-			console.log(`${bot.name} planted the bomb!`);
+			console.log(`${bot.name} planted the bomb at site ${plantSite}!`);
+			
+			// Add plant bonus money
+			bot.money += CLASSIC_CONFIG.PLANT_BONUS;
+			
 			bot.ai.state = 'patrol';
 		}
 	} else {
@@ -1076,12 +1210,15 @@ function updateBotDefuseBomb(bot, deltaTime) {
 	
 	if (distance < 50) {
 		// In defusing range
-		const defuseTime = bot.defuseKit ? CLASSIC_CONFIG.DEFUSE_TIME_KIT : CLASSIC_CONFIG.DEFUSE_TIME;
+		const defuseTime = bot.hasDefuseKit ? CLASSIC_CONFIG.DEFUSE_TIME_KIT : CLASSIC_CONFIG.DEFUSE_TIME;
 		if (bot.ai.stateTimer > defuseTime) {
-			// Defuse bomb (simplified)
-			gameState.bomb.planted = false;
+			// Successfully defused bomb
+			gameState.bomb = null;
 			console.log(`${bot.name} defused the bomb!`);
-			bot.ai.state = 'patrol';
+			
+			// End round - CT wins
+			endRound('ct', 'bomb_defused');
+			return;
 		}
 	} else {
 		moveBotTowards(bot, { x: gameState.bomb.x, y: gameState.bomb.y }, bot.ai.combatSpeed, deltaTime);
@@ -1111,6 +1248,9 @@ function moveBotTowards(bot, target, speed, deltaTime) {
 }
 
 function findNearbyEnemy(bot) {
+	let closestEnemy = null;
+	let closestDistance = Infinity;
+	
 	for (const player of Object.values(gameState.players)) {
 		if (player.team === bot.team || !player.alive) continue;
 		
@@ -1118,21 +1258,39 @@ function findNearbyEnemy(bot) {
 			(player.x - bot.x) ** 2 + (player.y - bot.y) ** 2
 		);
 		
+		// Prioritize closer enemies and the local player
 		if (distance <= bot.ai.combatRange) {
-			return player;
+			if (distance < closestDistance || player.id === gameState.localPlayerId) {
+				closestEnemy = player;
+				closestDistance = distance;
+				// If we found the local player, prioritize them
+				if (player.id === gameState.localPlayerId) break;
+			}
 		}
 	}
-	return null;
+	return closestEnemy;
 }
 
 function botShoot(bot) {
 	const speed = 1000;
+	
+	// Add some aim inaccuracy for realism
+	const aimSpread = 0.1; // radians of spread
+	const actualAngle = bot.angle + (Math.random() - 0.5) * aimSpread;
+	
+	// Determine damage based on weapon
+	let damage = 30; // default
+	if (bot.currentWeapon === 'ak47') damage = 36;
+	else if (bot.currentWeapon === 'm4a1') damage = 33;
+	else if (bot.currentWeapon === 'awp') damage = 115;
+	else if (bot.currentWeapon === 'deagle') damage = 48;
+	
 	gameState.bullets.push({
 		x: bot.x,
 		y: bot.y,
-		vx: Math.cos(bot.angle) * speed,
-		vy: Math.sin(bot.angle) * speed,
-		damage: 30,
+		vx: Math.cos(actualAngle) * speed,
+		vy: Math.sin(actualAngle) * speed,
+		damage: damage,
 		playerId: bot.id,
 		distance: 0
 	});
@@ -1183,10 +1341,13 @@ function updateBullets(deltaTime) {
 					
 					// Add kill to killfeed
 					if (gameState.players[bullet.playerId]) {
+						gameState.players[bullet.playerId].kills++;
+						player.deaths++;
+						
 						gameState.killfeed.unshift({
 							killer: gameState.players[bullet.playerId].name,
 							victim: player.name,
-							weapon: gameState.players[bullet.playerId].current_weapon,
+							weapon: gameState.players[bullet.playerId].currentWeapon,
 							headshot: false,
 							timestamp: Date.now()
 						});
@@ -1201,6 +1362,11 @@ function updateBullets(deltaTime) {
 				bulletHit = true;
 				break; // Bullet can only hit one player
 			}
+		}
+		
+		// Check for wall collisions
+		if (!bulletHit && checkWallCollision(bullet.x, bullet.y)) {
+			bulletHit = true;
 		}
 		
 		// Remove bullets that hit something or are out of bounds/traveled too far
@@ -1285,6 +1451,26 @@ function updateFlashEffects(deltaTime) {
 	}
 }
 
+function checkRoundEndConditions() {
+	if (gameState.phase !== 'playing') return;
+	
+	const alivePlayers = Object.values(gameState.players).filter(p => p.alive);
+	const aliveCTs = alivePlayers.filter(p => p.team === 'ct');
+	const aliveTs = alivePlayers.filter(p => p.team === 't');
+	
+	// Check if all CTs are eliminated
+	if (aliveCTs.length === 0) {
+		endRound('t', 'elimination');
+		return;
+	}
+	
+	// Check if all Ts are eliminated
+	if (aliveTs.length === 0) {
+		endRound('ct', 'elimination');
+		return;
+	}
+}
+
 function endRound(winningTeam, reason) {
 	gameState.phase = 'round_end';
 	console.log(`Round ended: ${winningTeam} wins - ${reason}`);
@@ -1345,13 +1531,13 @@ function startNewRound() {
 	for (const player of Object.values(gameState.players)) {
 		player.alive = true;
 		player.health = 100;
-		// Spawn at team spawn points
+		// Spawn at team spawn points with more spread
 		if (player.team === 'ct') {
-			player.x = 200 + Math.random() * 100;
-			player.y = 300 + Math.random() * 100;
+			player.x = 200 + Math.random() * 150;
+			player.y = 300 + Math.random() * 150;
 		} else {
-			player.x = 1000 + Math.random() * 100;
-			player.y = 300 + Math.random() * 100;
+			player.x = 950 + Math.random() * 150;
+			player.y = 300 + Math.random() * 150;
 		}
 	}
 	
