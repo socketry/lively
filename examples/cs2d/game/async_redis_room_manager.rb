@@ -232,6 +232,48 @@ class AsyncRedisRoomManager
 		end
 	end
 	
+	# Start a game - change room state and return game URL
+	def start_game(player_id, room_id)
+		result = with_redis do |redis|
+			room_data_json = redis.get("room:#{room_id}:data")
+			next { success: false, error: "Room not found" } unless room_data_json
+			
+			room_data = JSON.parse(room_data_json)
+			
+			# Check if player is the room creator
+			unless room_data["creator_id"] == player_id
+				next { success: false, error: "Only room creator can start the game" }
+			end
+			
+			# Check if room is in waiting state
+			unless room_data["state"] == "waiting"
+				next { success: false, error: "Game already started or ended" }
+			end
+			
+			# Check minimum players (need at least 2 including bots)
+			total_players = (room_data["players"]&.length || 0) + (room_data["bots"]&.length || 0)
+			if total_players < 2
+				next { success: false, error: "Need at least 2 players to start" }
+			end
+			
+			# Update room state to in_progress
+			room_data["state"] = "in_progress"
+			room_data["started_at"] = Time.now.to_i
+			redis.setex("room:#{room_id}:data", ROOM_TTL, room_data.to_json)
+			
+			Console.info(self, "Game started for room #{room_id} by #{player_id}")
+			
+			# Return success with game URL
+			{
+				success: true,
+				game_url: "/multiplayer?room_id=#{room_id}",
+				room_id: room_id,
+				players: total_players
+			}
+		end
+		result
+	end
+	
 	# Subscribe to room messages (for pub/sub pattern)
 	def subscribe_to_room(room_id, &block)
 		Async do

@@ -260,7 +260,38 @@ I18n.locale = :en                        # Switch language
 3. Add to `locale_name` method
 4. UI automatically includes new option
 
+### Cookie-Based Player ID Persistence
+
+#### Implementation Overview
+- **Storage**: Browser cookies with 30-day expiry
+- **Format**: `cs2d_player_id=<uuid>`
+- **Initialization**: Checks cookie on page load, generates UUID if none exists
+- **UI**: Edit button in header with modal dialog
+- **Validation**: Non-empty, max 50 characters
+
+#### Key Implementation Files
+- `async_redis_lobby_i18n.rb`: Main implementation
+  - `initialize_player_from_cookie()`: Client-side cookie check
+  - `handle_change_player_id()`: Server-side ID update
+  - `set_player_cookie()`: JavaScript cookie setter
+- `lib/i18n.rb`: Translations for player ID UI
+
+#### Modal Close Methods
+1. Click "Save" button (儲存)
+2. Press Enter in input field
+3. Click "Cancel" button (取消)
+4. Click modal background
+5. Press ESC key
+
+#### Cookie Persistence Flow
+1. **First Visit**: Generates new UUID, stores in cookie
+2. **Return Visit**: Reads cookie, restores player ID
+3. **Manual Edit**: Updates both UI and cookie
+4. **Room Operations**: Uses persistent ID for all operations
+
 ### Testing with Playwright
+
+**IMPORTANT**: When making frontend changes, always test with Playwright browser MCP tools. Default testing should use Playwright, not manual browser testing.
 
 ```javascript
 // Basic test pattern
@@ -278,6 +309,33 @@ async function test() {
   
   await browser.close();
 }
+```
+
+#### Testing Cookie Persistence with Playwright MCP
+
+Use the following MCP browser tools to test frontend features:
+
+```bash
+# 1. Navigate to the lobby
+mcp__browser__playwright_navigate url="http://localhost:9292" headless=false
+
+# 2. Take initial screenshot
+mcp__browser__playwright_screenshot name="initial-lobby" fullPage=true
+
+# 3. Test player ID edit modal
+mcp__browser__playwright_click selector="button:has-text('編輯')"
+mcp__browser__playwright_fill selector="#new-player-id" value="test-player-123"
+mcp__browser__playwright_click selector="button:has-text('儲存')"
+
+# 4. Verify modal closes and ID updates
+mcp__browser__playwright_screenshot name="after-edit" fullPage=true
+
+# 5. Check console logs for errors
+mcp__browser__playwright_console_logs type="error"
+
+# 6. Test persistence after page reload
+mcp__browser__playwright_navigate url="http://localhost:9292"
+mcp__browser__playwright_get_visible_text
 ```
 
 ---
@@ -366,6 +424,7 @@ end
 - Multiplayer with authoritative server
 - Redis-based scalable room system
 - Full i18n support (EN + 繁體中文)
+- **Cookie-based player ID persistence** (30-day expiry)
 - Comprehensive test coverage
 - Production-ready error handling
 
@@ -377,6 +436,7 @@ end
 - **Redis operations**: <3ms average
 
 ### Recent Updates
+- **Aug 2025** - Cookie-based player ID persistence (30-day expiry)
 - `d866fd8` - i18n implementation
 - `98f677c` - Redis SETEX compatibility fix
 - `1e2dbd4` - Project cleanup (removed 15+ legacy files)

@@ -69,6 +69,18 @@ module I18n
 				lobby: {
 					title: "🎮 CS2D Multiplayer Game Lobby",
 					subtitle: "(Async Redis)",
+					player: {
+						current_id: "Player ID:",
+						edit: "Edit",
+						change_id: "Change Player ID",
+						id_explanation: "Your Player ID is stored in a cookie and persists across sessions. You can change it if needed.",
+						new_id: "New Player ID:",
+						save: "Save",
+						cancel: "Cancel",
+						id_required: "Player ID cannot be empty",
+						id_too_long: "Player ID must be 50 characters or less",
+						id_changed: "Player ID changed successfully"
+					},
 					stats: {
 						online_rooms: "Online Rooms",
 						online_players: "Online Players",
@@ -104,6 +116,10 @@ module I18n
 						join_button: "Join Room",
 						player_id_placeholder: "Player ID (Optional)"
 					},
+					start: {
+						creator_id_placeholder: "Room Creator ID",
+						start_button: "🚀 Start Game"
+					},
 					messages: {
 						room_name_required: "Please enter a room name",
 						room_created: "Room created successfully! Room ID: %{room_id}",
@@ -112,11 +128,14 @@ module I18n
 						room_join_failed: "Cannot join room: Room is full or does not exist",
 						quick_join_success: "Quick join successful! Room ID: %{room_id}",
 						quick_join_failed: "Quick join failed: Server error",
+						game_started: "Game started! Redirecting to game... Room ID: %{room_id}",
+						game_start_failed: "Failed to start game: %{error}",
 						error: "Error: %{message}"
 					},
 					room_states: {
 						waiting: "Waiting",
 						starting: "Starting",
+						in_progress: "In Progress",
 						playing: "Playing",
 						finished: "Finished"
 					}
@@ -232,6 +251,18 @@ module I18n
 				lobby: {
 					title: "🎮 CS2D 多人遊戲大廳",
 					subtitle: "(Async Redis)",
+					player: {
+						current_id: "玩家 ID:",
+						edit: "編輯",
+						change_id: "更改玩家 ID",
+						id_explanation: "您的玩家 ID 儲存在 Cookie 中，可在多次造訪時保持不變。如需要可以更改。",
+						new_id: "新玩家 ID:",
+						save: "儲存",
+						cancel: "取消",
+						id_required: "玩家 ID 不能為空",
+						id_too_long: "玩家 ID 長度不能超過 50 個字元",
+						id_changed: "玩家 ID 更改成功"
+					},
 					stats: {
 						online_rooms: "線上房間",
 						online_players: "線上玩家",
@@ -267,6 +298,10 @@ module I18n
 						join_button: "加入房間",
 						player_id_placeholder: "玩家 ID (選填)"
 					},
+					start: {
+						creator_id_placeholder: "房間創建者 ID",
+						start_button: "🚀 開始遊戲"
+					},
 					messages: {
 						room_name_required: "請輸入房間名稱",
 						room_created: "房間創建成功！房間 ID: %{room_id}",
@@ -275,11 +310,14 @@ module I18n
 						room_join_failed: "無法加入房間：房間已滿或不存在",
 						quick_join_success: "快速加入成功！房間 ID: %{room_id}",
 						quick_join_failed: "快速加入失敗：伺服器錯誤",
+						game_started: "遊戲已開始！正在跳轉到遊戲... 房間 ID: %{room_id}",
+						game_start_failed: "遊戲開始失敗: %{error}",
 						error: "錯誤: %{message}"
 					},
 					room_states: {
 						waiting: "等待中",
 						starting: "開始中",
+						in_progress: "進行中",
 						playing: "遊戲中",
 						finished: "已結束"
 					}
