@@ -37,8 +37,8 @@ class AsyncRedisRoomManager
 			existing_room_id = redis.get("player:#{player_id}:room")
 			
 			if existing_room_id && redis.exists?("room:#{existing_room_id}:data")
-				# Refresh player TTL
-				redis.expire("player:#{player_id}:room", PLAYER_TTL)
+				# Refresh player TTL using SETEX with current value
+				redis.setex("player:#{player_id}:room", PLAYER_TTL, existing_room_id)
 				return existing_room_id
 			end
 			
@@ -75,9 +75,10 @@ class AsyncRedisRoomManager
 			
 			# Use pipeline for atomic operations
 			redis.pipeline do |pipe|
-				pipe.set("room:#{room_id}:data", room_data.to_json, ex: ROOM_TTL)
+				# Use SETEX for setting with expiration
+				pipe.setex("room:#{room_id}:data", ROOM_TTL, room_data.to_json)
 				pipe.sadd("active_rooms", room_id)
-				pipe.set("player:#{creator_id}:room", room_id, ex: PLAYER_TTL)
+				pipe.setex("player:#{creator_id}:room", PLAYER_TTL, room_id)
 				pipe.hset("room:#{room_id}:players", creator_id, Time.now.to_i)
 			end
 			
@@ -105,12 +106,12 @@ class AsyncRedisRoomManager
 			
 			# Join new room
 			redis.pipeline do |pipe|
-				pipe.set("player:#{player_id}:room", room_id, ex: PLAYER_TTL)
+				pipe.setex("player:#{player_id}:room", PLAYER_TTL, room_id)
 				pipe.hset("room:#{room_id}:players", player_id, Time.now.to_i)
 				
 				# Update room data
 				room_data["players"] << player_id
-				pipe.set("room:#{room_id}:data", room_data.to_json, ex: ROOM_TTL)
+				pipe.setex("room:#{room_id}:data", ROOM_TTL, room_data.to_json)
 			end
 			
 			# Ensure room instance exists
@@ -136,7 +137,7 @@ class AsyncRedisRoomManager
 				if room_data_json
 					room_data = JSON.parse(room_data_json)
 					room_data["players"].delete(player_id)
-					pipe.set("room:#{room_id}:data", room_data.to_json, ex: ROOM_TTL)
+					pipe.setex("room:#{room_id}:data", ROOM_TTL, room_data.to_json)
 				end
 			end
 			
@@ -205,7 +206,7 @@ class AsyncRedisRoomManager
 			
 			room_data = JSON.parse(room_data_json)
 			room_data["state"] = state
-			redis.set("room:#{room_id}:data", room_data.to_json, ex: ROOM_TTL)
+			redis.setex("room:#{room_id}:data", ROOM_TTL, room_data.to_json)
 		end
 	end
 	
@@ -275,7 +276,7 @@ class AsyncRedisRoomManager
 			if room_data_json
 				room_data = JSON.parse(room_data_json)
 				room_data["players"] << player_id
-				pipe.set("room:#{room_id}:data", room_data.to_json, ex: ROOM_TTL)
+				pipe.setex("room:#{room_id}:data", ROOM_TTL, room_data.to_json)
 			end
 		end
 	end
