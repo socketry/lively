@@ -12,6 +12,7 @@ require_relative "game/multiplayer_game_room"
 require_relative "lib/cs16_game_state"
 require_relative "lib/cs16_player_manager" 
 require_relative "lib/cs16_hud_components"
+require_relative "lib/i18n"
 
 # CS 1.6 Classic Multiplayer Implementation
 # Integrates existing room system with Live framework
@@ -259,10 +260,10 @@ class CS16MultiplayerView < Live::View
 	def render_room_info(builder)
 		builder.tag(:div, id: "room-info", 
 			style: "position: absolute; top: 10px; right: 10px; color: #fff; font-size: 12px; background: rgba(0,0,0,0.7); padding: 8px; border-radius: 4px;") do
-			builder.tag(:div) { builder.text("Room: #{@room_id}") }
+			builder.tag(:div) { builder.text(I18n.t("game.interface.room", room_id: @room_id)) }
 			if @game_room
 				player_count = @game_room.players.size
-				builder.tag(:div) { builder.text("Players: #{player_count}/#{MultiplayerGameRoom::MAX_PLAYERS}") }
+				builder.tag(:div) { builder.text(I18n.t("game.interface.players", count: player_count, max: MultiplayerGameRoom::MAX_PLAYERS)) }
 			end
 		end
 	end

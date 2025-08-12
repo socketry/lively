@@ -8,6 +8,7 @@ require "json"
 require_relative "lib/cs16_game_state"
 require_relative "lib/cs16_player_manager"
 require_relative "lib/cs16_hud_components"
+require_relative "lib/i18n"
 
 # CS 1.6 Classic Rules Implementation (Refactored)
 # Clean, modular implementation with extracted components
@@ -86,14 +87,14 @@ class CS16ClassicView < Live::View
 			style: "position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; z-index: 9999;") do
 			builder.tag(:div, style: "text-align: center; color: #fff;") do
 				builder.tag(:h1, style: "font-size: 48px; margin-bottom: 20px; color: #ff6b00;") do
-					builder.text("Counter-Strike 1.6 Classic")
+					builder.text(I18n.t("game.loading.title"))
 				end
 				builder.tag(:div, style: "font-size: 24px;") do
 					map_name = @game_state ? @game_state[:map] : "de_dust2"
-					builder.text("Loading #{map_name}...")
+					builder.text(I18n.t("game.loading.loading_map", map: map_name))
 				end
 				builder.tag(:div, style: "margin-top: 20px; font-size: 18px; color: #888;") do
-					builder.text("Classic Competitive Rules")
+					builder.text(I18n.t("game.loading.rules"))
 				end
 				builder.tag(:div, style: "margin-top: 30px;") do
 					builder.tag(:div, style: "width: 400px; height: 20px; background: #333; border: 2px solid #555;") do
@@ -130,6 +131,43 @@ class CS16ClassicView < Live::View
 			JAVASCRIPT
 		end
 		
+		# Inject i18n translations for JavaScript
+		builder.tag(:script, type: "text/javascript") do
+			interface_translations = {
+				en: I18n.translations[:en][:game][:interface],
+				zh_TW: I18n.translations[:zh_TW][:game][:interface]
+			}
+			
+			builder.raw(<<~JAVASCRIPT)
+				// Inject i18n translations for game interface
+				window.gameI18n = {
+					locale: '#{I18n.locale}',
+					translations: #{interface_translations.to_json},
+					t: function(key, options = {}) {
+						let translation = this.translations[this.locale] || this.translations['en'];
+						const keys = key.split('.');
+						
+						for (const k of keys) {
+							if (translation && typeof translation === 'object') {
+								translation = translation[k];
+							} else {
+								break;
+							}
+						}
+						
+						if (typeof translation === 'string' && options) {
+							for (const [key, value] of Object.entries(options)) {
+								translation = translation.replace(new RegExp('%\\\\{' + key + '\\\\}', 'g'), value);
+							}
+						}
+						
+						return translation || key;
+					}
+				};
+				console.log('🌐 i18n translations loaded for locale:', window.gameI18n.locale);
+			JAVASCRIPT
+		end
+
 		# Include the external JavaScript file - must have closing tag
 		builder.tag(:script, src: "/_static/cs16_classic_game.js", type: "text/javascript") do
 			# Empty content but forces proper opening/closing tags

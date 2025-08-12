@@ -122,6 +122,28 @@ module I18n
 					}
 				},
 				game: {
+					loading: {
+						title: "Counter-Strike 1.6 Classic",
+						loading_map: "Loading %{map}...",
+						rules: "Classic Competitive Rules"
+					},
+					interface: {
+						room: "Room: %{room_id}",
+						players: "Players: %{count}/%{max}",
+						press_b_buy: "Press B for Buy Menu",
+						buy_zone: "BUY ZONE",
+						press_b_to_buy: "Press B to buy",
+						buy_zone_expired: "Buy Zone (Buy time expired)",
+						buy_time_return: "Buy Time: %{seconds}s (Return to buy zone)",
+						freeze_can_buy: "Freeze Time - Can Buy",
+						buy_time_left: "Buy Time: %{seconds}s",
+						low_ammo: "LOW AMMO",
+						empty_clip: "EMPTY",
+						warmup: "WARMUP",
+						buy_menu_title: "🛒 Buy Menu",
+						close_menu: "Close Menu (ESC)",
+						buy_time_expired: "Buy time expired"
+					},
 					teams: {
 						terrorist: "Terrorist",
 						counter_terrorist: "Counter-Terrorist",
@@ -263,6 +285,28 @@ module I18n
 					}
 				},
 				game: {
+					loading: {
+						title: "反恐精英 1.6 經典版",
+						loading_map: "載入地圖 %{map}...",
+						rules: "經典競技規則"
+					},
+					interface: {
+						room: "房間: %{room_id}",
+						players: "玩家: %{count}/%{max}",
+						press_b_buy: "按 B 鍵開啟購買選單",
+						buy_zone: "購買區域",
+						press_b_to_buy: "按 B 鍵購買",
+						buy_zone_expired: "購買區域 (購買時間已過)",
+						buy_time_return: "購買時間: %{seconds}秒 (回到購買區域)",
+						freeze_can_buy: "凍結時間 - 可購買",
+						buy_time_left: "購買時間: %{seconds}秒",
+						low_ammo: "彈藥不足",
+						empty_clip: "空彈匣",
+						warmup: "熱身時間",
+						buy_menu_title: "🛒 購買選單",
+						close_menu: "關閉選單 (ESC)",
+						buy_time_expired: "購買時間已過"
+					},
 					teams: {
 						terrorist: "恐怖份子",
 						counter_terrorist: "反恐精英",
