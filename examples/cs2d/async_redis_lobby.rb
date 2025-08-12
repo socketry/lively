@@ -32,9 +32,8 @@ class AsyncRedisLobbyView < Live::View
 		
 		# Start async tasks for updates
 		Async do
-			# Initial stats and room list update
-			update_stats
-			update_room_list
+			# Initial stats and room list update (combined for efficiency)
+			update_room_and_stats
 			
 			# Start periodic updates
 			start_room_list_updates
@@ -47,12 +46,37 @@ class AsyncRedisLobbyView < Live::View
 				sleep 3 # Update every 3 seconds
 				break unless @page # Stop if page is closed
 				
-				update_stats
-				update_room_list
+				# Get room list once and use it for both stats and room display
+				update_room_and_stats
 			end
 		rescue => e
 			Console.error(self, "Room list update error: #{e.message}")
 		end
+	end
+	
+	def update_room_and_stats
+		return unless @page
+		
+		Async do
+			# Get room list once (this also cleans up expired rooms)
+			rooms = @@room_manager.get_room_list
+			
+			# Get stats using the already fetched rooms
+			stats = @@room_manager.get_stats(rooms)
+			
+			# Update the room list HTML
+			self.replace("#room-list") do |builder|
+				render_room_list(builder, rooms)
+			end
+			
+			# Update the stats bar HTML
+			self.replace("#stats-bar") do |builder|
+				builder.tag(:span) { builder.text("線上房間: #{stats[:total_rooms]} | ") }
+				builder.tag(:span) { builder.text("線上玩家: #{stats[:total_players]}") }
+			end
+		end
+	rescue => e
+		Console.error(self, "Error updating room and stats: #{e.message}")
 	end
 	
 	def update_room_list

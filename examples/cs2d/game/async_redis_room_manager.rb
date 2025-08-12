@@ -183,9 +183,16 @@ class AsyncRedisRoomManager
 			room_ids = redis.smembers("active_rooms")
 			
 			rooms = []
+			expired_rooms = []
+			
 			room_ids.each do |room_id|
 				room_data_json = redis.get("room:#{room_id}:data")
-				next unless room_data_json
+				
+				# Track expired rooms for cleanup
+				if room_data_json.nil?
+					expired_rooms << room_id
+					next
+				end
 				
 				room_data = JSON.parse(room_data_json)
 				player_count = redis.hlen("room:#{room_id}:players")
@@ -200,6 +207,12 @@ class AsyncRedisRoomManager
 					creator_id: room_data["creator_id"],
 					state: room_data["state"]
 				}
+			end
+			
+			# Clean up expired rooms from active_rooms set
+			unless expired_rooms.empty?
+				redis.srem("active_rooms", expired_rooms)
+				Console.info(self, "Cleaned up #{expired_rooms.length} expired rooms: #{expired_rooms.join(', ')}")
 			end
 			
 			rooms
@@ -242,13 +255,23 @@ class AsyncRedisRoomManager
 		end
 	end
 	
-	# Get stats
-	def get_stats
+	# Get stats (optionally with provided rooms to avoid duplicate calls)
+	def get_stats(rooms = nil)
 		with_redis do |redis|
+			# Get actual room list if not provided (which also cleans up expired rooms)
+			rooms ||= get_room_list
+			
+			# Count actual players (filter out expired player keys)
+			player_keys = redis.keys("player:*:room")
+			active_players = 0
+			player_keys.each do |key|
+				active_players += 1 if redis.exists?(key)
+			end
+			
 			{
-				total_rooms: redis.scard("active_rooms"),
-				total_players: redis.keys("player:*:room").size,
-				rooms: get_room_list
+				total_rooms: rooms.length,  # Use actual room count
+				total_players: active_players,
+				rooms: rooms
 			}
 		end
 	end
