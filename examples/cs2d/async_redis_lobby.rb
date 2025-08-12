@@ -20,6 +20,8 @@ class AsyncRedisLobbyView < Live::View
 		@room_id = nil
 		@custom_player_id = nil
 		@room_update_task = nil
+		@current_room = nil
+		@is_room_creator = false
 	end
 	
 	def bind(page)
@@ -95,6 +97,10 @@ class AsyncRedisLobbyView < Live::View
 			handle_join_room(event[:detail])
 		when "quick_join"
 			handle_quick_join(event[:detail])
+		when "start_game"
+			handle_start_game(event[:detail])
+		when "leave_room"
+			handle_leave_room(event[:detail])
 		when "refresh_rooms"
 			update_room_list
 		end
@@ -128,6 +134,8 @@ class AsyncRedisLobbyView < Live::View
 		}
 		
 		@room_id = @@room_manager.create_room(@player_id, settings)
+		@is_room_creator = true
+		@current_room = @room_id
 		
 		show_alert("房間創建成功！房間 ID: #{@room_id}")
 		update_room_list
@@ -145,6 +153,8 @@ class AsyncRedisLobbyView < Live::View
 		@player_id = @custom_player_id unless @custom_player_id.nil? || @custom_player_id.empty?
 		
 		if @@room_manager.join_room(@player_id, @room_id)
+			@current_room = @room_id
+			@is_room_creator = false
 			show_alert("成功加入房間: #{@room_id}")
 			update_room_list
 		else
@@ -166,6 +176,10 @@ class AsyncRedisLobbyView < Live::View
 		@room_id = @@room_manager.find_or_create_room(@player_id)
 		
 		if @room_id
+			@current_room = @room_id
+			# Check if we created the room (we're the only player)
+			room = @@room_manager.get_room_list.find { |r| r[:room_id] == @room_id }
+			@is_room_creator = room && room[:creator_id] == @player_id
 			show_alert("快速加入成功！房間 ID: #{@room_id}")
 			update_room_list
 		else
@@ -175,6 +189,43 @@ class AsyncRedisLobbyView < Live::View
 	rescue => e
 		Console.error(self, "Error in quick join: #{e.message}")
 		show_alert("快速加入失敗: #{e.message}")
+	end
+	
+	def handle_start_game(detail)
+		return unless @current_room && @is_room_creator
+		
+		# Update room state to "playing"
+		@@room_manager.update_room_state(@current_room, "playing")
+		
+		# Redirect to game view
+		redirect_to_game
+		
+	rescue => e
+		Console.error(self, "Error starting game: #{e.message}")
+		show_alert("開始遊戲失敗: #{e.message}")
+	end
+	
+	def handle_leave_room(detail)
+		return unless @current_room
+		
+		@@room_manager.leave_room(@player_id)
+		@current_room = nil
+		@is_room_creator = false
+		@room_id = nil
+		
+		show_alert("已離開房間")
+		update_room_list
+		
+	rescue => e
+		Console.error(self, "Error leaving room: #{e.message}")
+		show_alert("離開房間失敗: #{e.message}")
+	end
+	
+	def redirect_to_game
+		# Redirect to the multiplayer game view with room ID
+		self.script(<<~JAVASCRIPT)
+			window.location.href = '/game?room_id=#{@current_room}&player_id=#{@player_id}';
+		JAVASCRIPT
 	end
 	
 	def show_alert(message)
@@ -221,6 +272,26 @@ class AsyncRedisLobbyView < Live::View
 		JAVASCRIPT
 	end
 	
+	def forward_start_game(room_id)
+		<<~JAVASCRIPT
+			(function() {
+				const detail = {
+					room_id: '#{room_id}'
+				};
+				window.live.forwardEvent('#{@id}', {type: 'start_game'}, detail);
+			})()
+		JAVASCRIPT
+	end
+	
+	def forward_leave_room
+		<<~JAVASCRIPT
+			(function() {
+				const detail = {};
+				window.live.forwardEvent('#{@id}', {type: 'leave_room'}, detail);
+			})()
+		JAVASCRIPT
+	end
+	
 	def render_room_list(builder, rooms)
 		if rooms.empty?
 			builder.tag(:p, style: "color: #666;") do
@@ -240,27 +311,78 @@ class AsyncRedisLobbyView < Live::View
 						builder.tag(:br)
 						builder.text("地圖: #{room[:map]}")
 						builder.tag(:br)
-						builder.text("狀態: #{room[:state] || 'waiting'}")
+						
+						# Show room state with color coding
+						state = room[:state] || 'waiting'
+						state_color = state == 'playing' ? '#ff6b00' : '#4CAF50'
+						state_text = state == 'playing' ? '遊戲中' : '等待中'
+						
+						builder.text("狀態: ")
+						builder.tag(:span, style: "color: #{state_color}; font-weight: bold;") do
+							builder.text(state_text)
+						end
 					end
 					
 					builder.tag(:div, style: "margin-top: 10px;") do
-						builder.tag(:input, 
-							type: "text", 
-							id: "join_player_#{room[:room_id]}", 
-							placeholder: "玩家 ID (選填)",
-							style: "padding: 5px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;")
-						
-						if room[:player_count] >= room[:max_players]
-							builder.tag(:button, 
-								disabled: true,
-								style: "padding: 8px 20px; background: #ccc; color: white; border: none; border-radius: 5px; cursor: not-allowed;") do
-								builder.text("房間已滿")
+						# Check if this is the player's current room
+						if @current_room == room[:room_id]
+							builder.tag(:span, style: "color: #4CAF50; font-weight: bold; margin-right: 10px;") do
+								builder.text("✓ 您在此房間")
+							end
+							
+							# Show Start Game button for room creator
+							if @is_room_creator && room[:state] == "waiting"
+								if room[:player_count] >= 2
+									builder.tag(:button,
+										onclick: forward_start_game(room[:room_id]),
+										style: "padding: 8px 20px; background: #ff6b00; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;") do
+										builder.text("開始遊戲")
+									end
+								else
+									builder.tag(:span, style: "color: #666; margin-right: 10px;") do
+										builder.text("需要至少 2 名玩家")
+									end
+								end
+							elsif room[:state] == "playing"
+								builder.tag(:button,
+									onclick: "window.location.href='/game?room_id=#{room[:room_id]}&player_id=#{@player_id}';",
+									style: "padding: 8px 20px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;") do
+									builder.text("進入遊戲")
+								end
+							end
+							
+							# Leave room button
+							builder.tag(:button,
+								onclick: forward_leave_room,
+								style: "padding: 8px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;") do
+								builder.text("離開房間")
 							end
 						else
-							builder.tag(:button, 
-								onclick: forward_join_room(room[:room_id]),
-								style: "padding: 8px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;") do
-								builder.text("加入房間")
+							# Show join options for other rooms
+							builder.tag(:input, 
+								type: "text", 
+								id: "join_player_#{room[:room_id]}", 
+								placeholder: "玩家 ID (選填)",
+								style: "padding: 5px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;")
+							
+							if room[:player_count] >= room[:max_players]
+								builder.tag(:button, 
+									disabled: true,
+									style: "padding: 8px 20px; background: #ccc; color: white; border: none; border-radius: 5px; cursor: not-allowed;") do
+									builder.text("房間已滿")
+								end
+							elsif room[:state] == "playing"
+								builder.tag(:button, 
+									disabled: true,
+									style: "padding: 8px 20px; background: #ccc; color: white; border: none; border-radius: 5px; cursor: not-allowed;") do
+									builder.text("遊戲中")
+								end
+							else
+								builder.tag(:button, 
+									onclick: forward_join_room(room[:room_id]),
+									style: "padding: 8px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;") do
+									builder.text("加入房間")
+								end
 							end
 						end
 					end
