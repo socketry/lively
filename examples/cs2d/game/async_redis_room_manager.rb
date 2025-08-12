@@ -32,14 +32,14 @@ class AsyncRedisRoomManager
 	
 	# Find or create a room for a player
 	def find_or_create_room(player_id)
-		with_redis do |redis|
+		result = with_redis do |redis|
 			# Check if player is already in a room
 			existing_room_id = redis.get("player:#{player_id}:room")
 			
 			if existing_room_id && redis.exists?("room:#{existing_room_id}:data")
 				# Refresh player TTL using SETEX with current value
 				redis.setex("player:#{player_id}:room", PLAYER_TTL, existing_room_id)
-				return existing_room_id
+				next existing_room_id
 			end
 			
 			# Try to find an available room
@@ -47,12 +47,13 @@ class AsyncRedisRoomManager
 			
 			if room_id
 				assign_player_to_room(redis, player_id, room_id)
-				return room_id
+				next room_id
 			end
 			
 			# Create a new room
 			create_room(player_id)
 		end
+		result
 	end
 	
 	# Create a new room with Redis persistence
@@ -92,14 +93,18 @@ class AsyncRedisRoomManager
 	
 	# Join a specific room
 	def join_room(player_id, room_id)
-		with_redis do |redis|
-			return false unless redis.exists?("room:#{room_id}:data")
+		result = with_redis do |redis|
+			unless redis.exists?("room:#{room_id}:data")
+				next false
+			end
 			
 			# Check room capacity
 			room_data = JSON.parse(redis.get("room:#{room_id}:data"))
 			current_players = redis.hlen("room:#{room_id}:players")
 			
-			return false if current_players >= room_data["max_players"]
+			if current_players >= room_data["max_players"]
+				next false
+			end
 			
 			# Leave current room if any
 			leave_room(player_id)
@@ -120,13 +125,14 @@ class AsyncRedisRoomManager
 			Console.info(self, "Player #{player_id} joined room #{room_id}")
 			true
 		end
+		result
 	end
 	
 	# Leave current room
 	def leave_room(player_id)
 		with_redis do |redis|
 			room_id = redis.get("player:#{player_id}:room")
-			return unless room_id
+			next unless room_id
 			
 			redis.pipeline do |pipe|
 				pipe.del("player:#{player_id}:room")
@@ -150,23 +156,25 @@ class AsyncRedisRoomManager
 	
 	# Get room instance (creates local instance if needed)
 	def get_room(room_id)
-		with_redis do |redis|
+		result = with_redis do |redis|
 			room_data_json = redis.get("room:#{room_id}:data")
-			return nil unless room_data_json
+			next nil unless room_data_json
 			
 			room_data = JSON.parse(room_data_json)
 			ensure_room_instance(room_id, room_data)
 		end
+		result
 	end
 	
 	# Get player's current room
 	def get_player_room(player_id)
-		with_redis do |redis|
+		result = with_redis do |redis|
 			room_id = redis.get("player:#{player_id}:room")
-			return nil unless room_id
+			next nil unless room_id
 			
 			get_room(room_id)
 		end
+		result
 	end
 	
 	# Get list of all active rooms
@@ -202,7 +210,7 @@ class AsyncRedisRoomManager
 	def update_room_state(room_id, state)
 		with_redis do |redis|
 			room_data_json = redis.get("room:#{room_id}:data")
-			return unless room_data_json
+			next unless room_data_json
 			
 			room_data = JSON.parse(room_data_json)
 			room_data["state"] = state
