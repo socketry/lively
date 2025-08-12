@@ -56,7 +56,7 @@ class AsyncRedisLobbyI18nView < Live::View
 		
 		# Inject JavaScript to check for existing cookie and update if found
 		Async do
-			sleep 0.5 # Wait for page to load
+			sleep 1.0 # Increased wait time to ensure all DOM elements are ready
 			initialize_player_from_cookie
 		end
 	end
@@ -82,21 +82,40 @@ class AsyncRedisLobbyI18nView < Live::View
 				return null;
 			}
 			
-			// Check for existing player ID cookie
-			const existingPlayerId = getCookie('cs2d_player_id');
-			console.log('Checking for existing player cookie:', existingPlayerId);
-			
-			if (existingPlayerId && existingPlayerId.trim() !== '') {
-				// Send existing player ID to server
-				console.log('Found existing player ID, sending to server:', existingPlayerId);
-				window.live.forwardEvent('#{@id}', {type: 'set_player_id_from_cookie'}, {player_id: existingPlayerId});
-			} else {
-				// Set new cookie with current player ID
-				const expiry = new Date();
-				expiry.setTime(expiry.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
-				document.cookie = 'cs2d_player_id=#{@player_id}; expires=' + expiry.toUTCString() + '; path=/; SameSite=Lax';
-				console.log('Set new player ID cookie: #{@player_id}');
+			// Initialize player ID when DOM is ready
+			function initializePlayerIdWhenReady() {
+				const playerIdElement = document.getElementById('current-player-id');
+				if (!playerIdElement) {
+					console.log('Player ID element not found, retrying in 100ms...');
+					setTimeout(initializePlayerIdWhenReady, 100);
+					return;
+				}
+				
+				// Check for existing player ID cookie
+				const existingPlayerId = getCookie('cs2d_player_id');
+				console.log('Checking for existing player cookie:', existingPlayerId);
+				
+				if (existingPlayerId && existingPlayerId.trim() !== '') {
+					// Update UI immediately
+					playerIdElement.textContent = existingPlayerId;
+					
+					// Send existing player ID to server
+					console.log('Found existing player ID, sending to server:', existingPlayerId);
+					window.live.forwardEvent('#{@id}', {type: 'set_player_id_from_cookie'}, {player_id: existingPlayerId});
+				} else {
+					// Set new cookie with current player ID
+					const expiry = new Date();
+					expiry.setTime(expiry.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+					document.cookie = 'cs2d_player_id=#{@player_id}; expires=' + expiry.toUTCString() + '; path=/; SameSite=Lax';
+					console.log('Set new player ID cookie: #{@player_id}');
+					
+					// Update UI with server-generated ID
+					playerIdElement.textContent = '#{@player_id}';
+				}
 			}
+			
+			// Start initialization
+			initializePlayerIdWhenReady();
 		JAVASCRIPT
 	rescue => e
 		Console.warn(self, "Failed to initialize player from cookie: #{e.message}")
@@ -367,8 +386,25 @@ class AsyncRedisLobbyI18nView < Live::View
 	end
 	
 	def show_alert(message)
+		# Create a more user-friendly notification instead of alert()
 		self.script(<<~JAVASCRIPT)
-			alert('#{message.gsub("'", "\\'")}');
+			// Create notification element
+			const notification = document.createElement('div');
+			notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 15px 20px; border-radius: 5px; z-index: 10000; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: Arial, sans-serif;';
+			notification.innerHTML = '#{message.gsub("'", "\\'")}';
+			
+			// Add to page
+			document.body.appendChild(notification);
+			
+			// Auto-remove after 5 seconds
+			setTimeout(() => {
+				if (notification.parentNode) {
+					notification.parentNode.removeChild(notification);
+				}
+			}, 5000);
+			
+			// Also log to console for debugging
+			console.log('Notification:', '#{message.gsub("'", "\\'")}');
 		JAVASCRIPT
 	end
 	
@@ -376,12 +412,26 @@ class AsyncRedisLobbyI18nView < Live::View
 	def forward_create_room
 		<<~JAVASCRIPT
 			(function() {
+				// Use more reliable selectors based on form structure
+				const createForm = document.querySelector('#create-form');
+				if (!createForm) {
+					console.error('Create form not found');
+					return;
+				}
+				
+				const playerIdInput = createForm.querySelector('input[placeholder*="玩家 ID"]') || createForm.querySelector('input[type="text"]');
+				const roomNameInput = createForm.querySelector('input[placeholder*="房間名稱"]') || createForm.querySelectorAll('input[type="text"]')[1];
+				const maxPlayersSelect = createForm.querySelector('select') || document.querySelector('select[aria-label*="最大玩家數"]');
+				const mapSelect = createForm.querySelectorAll('select')[1] || document.querySelectorAll('select')[1];
+				
 				const detail = {
-					player_id: document.getElementById('player_id').value,
-					room_name: document.getElementById('room_name').value,
-					max_players: document.getElementById('max_players').value,
-					map: document.getElementById('map').value
+					player_id: playerIdInput ? playerIdInput.value : '',
+					room_name: roomNameInput ? roomNameInput.value : '',
+					max_players: maxPlayersSelect ? maxPlayersSelect.value : '4',
+					map: mapSelect ? mapSelect.value : 'de_dust2'
 				};
+				
+				console.log('Creating room with details:', detail);
 				window.live.forwardEvent('#{@id}', {type: 'create_room'}, detail);
 			})()
 		JAVASCRIPT
@@ -402,9 +452,16 @@ class AsyncRedisLobbyI18nView < Live::View
 	def forward_quick_join
 		<<~JAVASCRIPT
 			(function() {
+				// Use more reliable selector for quick join player ID
+				const quickPlayerIdInput = document.querySelector('input[placeholder*="快速加入"]') || 
+											document.querySelector('#join-tab input[type="text"]') ||
+											document.querySelector('input[id*="quick"]');
+				
 				const detail = {
-					player_id: document.getElementById('quick_player_id').value
+					player_id: quickPlayerIdInput ? quickPlayerIdInput.value : ''
 				};
+				
+				console.log('Quick joining with details:', detail);
 				window.live.forwardEvent('#{@id}', {type: 'quick_join'}, detail);
 			})()
 		JAVASCRIPT
