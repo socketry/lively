@@ -71,7 +71,8 @@ class AsyncRedisRoomManager
 				map: settings[:map] || "de_dust2",
 				game_mode: settings[:game_mode] || "competitive",
 				state: "waiting",
-				players: [creator_id]
+				players: [creator_id],
+				bots: []  # Array to store bot information
 			}
 			
 			# Use pipeline for atomic operations
@@ -339,5 +340,133 @@ class AsyncRedisRoomManager
 				Console.info(self, "Cleaned up empty room: #{room_id}")
 			end
 		end
+	end
+	
+	# Get detailed room information
+	def get_room_info(room_id)
+		with_redis do |redis|
+			room_data_json = redis.get("room:#{room_id}:data")
+			return nil unless room_data_json
+			
+			room_data = JSON.parse(room_data_json)
+			{
+				room_id: room_data["room_id"],
+				name: room_data["name"],
+				creator_id: room_data["creator_id"],
+				max_players: room_data["max_players"],
+				map: room_data["map"],
+				game_mode: room_data["game_mode"],
+				state: room_data["state"],
+				created_at: room_data["created_at"]
+			}
+		end
+	rescue => e
+		Console.error(self, "Error getting room info: #{e.message}")
+		nil
+	end
+	
+	# Get all players in room (including bots)
+	def get_room_players(room_id)
+		with_redis do |redis|
+			room_data_json = redis.get("room:#{room_id}:data")
+			return [] unless room_data_json
+			
+			room_data = JSON.parse(room_data_json)
+			players = []
+			
+			# Add real players
+			room_data["players"]&.each do |player_id|
+				players << {
+					id: player_id,
+					name: player_id,
+					is_bot: false,
+					joined_at: redis.hget("room:#{room_id}:players", player_id)
+				}
+			end
+			
+			# Add bots
+			room_data["bots"]&.each do |bot|
+				players << {
+					id: bot["id"],
+					name: bot["name"],
+					is_bot: true,
+					difficulty: bot["difficulty"]
+				}
+			end
+			
+			players
+		end
+	rescue => e
+		Console.error(self, "Error getting room players: #{e.message}")
+		[]
+	end
+	
+	# Add bot to room
+	def add_bot_to_room(room_id, bot_name, difficulty = "normal")
+		with_redis do |redis|
+			room_data_json = redis.get("room:#{room_id}:data")
+			return false unless room_data_json
+			
+			room_data = JSON.parse(room_data_json)
+			
+			# Check if room is full
+			current_players = (room_data["players"]&.length || 0) + (room_data["bots"]&.length || 0)
+			return false if current_players >= room_data["max_players"]
+			
+			# Generate bot data
+			bot_id = "bot_#{SecureRandom.hex(4)}"
+			bot_data = {
+				"id" => bot_id,
+				"name" => bot_name,
+				"difficulty" => difficulty,
+				"added_at" => Time.now.to_i
+			}
+			
+			# Add bot to room data
+			room_data["bots"] ||= []
+			room_data["bots"] << bot_data
+			
+			# Save updated room data
+			redis.setex("room:#{room_id}:data", ROOM_TTL, room_data.to_json)
+			
+			Console.info(self, "Added bot #{bot_name} (#{bot_id}) to room #{room_id}")
+			true
+		end
+	rescue => e
+		Console.error(self, "Error adding bot to room: #{e.message}")
+		false
+	end
+	
+	# Remove bot from room
+	def remove_bot_from_room(room_id, bot_id)
+		with_redis do |redis|
+			room_data_json = redis.get("room:#{room_id}:data")
+			return false unless room_data_json
+			
+			room_data = JSON.parse(room_data_json)
+			return false unless room_data["bots"]
+			
+			# Find and remove bot
+			bot_removed = false
+			room_data["bots"].reject! do |bot|
+				if bot["id"] == bot_id
+					bot_removed = true
+					Console.info(self, "Removed bot #{bot['name']} (#{bot_id}) from room #{room_id}")
+					true
+				else
+					false
+				end
+			end
+			
+			if bot_removed
+				# Save updated room data
+				redis.setex("room:#{room_id}:data", ROOM_TTL, room_data.to_json)
+			end
+			
+			bot_removed
+		end
+	rescue => e
+		Console.error(self, "Error removing bot from room: #{e.message}")
+		false
 	end
 end

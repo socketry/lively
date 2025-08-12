@@ -161,8 +161,13 @@ class AsyncRedisLobbyView < Live::View
 		@is_room_creator = true
 		@current_room = @room_id
 		
-		show_alert("房間創建成功！房間 ID: #{@room_id}")
-		update_room_list
+		show_alert("房間創建成功！即將進入房間等待室...")
+		
+		# Delay to allow alert to show, then redirect
+		Async do
+			sleep 1.5
+			redirect_to_room
+		end
 		
 	rescue => e
 		Console.error(self, "Error creating room: #{e.message}")
@@ -179,8 +184,13 @@ class AsyncRedisLobbyView < Live::View
 		if @@room_manager.join_room(@player_id, @room_id)
 			@current_room = @room_id
 			@is_room_creator = false
-			show_alert("成功加入房間: #{@room_id}")
-			update_room_list
+			show_alert("成功加入房間！即將進入房間等待室...")
+			
+			# Delay to allow alert to show, then redirect
+			Async do
+				sleep 1.5
+				redirect_to_room
+			end
 		else
 			show_alert("無法加入房間：房間已滿或不存在")
 		end
@@ -204,8 +214,13 @@ class AsyncRedisLobbyView < Live::View
 			# Check if we created the room (we're the only player)
 			room = @@room_manager.get_room_list.find { |r| r[:room_id] == @room_id }
 			@is_room_creator = room && room[:creator_id] == @player_id
-			show_alert("快速加入成功！房間 ID: #{@room_id}")
-			update_room_list
+			show_alert("快速加入成功！即將進入房間等待室...")
+			
+			# Delay to allow alert to show, then redirect
+			Async do
+				sleep 1.5
+				redirect_to_room
+			end
 		else
 			show_alert("無法快速加入：伺服器錯誤")
 		end
@@ -243,6 +258,13 @@ class AsyncRedisLobbyView < Live::View
 	rescue => e
 		Console.error(self, "Error leaving room: #{e.message}")
 		show_alert("離開房間失敗: #{e.message}")
+	end
+	
+	def redirect_to_room
+		# Redirect to the room waiting area
+		self.script(<<~JAVASCRIPT)
+			window.location.href = '/room?room_id=#{@current_room}&player_id=#{@player_id}';
+		JAVASCRIPT
 	end
 	
 	def redirect_to_game
@@ -565,5 +587,4 @@ class AsyncRedisLobbyView < Live::View
 	end
 end
 
-# Create application
-Application = Lively::Application[AsyncRedisLobbyView]
+# Application created in main_server.rb
