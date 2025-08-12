@@ -1,2 +1,7 @@
 logs/
 *.log
+
+# Playwright testing dependencies
+node_modules/
+package-lock.json
+package.json
