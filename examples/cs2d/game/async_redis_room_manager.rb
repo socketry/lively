@@ -268,7 +268,7 @@ class AsyncRedisRoomManager
 	
 	def assign_player_to_room(redis, player_id, room_id)
 		redis.pipeline do |pipe|
-			pipe.set("player:#{player_id}:room", room_id, ex: PLAYER_TTL)
+			pipe.setex("player:#{player_id}:room", PLAYER_TTL, room_id)
 			pipe.hset("room:#{room_id}:players", player_id, Time.now.to_i)
 			
 			# Update room data
