@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS2D - 房間等待</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .room-info {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .room-info h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .room-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+
+        .players-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .players-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .player-item {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-item.host {
+            background: rgba(255, 193, 7, 0.1);
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+
+        .player-name {
+            font-weight: bold;
+        }
+
+        .player-status {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn.start-game {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .btn.leave-room {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-message.waiting {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            color: #ffc107;
+        }
+
+        .status-message.ready {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            color: #28a745;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-to-lobby {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(108, 117, 125, 0.8);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.3s;
+        }
+
+        .back-to-lobby:hover {
+            background: rgba(108, 117, 125, 1);
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-to-lobby">
+        ← 返回大廳
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎮 房間等待</h1>
+            <div id="room-title">Loading...</div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>正在載入房間資訊...</p>
+        </div>
+
+        <div id="room-content" style="display: none;">
+            <div class="room-info">
+                <h2>房間設定</h2>
+                <div class="room-details">
+                    <div class="detail-item">
+                        <strong>房間 ID:</strong>
+                        <span id="room-id">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>地圖:</strong>
+                        <span id="room-map">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>遊戲模式:</strong>
+                        <span id="room-mode">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>最大玩家數:</strong>
+                        <span id="room-capacity">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="players-section">
+                <h2>玩家列表 (<span id="player-count">0</span>/<span id="max-players">0</span>)</h2>
+                <ul id="players-list" class="players-list">
+                    <!-- Players will be populated by JavaScript -->
+                </ul>
+            </div>
+
+            <div id="status-message" class="status-message waiting">
+                等待房主開始遊戲...
+            </div>
+
+            <div class="actions">
+                <button id="start-game-btn" class="btn start-game" style="display: none;">
+                    開始遊戲
+                </button>
+                <button id="leave-room-btn" class="btn leave-room">
+                    離開房間
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Room state management
+        class RoomManager {
+            constructor() {
+                this.roomId = null;
+                this.playerId = null;
+                this.roomData = null;
+                this.isHost = false;
+                this.updateInterval = null;
+                
+                this.init();
+            }
+
+            init() {
+                // Parse URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                this.roomId = urlParams.get('room_id');
+                this.playerId = urlParams.get('player_id');
+
+                console.log('Room Manager initialized:', {
+                    roomId: this.roomId,
+                    playerId: this.playerId
+                });
+
+                if (!this.roomId || !this.playerId) {
+                    alert('缺少必要參數，返回大廳');
+                    window.location.href = '/';
+                    return;
+                }
+
+                // Load initial room data
+                this.loadRoomData();
+
+                // Start periodic updates
+                this.startPeriodicUpdates();
+
+                // Bind event listeners
+                this.bindEvents();
+            }
+
+            async loadRoomData() {
+                try {
+                    console.log('Loading room data for:', this.roomId);
+                    
+                    // In a real implementation, this would be an API call to get room data
+                    // For now, simulate room data with current player as host
+                    this.roomData = {
+                        room_id: this.roomId,
+                        name: `Room ${this.roomId}`,
+                        map: 'de_dust2',
+                        game_mode: 'competitive',
+                        max_players: 10,
+                        creator_id: this.playerId, // Make current player the host
+                        state: 'waiting',
+                        players: [
+                            { id: this.playerId, name: this.playerId, is_host: true }, // Current player is host
+                            { id: 'player_456', name: 'Player 456', is_host: false }
+                        ]
+                    };
+
+                    this.isHost = this.roomData.creator_id === this.playerId;
+                    this.updateUI();
+                    
+                } catch (error) {
+                    console.error('Error loading room data:', error);
+                    this.showError('載入房間資料失敗');
+                }
+            }
+
+            updateUI() {
+                if (!this.roomData) return;
+
+                // Hide loading, show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('room-content').style.display = 'block';
+
+                // Update room info
+                document.getElementById('room-title').textContent = this.roomData.name;
+                document.getElementById('room-id').textContent = this.roomData.room_id;
+                document.getElementById('room-map').textContent = this.roomData.map;
+                document.getElementById('room-mode').textContent = this.roomData.game_mode;
+                document.getElementById('room-capacity').textContent = this.roomData.max_players;
+
+                // Update player list
+                const playersList = document.getElementById('players-list');
+                const playerCount = document.getElementById('player-count');
+                const maxPlayers = document.getElementById('max-players');
+
+                playersList.innerHTML = '';
+                this.roomData.players.forEach(player => {
+                    const li = document.createElement('li');
+                    li.className = `player-item ${player.is_host ? 'host' : ''}`;
+                    li.innerHTML = `
+                        <span class="player-name">${player.name}</span>
+                        <span class="player-status">${player.is_host ? '房主' : '玩家'}</span>
+                    `;
+                    playersList.appendChild(li);
+                });
+
+                playerCount.textContent = this.roomData.players.length;
+                maxPlayers.textContent = this.roomData.max_players;
+
+                // Show/hide start game button based on host status
+                const startBtn = document.getElementById('start-game-btn');
+                if (this.isHost) {
+                    startBtn.style.display = 'inline-block';
+                } else {
+                    startBtn.style.display = 'none';
+                }
+
+                // Update status message
+                const statusDiv = document.getElementById('status-message');
+                if (this.roomData.state === 'waiting') {
+                    statusDiv.textContent = this.isHost ? '點擊開始遊戲按鈕開始遊戲' : '等待房主開始遊戲...';
+                    statusDiv.className = 'status-message waiting';
+                } else if (this.roomData.state === 'starting') {
+                    statusDiv.textContent = '遊戲即將開始...';
+                    statusDiv.className = 'status-message ready';
+                }
+            }
+
+            startPeriodicUpdates() {
+                // Update room data every 3 seconds
+                this.updateInterval = setInterval(() => {
+                    this.loadRoomData();
+                }, 3000);
+            }
+
+            bindEvents() {
+                // Start game button
+                document.getElementById('start-game-btn').addEventListener('click', () => {
+                    this.startGame();
+                });
+
+                // Leave room button
+                document.getElementById('leave-room-btn').addEventListener('click', () => {
+                    this.leaveRoom();
+                });
+
+                // Handle page unload (leave room automatically)
+                window.addEventListener('beforeunload', () => {
+                    this.cleanup();
+                });
+            }
+
+            async startGame() {
+                if (!this.isHost) return;
+
+                try {
+                    console.log('Starting game for room:', this.roomId);
+                    
+                    // Update status
+                    document.getElementById('status-message').textContent = '正在啟動遊戲...';
+                    document.getElementById('start-game-btn').disabled = true;
+
+                    // In a real implementation, this would make an API call to start the game
+                    // For now, navigate to game page after short delay
+                    setTimeout(() => {
+                        window.location.href = `/game.html?room_id=${this.roomId}&player_id=${this.playerId}`;
+                    }, 2000);
+
+                } catch (error) {
+                    console.error('Error starting game:', error);
+                    document.getElementById('start-game-btn').disabled = false;
+                    this.showError('啟動遊戲失敗');
+                }
+            }
+
+            async leaveRoom() {
+                if (confirm('確定要離開房間嗎？')) {
+                    this.cleanup();
+                    window.location.href = '/';
+                }
+            }
+
+            cleanup() {
+                if (this.updateInterval) {
+                    clearInterval(this.updateInterval);
+                }
+                
+                // In a real implementation, this would make an API call to leave the room
+                console.log('Player left room:', { roomId: this.roomId, playerId: this.playerId });
+            }
+
+            showError(message) {
+                const statusDiv = document.getElementById('status-message');
+                statusDiv.textContent = message;
+                statusDiv.className = 'status-message error';
+                statusDiv.style.background = 'rgba(220, 53, 69, 0.1)';
+                statusDiv.style.borderColor = 'rgba(220, 53, 69, 0.3)';
+                statusDiv.style.color = '#dc3545';
+            }
+        }
+
+        // Initialize room manager when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.roomManager = new RoomManager();
+        });
+    </script>
+</body>
+</html>

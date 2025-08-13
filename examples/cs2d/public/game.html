@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS2D - 遊戲中</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-canvas {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            border: 2px solid #34495e;
+            cursor: crosshair;
+        }
+
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .hud-element {
+            position: absolute;
+            pointer-events: auto;
+        }
+
+        #health-bar {
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #555;
+        }
+
+        #health-bar .bar {
+            width: 200px;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        #health-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c 0%, #f39c12 50%, #27ae60 100%);
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        #ammo-display {
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            text-align: right;
+        }
+
+        #ammo-display .current {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        #ammo-display .reserve {
+            font-size: 1.2em;
+            color: #bdc3c7;
+        }
+
+        #minimap {
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #555;
+            border-radius: 5px;
+        }
+
+        #minimap canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #scoreboard {
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            min-width: 250px;
+        }
+
+        #scoreboard table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #scoreboard th,
+        #scoreboard td {
+            padding: 5px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+
+        #scoreboard th {
+            color: #3498db;
+            font-size: 0.9em;
+        }
+
+        #scoreboard td {
+            font-size: 0.85em;
+        }
+
+        #chat {
+            bottom: 100px;
+            left: 20px;
+            width: 400px;
+            max-height: 200px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            border: 1px solid #555;
+        }
+
+        #chat-messages {
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        #chat-input {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-top: 1px solid #555;
+            outline: none;
+        }
+
+        .chat-message {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .chat-message .player {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .chat-message .system {
+            color: #f39c12;
+            font-style: italic;
+        }
+
+        #controls-help {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #555;
+            display: none;
+            z-index: 200;
+        }
+
+        #controls-help h3 {
+            color: #3498db;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        #controls-help .control-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        #controls-help .key {
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .game-menu {
+            position: fixed;
+            top: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .menu-btn {
+            background: rgba(52, 152, 219, 0.8);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .menu-btn:hover {
+            background: rgba(52, 152, 219, 1);
+        }
+
+        .menu-btn.danger {
+            background: rgba(231, 76, 60, 0.8);
+        }
+
+        .menu-btn.danger:hover {
+            background: rgba(231, 76, 60, 1);
+        }
+
+        #game-status {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 200;
+        }
+
+        #game-status h2 {
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .crosshair::before,
+        .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .crosshair::before {
+            left: 50%;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            transform: translateX(-50%);
+        }
+
+        .crosshair::after {
+            top: 50%;
+            left: 0;
+            height: 2px;
+            width: 100%;
+            transform: translateY(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1024" height="768"></canvas>
+        <div class="crosshair"></div>
+    </div>
+
+    <div id="hud">
+        <!-- Health bar -->
+        <div id="health-bar" class="hud-element">
+            <div>生命值: <span id="health-text">100</span>/100</div>
+            <div class="bar">
+                <div class="fill" id="health-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Ammo display -->
+        <div id="ammo-display" class="hud-element">
+            <div class="current" id="current-ammo">30</div>
+            <div class="reserve">/ <span id="reserve-ammo">90</span></div>
+        </div>
+
+        <!-- Minimap -->
+        <div id="minimap" class="hud-element">
+            <canvas id="minimap-canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- Scoreboard -->
+        <div id="scoreboard" class="hud-element">
+            <h4>得分板</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>玩家</th>
+                        <th>分數</th>
+                        <th>擊殺</th>
+                        <th>死亡</th>
+                    </tr>
+                </thead>
+                <tbody id="scoreboard-body">
+                    <!-- Players will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Chat -->
+        <div id="chat" class="hud-element">
+            <div id="chat-messages"></div>
+            <input type="text" id="chat-input" placeholder="按 Enter 發送訊息..." maxlength="100">
+        </div>
+    </div>
+
+    <!-- Game menu -->
+    <div class="game-menu">
+        <button class="menu-btn" onclick="game.toggleHelp()">幫助 (F1)</button>
+        <button class="menu-btn" onclick="game.returnToRoom()">返回房間</button>
+        <button class="menu-btn danger" onclick="game.exitToLobby()">退出遊戲</button>
+    </div>
+
+    <!-- Controls help -->
+    <div id="controls-help">
+        <h3>遊戲控制</h3>
+        <div class="control-item"><span>移動:</span> <span class="key">W A S D</span></div>
+        <div class="control-item"><span>射擊:</span> <span class="key">滑鼠左鍵</span></div>
+        <div class="control-item"><span>瞄準:</span> <span class="key">滑鼠右鍵</span></div>
+        <div class="control-item"><span>重新裝彈:</span> <span class="key">R</span></div>
+        <div class="control-item"><span>跳躍:</span> <span class="key">空格</span></div>
+        <div class="control-item"><span>蹲下:</span> <span class="key">Ctrl</span></div>
+        <div class="control-item"><span>聊天:</span> <span class="key">Enter</span></div>
+        <div class="control-item"><span>幫助:</span> <span class="key">F1</span></div>
+        <div style="text-align: center; margin-top: 15px;">
+            <button class="menu-btn" onclick="game.toggleHelp()">關閉</button>
+        </div>
+    </div>
+
+    <!-- Game status overlay -->
+    <div id="game-status">
+        <h2>正在載入遊戲...</h2>
+        <div class="spinner"></div>
+        <p id="status-text">連接到遊戲伺服器...</p>
+    </div>
+
+    <script>
+        // Game engine
+        class CS2DGame {
+            constructor() {
+                this.canvas = document.getElementById('game-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.minimapCanvas = document.getElementById('minimap-canvas');
+                this.minimapCtx = this.minimapCanvas.getContext('2d');
+                
+                this.roomId = null;
+                this.playerId = null;
+                this.gameState = 'loading';
+                this.players = new Map();
+                this.gameData = null;
+                
+                // Player state
+                this.player = {
+                    x: 400,
+                    y: 300,
+                    angle: 0,
+                    health: 100,
+                    ammo: 30,
+                    reserveAmmo: 90,
+                    weapon: 'ak47',
+                    score: 0,
+                    kills: 0,
+                    deaths: 0
+                };
+
+                // Input state
+                this.keys = {};
+                this.mouse = { x: 0, y: 0, down: false };
+                
+                this.init();
+            }
+
+            init() {
+                console.log('Initializing CS2D Game...');
+                
+                // Parse URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                this.roomId = urlParams.get('room_id');
+                this.playerId = urlParams.get('player_id');
+
+                if (!this.roomId || !this.playerId) {
+                    alert('缺少必要參數，返回大廳');
+                    window.location.href = '/';
+                    return;
+                }
+
+                this.setupEventListeners();
+                this.startGame();
+            }
+
+            setupEventListeners() {
+                // Keyboard events
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    
+                    switch(e.code) {
+                        case 'KeyR':
+                            this.reload();
+                            break;
+                        case 'F1':
+                            e.preventDefault();
+                            this.toggleHelp();
+                            break;
+                        case 'Enter':
+                            this.focusChat();
+                            break;
+                        case 'Escape':
+                            this.blurChat();
+                            break;
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+
+                // Mouse events
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouse.x = e.clientX - rect.left;
+                    this.mouse.y = e.clientY - rect.top;
+                    
+                    // Update player angle based on mouse position
+                    const centerX = this.canvas.width / 2;
+                    const centerY = this.canvas.height / 2;
+                    this.player.angle = Math.atan2(this.mouse.y - centerY, this.mouse.x - centerX);
+                });
+
+                this.canvas.addEventListener('mousedown', (e) => {
+                    if (e.button === 0) { // Left click
+                        this.mouse.down = true;
+                        this.shoot();
+                    }
+                });
+
+                this.canvas.addEventListener('mouseup', (e) => {
+                    this.mouse.down = false;
+                });
+
+                // Chat input
+                const chatInput = document.getElementById('chat-input');
+                chatInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.sendChatMessage(chatInput.value.trim());
+                        chatInput.value = '';
+                        chatInput.blur();
+                    }
+                });
+
+                // Prevent context menu on canvas
+                this.canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+
+                // Window events
+                window.addEventListener('beforeunload', () => {
+                    this.cleanup();
+                });
+            }
+
+            async startGame() {
+                try {
+                    // Simulate game loading
+                    this.updateStatus('載入遊戲資源...');
+                    await this.delay(1000);
+
+                    this.updateStatus('連接到遊戲伺服器...');
+                    await this.delay(1000);
+
+                    this.updateStatus('同步遊戲狀態...');
+                    await this.delay(1000);
+
+                    // Initialize game state
+                    this.initializeGameState();
+                    
+                    // Hide loading screen
+                    document.getElementById('game-status').style.display = 'none';
+                    
+                    // Start game loop
+                    this.gameState = 'playing';
+                    this.gameLoop();
+
+                    // Add system message
+                    this.addChatMessage('系統', `歡迎來到 CS2D！房間: ${this.roomId}`, 'system');
+                    
+                } catch (error) {
+                    console.error('Error starting game:', error);
+                    this.updateStatus('載入失敗，請重試');
+                }
+            }
+
+            initializeGameState() {
+                // Initialize sample players (in real implementation, this comes from server)
+                this.players.set(this.playerId, {
+                    id: this.playerId,
+                    name: this.playerId,
+                    x: 400,
+                    y: 300,
+                    angle: 0,
+                    health: 100,
+                    score: 0,
+                    kills: 0,
+                    deaths: 0,
+                    isCurrentPlayer: true
+                });
+
+                // Add some sample players
+                this.players.set('player_2', {
+                    id: 'player_2',
+                    name: 'Enemy Player',
+                    x: 600,
+                    y: 200,
+                    angle: Math.PI,
+                    health: 85,
+                    score: 1200,
+                    kills: 3,
+                    deaths: 1,
+                    isCurrentPlayer: false
+                });
+
+                this.updateScoreboard();
+            }
+
+            gameLoop() {
+                if (this.gameState !== 'playing') return;
+
+                this.update();
+                this.render();
+                
+                requestAnimationFrame(() => this.gameLoop());
+            }
+
+            update() {
+                // Update player movement based on input
+                this.updatePlayerMovement();
+                
+                // Update game state (bullets, AI, etc.)
+                // In a real implementation, this would sync with server
+                
+                // Update HUD
+                this.updateHUD();
+            }
+
+            updatePlayerMovement() {
+                const speed = 3;
+                let dx = 0, dy = 0;
+
+                if (this.keys['KeyW']) dy -= speed;
+                if (this.keys['KeyS']) dy += speed;
+                if (this.keys['KeyA']) dx -= speed;
+                if (this.keys['KeyD']) dx += speed;
+
+                // Normalize diagonal movement
+                if (dx !== 0 && dy !== 0) {
+                    dx *= 0.707;
+                    dy *= 0.707;
+                }
+
+                this.player.x += dx;
+                this.player.y += dy;
+
+                // Keep player within bounds
+                this.player.x = Math.max(20, Math.min(this.canvas.width - 20, this.player.x));
+                this.player.y = Math.max(20, Math.min(this.canvas.height - 20, this.player.y));
+
+                // Update player in players map
+                if (this.players.has(this.playerId)) {
+                    const playerData = this.players.get(this.playerId);
+                    playerData.x = this.player.x;
+                    playerData.y = this.player.y;
+                    playerData.angle = this.player.angle;
+                }
+            }
+
+            render() {
+                // Clear canvas
+                this.ctx.fillStyle = '#2c3e50';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw map grid
+                this.drawGrid();
+
+                // Draw all players
+                this.players.forEach(player => {
+                    this.drawPlayer(player);
+                });
+
+                // Draw minimap
+                this.drawMinimap();
+            }
+
+            drawGrid() {
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                this.ctx.lineWidth = 1;
+
+                const gridSize = 50;
+                for (let x = 0; x < this.canvas.width; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+
+                for (let y = 0; y < this.canvas.height; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+            }
+
+            drawPlayer(player) {
+                this.ctx.save();
+                
+                // Draw player circle
+                this.ctx.fillStyle = player.isCurrentPlayer ? '#3498db' : '#e74c3c';
+                this.ctx.beginPath();
+                this.ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Draw direction indicator
+                this.ctx.strokeStyle = '#fff';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(player.x, player.y);
+                this.ctx.lineTo(
+                    player.x + Math.cos(player.angle) * 25,
+                    player.y + Math.sin(player.angle) * 25
+                );
+                this.ctx.stroke();
+
+                // Draw player name
+                this.ctx.fillStyle = '#fff';
+                this.ctx.font = '12px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(player.name, player.x, player.y - 25);
+
+                // Draw health bar
+                if (player.health < 100) {
+                    const barWidth = 30;
+                    const barHeight = 4;
+                    const barX = player.x - barWidth / 2;
+                    const barY = player.y + 20;
+
+                    this.ctx.fillStyle = '#333';
+                    this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                    this.ctx.fillStyle = player.health > 50 ? '#27ae60' : '#e74c3c';
+                    this.ctx.fillRect(barX, barY, (barWidth * player.health) / 100, barHeight);
+                }
+
+                this.ctx.restore();
+            }
+
+            drawMinimap() {
+                // Clear minimap
+                this.minimapCtx.fillStyle = '#000';
+                this.minimapCtx.fillRect(0, 0, this.minimapCanvas.width, this.minimapCanvas.height);
+
+                // Scale factor for minimap
+                const scaleX = this.minimapCanvas.width / this.canvas.width;
+                const scaleY = this.minimapCanvas.height / this.canvas.height;
+
+                // Draw players on minimap
+                this.players.forEach(player => {
+                    this.minimapCtx.fillStyle = player.isCurrentPlayer ? '#3498db' : '#e74c3c';
+                    this.minimapCtx.beginPath();
+                    this.minimapCtx.arc(
+                        player.x * scaleX,
+                        player.y * scaleY,
+                        3, 0, Math.PI * 2
+                    );
+                    this.minimapCtx.fill();
+                });
+            }
+
+            updateHUD() {
+                // Update health
+                document.getElementById('health-text').textContent = this.player.health;
+                document.getElementById('health-fill').style.width = `${this.player.health}%`;
+
+                // Update ammo
+                document.getElementById('current-ammo').textContent = this.player.ammo;
+                document.getElementById('reserve-ammo').textContent = this.player.reserveAmmo;
+            }
+
+            updateScoreboard() {
+                const tbody = document.getElementById('scoreboard-body');
+                tbody.innerHTML = '';
+
+                // Sort players by score
+                const sortedPlayers = Array.from(this.players.values())
+                    .sort((a, b) => b.score - a.score);
+
+                sortedPlayers.forEach(player => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${player.name}</td>
+                        <td>${player.score}</td>
+                        <td>${player.kills}</td>
+                        <td>${player.deaths}</td>
+                    `;
+                    
+                    if (player.isCurrentPlayer) {
+                        row.style.backgroundColor = 'rgba(52, 152, 219, 0.2)';
+                    }
+                });
+            }
+
+            shoot() {
+                if (this.player.ammo <= 0) {
+                    this.addChatMessage('系統', '彈藥不足！按 R 重新裝彈', 'system');
+                    return;
+                }
+
+                this.player.ammo--;
+                
+                // Visual effect for shooting
+                this.ctx.save();
+                this.ctx.strokeStyle = '#fff';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.player.x, this.player.y);
+                this.ctx.lineTo(this.mouse.x, this.mouse.y);
+                this.ctx.stroke();
+                this.ctx.restore();
+
+                // In real implementation, send shot to server
+                console.log('Shot fired!', { angle: this.player.angle, ammo: this.player.ammo });
+            }
+
+            reload() {
+                if (this.player.ammo === 30 || this.player.reserveAmmo === 0) return;
+
+                const needed = 30 - this.player.ammo;
+                const available = Math.min(needed, this.player.reserveAmmo);
+                
+                this.player.ammo += available;
+                this.player.reserveAmmo -= available;
+                
+                this.addChatMessage('系統', '重新裝彈完成', 'system');
+            }
+
+            addChatMessage(player, message, type = 'normal') {
+                const messagesDiv = document.getElementById('chat-messages');
+                const messageElement = document.createElement('div');
+                messageElement.className = 'chat-message';
+
+                if (type === 'system') {
+                    messageElement.innerHTML = `<span class="system">${message}</span>`;
+                } else {
+                    messageElement.innerHTML = `<span class="player">${player}:</span> ${message}`;
+                }
+
+                messagesDiv.appendChild(messageElement);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                // Keep only last 50 messages
+                while (messagesDiv.children.length > 50) {
+                    messagesDiv.removeChild(messagesDiv.firstChild);
+                }
+            }
+
+            sendChatMessage(message) {
+                if (!message) return;
+
+                this.addChatMessage(this.playerId, message);
+                // In real implementation, send to server
+                console.log('Chat message sent:', message);
+            }
+
+            focusChat() {
+                const chatInput = document.getElementById('chat-input');
+                chatInput.focus();
+            }
+
+            blurChat() {
+                const chatInput = document.getElementById('chat-input');
+                chatInput.blur();
+            }
+
+            toggleHelp() {
+                const helpDiv = document.getElementById('controls-help');
+                helpDiv.style.display = helpDiv.style.display === 'none' ? 'block' : 'none';
+            }
+
+            returnToRoom() {
+                if (confirm('確定要返回房間嗎？遊戲進度將會遺失。')) {
+                    window.location.href = `/room.html?room_id=${this.roomId}&player_id=${this.playerId}`;
+                }
+            }
+
+            exitToLobby() {
+                if (confirm('確定要退出遊戲嗎？')) {
+                    this.cleanup();
+                    window.location.href = '/';
+                }
+            }
+
+            updateStatus(text) {
+                document.getElementById('status-text').textContent = text;
+            }
+
+            cleanup() {
+                this.gameState = 'stopped';
+                // In real implementation, notify server that player left
+                console.log('Game cleanup completed');
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.game = new CS2DGame();
+        });
+
+        // Prevent default behavior for game keys
+        document.addEventListener('keydown', (e) => {
+            const gameKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'Space', 'ControlLeft', 'F1'];
+            if (gameKeys.includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
