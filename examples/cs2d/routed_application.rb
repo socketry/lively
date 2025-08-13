@@ -9,9 +9,16 @@ require_relative "async_redis_lobby_i18n"
 require_relative "room_waiting"
 require_relative "cs16_multiplayer_view"
 
-# Routing application that handles multiple views
+# Routing middleware for multiple views
 class RoutedApplication
-	def self.call(env)
+	def initialize
+		# Create the individual applications
+		@lobby_app = Lively::Application[AsyncRedisLobbyI18nView]
+		@room_app = Lively::Application[RoomWaitingView]
+		@game_app = Lively::Application[CS16MultiplayerView]
+	end
+	
+	def call(env)
 		request = Rack::Request.new(env)
 		path = request.path_info
 		
@@ -23,7 +30,7 @@ class RoutedApplication
 			# Room waiting page
 			if request.params["room_id"] && request.params["player_id"]
 				Console.info(self, "Routing to RoomWaitingView")
-				Lively::Application[RoomWaitingView].call(env)
+				@room_app.call(env)
 			else
 				# Redirect to lobby if missing params
 				Console.info(self, "Missing room_id or player_id, redirecting to lobby")
@@ -32,13 +39,11 @@ class RoutedApplication
 		when "/game"
 			# Multiplayer game view
 			Console.info(self, "Routing to CS16MultiplayerView")
-			Lively::Application[CS16MultiplayerView].call(env)
+			@game_app.call(env)
 		else
-			# Default to lobby
+			# Default to lobby (handles /, /live, etc.)
 			Console.info(self, "Routing to AsyncRedisLobbyI18nView")
-			Lively::Application[AsyncRedisLobbyI18nView].call(env)
+			@lobby_app.call(env)
 		end
 	end
 end
-
-Application = RoutedApplication

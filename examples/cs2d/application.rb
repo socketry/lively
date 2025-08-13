@@ -8,6 +8,7 @@ require_relative "async_redis_lobby_i18n"
 # Using the stable async_redis_lobby_i18n implementation as the main application
 # This provides lobby functionality with Redis-based room management and i18n support
 # 
-# Note: The unified SPA approach (unified_spa_view.rb) has framework compatibility issues
-# causing infinite rendering loops. Use the proven async_redis_lobby_i18n instead.
+# Note: Unified SPA approaches have been attempted but suffer from Lively framework
+# limitations causing infinite rendering loops. The progressive single-page architecture
+# using JavaScript DOM manipulation also fails due to framework constraints.
 Application = Lively::Application[AsyncRedisLobbyI18nView]

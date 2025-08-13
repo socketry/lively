@@ -410,9 +410,8 @@ class AsyncRedisLobbyI18nView < Live::View
 			
 			// Small delay to let the notification show
 			setTimeout(() => {
-				// Note: In production, room server runs on port 9293
-				// For single-server setup, this would need nginx proxy from /room -> :9293
-				const url = '/room?room_id=#{room_id}&player_id=#{player_id}';
+				// Redirect to static server on port 9293 for room waiting page
+				const url = 'http://localhost:9293/room.html?room_id=#{room_id}&player_id=#{player_id}';
 				console.log('Navigating to:', url);
 				window.location.href = url;
 			}, 2000); // 2 second delay to show success message
