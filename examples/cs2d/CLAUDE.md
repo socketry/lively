@@ -29,24 +29,26 @@ bundle install
 npm install @playwright/test playwright
 ```
 
-### Running Applications
+### Running the Application
 
 ```bash
-# Single-player CS 1.6 game
-bundle exec lively cs16_classic_refactored.rb
-
-# Multiplayer with in-memory rooms
-bundle exec lively cs16_multiplayer_view.rb
-
-# Redis-based lobby (requires Redis server)
+# Start Redis server (required for room management)
 redis-server  # In separate terminal
-bundle exec lively async_redis_lobby.rb
 
-# i18n-enabled lobby (English + 繁體中文)
-bundle exec lively async_redis_lobby_i18n.rb
+# Start the main application
+bundle exec lively ./application
 ```
 
-Access all applications at: `http://localhost:9292`
+Access at: `http://localhost:9292`
+
+### Alternative Configurations
+
+```bash
+# Run specific implementations directly (not recommended)
+bundle exec lively ./async_redis_lobby_i18n  # Stable lobby with i18n
+bundle exec lively ./cs16_classic_refactored  # Single-player game
+bundle exec lively ./cs16_multiplayer_view    # Multiplayer game view
+```
 
 ---
 
@@ -71,35 +73,37 @@ Access all applications at: `http://localhost:9292`
 
 ## 📁 Core Applications
 
-### 1. Single-Player Game
+### Main Application Entry Point
+**File**: `application.rb`
+- Server entrypoint defining the `Application` class
+- Currently uses `AsyncRedisLobbyI18nView` as the stable implementation
+- Single source of truth for application configuration
+
+### 1. Redis Lobby with i18n (ACTIVE)
+**File**: `async_redis_lobby_i18n.rb`
+- Full internationalization (English + 繁體中文)
+- Redis-based room management
+- Cookie-based player ID persistence
+- Real-time room updates
+- **This is the current production implementation**
+
+### 2. Single-Player Game
 **File**: `cs16_classic_refactored.rb`
 - Complete CS 1.6 experience with bot AI
 - 60 FPS canvas rendering
 - Modular architecture with externalized JavaScript
 
-### 2. Multiplayer Game
+### 3. Multiplayer Game View
 **File**: `cs16_multiplayer_view.rb`
 - Real-time multiplayer rooms (up to 10 players)
 - Server-authoritative game logic
-- Lag compensation and state reconciliation
+- Requires routing solution for integration
 
-### 3. Redis Lobby System
-**File**: `async_redis_lobby.rb`
-- Thread-safe room management via Redis
-- Solves Falcon multi-threading issues
-- TTL-based automatic cleanup
-
-### 4. i18n Lobby
-**File**: `async_redis_lobby_i18n.rb`
-- Full internationalization (English + 繁體中文)
-- Real-time language switching
-- Complete UI translation coverage
-
-### 5. Room Management
-**File**: `room_lobby_view.rb`
-- Visual room creation/joining interface
-- Bot management system
-- Chinese (Traditional) UI
+### 4. Unified SPA (Experimental)
+**Files**: `unified_spa.rb`, `unified_spa_view.rb`
+- Attempted single-page application handling all views
+- Has framework compatibility issues (infinite rendering loops)
+- Kept for reference and future development
 
 ---
 
@@ -109,10 +113,11 @@ Access all applications at: `http://localhost:9292`
 ```
 cs2d/
 ├── Core Applications
+│   ├── application.rb                 # Main server entrypoint
+│   ├── async_redis_lobby_i18n.rb     # i18n-enabled lobby (active)
 │   ├── cs16_classic_refactored.rb    # Single-player game
 │   ├── cs16_multiplayer_view.rb      # Multiplayer implementation
-│   ├── async_redis_lobby.rb          # Redis lobby
-│   └── async_redis_lobby_i18n.rb     # i18n-enabled lobby
+│   ├── unified_spa_view.rb           # Experimental unified SPA
 │
 ├── Game Logic (game/)
 │   ├── async_redis_room_manager.rb   # Redis room management
@@ -293,8 +298,27 @@ I18n.locale = :en                        # Switch language
 
 **IMPORTANT**: When making frontend changes, always test with Playwright browser MCP tools. Default testing should use Playwright, not manual browser testing.
 
+#### Available Test Scripts
+
+```bash
+# Test room creation and creator identification
+node test_lobby.js
+
+# Test full game flow (lobby → room → game)
+node test_full_game_flow.js
+
+# Test multiplayer game directly
+node test_multiplayer_game.js
+
+# Debug specific issues
+node test_debug.js
+node test_button.js
+node test_hidden_field.js
+```
+
+#### Basic Playwright Test Pattern
+
 ```javascript
-// Basic test pattern
 const { chromium } = require('playwright');
 
 async function test() {
@@ -305,15 +329,16 @@ async function test() {
   page.on('console', msg => console.log(msg.text()));
   
   await page.goto('http://localhost:9292');
-  // Test interactions...
+  
+  // IMPORTANT: Use specific selectors to avoid ambiguity
+  // Wrong: await page.click('button:has-text("創建房間")'); // Matches 2 buttons!
+  // Right: await page.click('#create-form button:has-text("創建房間")');
   
   await browser.close();
 }
 ```
 
-#### Testing Cookie Persistence with Playwright MCP
-
-Use the following MCP browser tools to test frontend features:
+#### Testing with Playwright MCP Tools
 
 ```bash
 # 1. Navigate to the lobby
@@ -322,20 +347,16 @@ mcp__browser__playwright_navigate url="http://localhost:9292" headless=false
 # 2. Take initial screenshot
 mcp__browser__playwright_screenshot name="initial-lobby" fullPage=true
 
-# 3. Test player ID edit modal
-mcp__browser__playwright_click selector="button:has-text('編輯')"
-mcp__browser__playwright_fill selector="#new-player-id" value="test-player-123"
-mcp__browser__playwright_click selector="button:has-text('儲存')"
+# 3. Test room creation (use specific selector!)
+mcp__browser__playwright_fill selector="#room_name" value="Test Room"
+mcp__browser__playwright_select selector="#max_players" value="4"
+mcp__browser__playwright_click selector="#create-form button:has-text('創建房間')"
 
-# 4. Verify modal closes and ID updates
-mcp__browser__playwright_screenshot name="after-edit" fullPage=true
+# 4. Verify room creation
+mcp__browser__playwright_screenshot name="after-create" fullPage=true
 
 # 5. Check console logs for errors
 mcp__browser__playwright_console_logs type="error"
-
-# 6. Test persistence after page reload
-mcp__browser__playwright_navigate url="http://localhost:9292"
-mcp__browser__playwright_get_visible_text
 ```
 
 ---
@@ -425,7 +446,8 @@ end
 - Redis-based scalable room system
 - Full i18n support (EN + 繁體中文)
 - **Cookie-based player ID persistence** (30-day expiry)
-- **Complete Playwright testing and bug fixes** (Aug 12, 2025)
+- **Application.rb as server entrypoint** (Aug 13, 2025)
+- **Complete Playwright testing and bug fixes** (Aug 12-13, 2025)
 - Comprehensive test coverage
 - Production-ready error handling
 
@@ -438,6 +460,24 @@ end
 - **User experience score**: 9/10 (improved from 2/10)
 
 ### Recent Updates - August 2025 Major Fixes
+- **Aug 13, 2025** - **Application.rb as Server Entrypoint**
+  - ✅ Established application.rb as the single server entrypoint
+  - ✅ Removed duplicate Application class definitions from other files
+  - ✅ Fixed architectural confusion about entry points
+  - ⚠️ Unified SPA has framework compatibility issues (infinite rendering)
+  - ✅ Using stable AsyncRedisLobbyI18nView as production implementation
+- **Aug 13, 2025** - **Routing Architecture Solutions**
+  - ✅ Identified Lively's single-page application limitation
+  - ✅ Created multi-server architecture solution
+  - ✅ Implemented `start_all_servers.sh` for easy development
+  - ✅ Documented Nginx reverse proxy configuration for production
+  - ✅ See `ROUTING_SOLUTION.md` for complete implementation details
+- **Aug 13, 2025** - **Room Creator Identification Fix**
+  - ✅ Fixed player ID handling - rooms use correct UUID
+  - ✅ Changed player_id field to hidden with auto-population
+  - ✅ Fixed button onclick to use proper event forwarding
+  - ✅ Added complete Playwright test suite
+  - ✅ Extended auto-refresh from 3s to 15s
 - **Aug 12, 2025** - **Complete Playwright testing and comprehensive bug fixes**
   - ✅ Fixed player ID initialization and persistence issues
   - ✅ Fixed room creation JavaScript ID selector problems
@@ -451,11 +491,32 @@ end
 - `1e2dbd4` - Project cleanup (removed 15+ legacy files)
 - `13635bd` - Async-redis integration
 
-### Bug Fixes & Testing (August 12, 2025)
+### Bug Fixes & Testing (August 12-13, 2025)
 **Problem**: Multiple critical frontend issues discovered through Playwright testing  
 **Solution**: Systematic fixes implemented and verified
 
-#### Fixed Issues:
+#### Fixed Issues (Aug 13 - Latest):
+1. **Application.rb Server Entrypoint** 🔴➜🟢
+   - Problem: Multiple Application class definitions causing confusion
+   - Fix: Centralized Application definition in application.rb
+   - Result: Single source of truth for server configuration
+
+2. **Unified SPA Rendering Loop** 🔴➜🟡
+   - Problem: Infinite bind() calls causing performance issues
+   - Fix: Attempted multiple solutions, framework limitations discovered
+   - Result: Reverted to stable AsyncRedisLobbyI18nView implementation
+
+3. **Room Creator Identification Bug** 🔴➜🟢
+   - Problem: Players not recognized as room creators
+   - Fix: Changed player_id to hidden auto-populated field
+   - Result: Rooms correctly use player's UUID as creator_id
+
+4. **Button Selector Ambiguity** 🔴➜🟢
+   - Problem: Multiple buttons with same text
+   - Fix: Updated selectors to use specific IDs
+   - Result: Test automation reliably clicks correct buttons
+
+#### Fixed Issues (Aug 12):
 1. **Player ID Initialization Bug** 🔴➜🟢
    - Problem: Empty player ID display, missing edit functionality
    - Fix: Added DOM-ready checking and improved Cookie initialization timing
@@ -470,11 +531,6 @@ end
    - Problem: Invisible alert() dialogs in testing environment
    - Fix: Modern notification system with auto-dismiss and console logging
    - Result: Clear, visible user notifications for all actions
-
-4. **UI Component Rendering** 🔴➜🟢
-   - Problem: Player ID edit button and modal not rendered
-   - Fix: Fixed initialization timing and DOM manipulation
-   - Result: Complete UI functionality restored
 
 #### Testing Infrastructure:
 - **Playwright MCP Integration**: Full browser automation testing
@@ -500,12 +556,13 @@ end
 ## 🎯 Development Guidelines
 
 ### When Working on This Project
-1. **Check Redis**: Ensure Redis is running for multiplayer features
-2. **Run RuboCop**: All Ruby code must pass linting
-3. **Test Changes**: Use Playwright MCP for comprehensive UI testing (mandatory for frontend changes)
-4. **Update i18n**: Add translations for new UI elements
-5. **Document**: Update this file for significant changes
-6. **Verify Notifications**: Test user feedback system after any changes
+1. **Use application.rb**: Always ensure Application class is defined only in application.rb
+2. **Check Redis**: Ensure Redis is running for multiplayer features
+3. **Run RuboCop**: All Ruby code must pass linting
+4. **Test Changes**: Use Playwright MCP for comprehensive UI testing (mandatory for frontend changes)
+5. **Update i18n**: Add translations for new UI elements
+6. **Document**: Update this file for significant changes
+7. **Verify Notifications**: Test user feedback system after any changes
 
 ### Key Principles
 - **Server Authority**: Never trust client for game logic
