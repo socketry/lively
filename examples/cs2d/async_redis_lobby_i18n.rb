@@ -149,7 +149,7 @@ class AsyncRedisLobbyI18nView < Live::View
 			update_room_list
 			
 			loop do
-				sleep 3 # Update every 3 seconds
+				sleep 15 # Update every 15 seconds to avoid interrupting form input
 				break unless @page # Stop if page is closed
 				
 				update_stats
@@ -163,15 +163,38 @@ class AsyncRedisLobbyI18nView < Live::View
 	def update_room_list
 		return unless @page
 		
-		rooms = @@room_manager.get_room_list
-		Console.info(self, "Updating room list with #{rooms.length} rooms: #{rooms.map{|r| r[:room_id]}.join(', ')}")
-		
-		# Update the room list HTML directly
-		self.replace("#room-list") do |builder|
-			render_room_list(builder, rooms)
+		begin
+			Console.info(self, "Fetching room list from Redis...")
+			rooms = @@room_manager.get_room_list
+			Console.info(self, "Fetched #{rooms.length} rooms from Redis")
+			
+			if rooms.any?
+				Console.info(self, "Room details: #{rooms.map{|r| "#{r[:room_id]}(#{r[:player_count]}/#{r[:max_players]})"}.join(', ')}")
+			else
+				Console.warn(self, "No rooms found in Redis")
+			end
+			
+			# Update only the room list section to preserve form inputs
+			self.replace("#room-list-content") do |builder|
+				render_room_list(builder, rooms)
+			end
+			
+			Console.info(self, "Successfully updated room list UI")
+			
+		rescue => e
+			Console.error(self, "Error updating room list: #{e.message}")
+			Console.error(self, e.backtrace.join("\n"))
+			
+			# Show error in UI
+			self.replace("#room-list") do |builder|
+				builder.tag(:p, style: "color: red; font-weight: bold;") do
+					builder.text("房間列表更新失敗: #{e.message}")
+				end
+				builder.tag(:p, style: "color: #666; font-size: 14px;") do
+					builder.text("請檢查 Redis 連接狀態")
+				end
+			end
 		end
-	rescue => e
-		Console.error(self, "Error updating room list: #{e.message}")
 	end
 	
 	def update_stats
@@ -201,12 +224,13 @@ class AsyncRedisLobbyI18nView < Live::View
 			handle_quick_join(event[:detail])
 		when "start_game"
 			handle_start_game(event[:detail])
-		when "refresh_rooms"
+		when "refresh_rooms", "manual_refresh"
+			Console.info(self, "Manual refresh requested")
 			update_room_list
+			update_stats
+			show_alert("房間列表已刷新！")
 		when "change_language"
 			handle_language_change(event[:detail])
-		when "change_player_id"
-			handle_change_player_id(event[:detail])
 		when "set_player_id_from_cookie"
 			handle_set_player_id_from_cookie(event[:detail])
 		end
@@ -230,47 +254,6 @@ class AsyncRedisLobbyI18nView < Live::View
 		end
 	end
 	
-	def handle_change_player_id(detail)
-		new_player_id = detail[:new_player_id]&.strip
-		
-		# Validate new player ID
-		if new_player_id.nil? || new_player_id.empty?
-			show_alert(I18n.t("lobby.player.id_required", default: "Player ID cannot be empty"))
-			return
-		end
-		
-		if new_player_id.length > 50
-			show_alert(I18n.t("lobby.player.id_too_long", default: "Player ID must be 50 characters or less"))
-			return
-		end
-		
-		# Check if player ID actually changed
-		if new_player_id == @player_id
-			# Modal will be closed by client-side JavaScript
-			return
-		end
-		
-		# Update player ID and cookie
-		old_player_id = @player_id
-		@player_id = new_player_id
-		set_player_cookie(@player_id)
-		
-		# Update the UI
-		self.replace("#current-player-id") do |builder|
-			builder.text(@player_id)
-		end
-		
-		# Show success message (modal will be closed by client-side JavaScript)
-		show_alert(I18n.t("lobby.player.id_changed", 
-			default: "Player ID changed from #{old_player_id} to #{@player_id}", 
-			old_id: old_player_id, 
-			new_id: @player_id))
-		
-		Console.info(self, "Player ID changed from #{old_player_id} to #{@player_id}")
-	rescue => e
-		Console.error(self, "Error changing player ID: #{e.message}")
-		show_alert(I18n.t("lobby.messages.error", message: e.message))
-	end
 	
 	def handle_set_player_id_from_cookie(detail)
 		cookie_player_id = detail[:player_id]&.strip
@@ -291,10 +274,15 @@ class AsyncRedisLobbyI18nView < Live::View
 	end
 	
 	def handle_create_room(detail)
+		Console.info(self, "handle_create_room - received detail: #{detail.inspect}")
+		Console.info(self, "Current @player_id: #{@player_id}")
+		
 		@custom_player_id = detail[:player_id]&.strip
 		room_name = detail[:room_name]&.strip
 		max_players = detail[:max_players]&.to_i || 10
 		map = detail[:map] || "de_dust2"
+		
+		Console.info(self, "custom_player_id from detail: #{@custom_player_id.inspect}")
 		
 		# Validate
 		if room_name.nil? || room_name.empty?
@@ -302,8 +290,14 @@ class AsyncRedisLobbyI18nView < Live::View
 			return
 		end
 		
-		# Use custom player ID if provided
-		@player_id = @custom_player_id unless @custom_player_id.nil? || @custom_player_id.empty?
+		# Use custom player ID if provided, otherwise use the existing @player_id
+		if !@custom_player_id.nil? && !@custom_player_id.empty?
+			Console.info(self, "Updating @player_id from #{@player_id} to #{@custom_player_id}")
+			@player_id = @custom_player_id
+		end
+		
+		# Log the player ID being used
+		Console.info(self, "Creating room with player_id: #{@player_id}")
 		
 		settings = {
 			name: room_name,
@@ -316,8 +310,11 @@ class AsyncRedisLobbyI18nView < Live::View
 		
 		@room_id = @@room_manager.create_room(@player_id, settings)
 		
-		show_alert(I18n.t("lobby.messages.room_created", room_id: @room_id))
-		update_room_list
+		show_alert("房間創建成功！房間 ID: #{@room_id}\n您的玩家 ID: #{@player_id}")
+		
+		# 跳轉到房間等待頁面（創建者自動進入房間）
+		Console.info(self, "Redirecting room creator to room waiting page: room_id=#{@room_id}, player_id=#{@player_id}")
+		redirect_to_room(@room_id, @player_id)
 		
 	rescue => e
 		Console.error(self, "Error creating room: #{e.message}")
@@ -333,7 +330,10 @@ class AsyncRedisLobbyI18nView < Live::View
 		
 		if @@room_manager.join_room(@player_id, @room_id)
 			show_alert(I18n.t("lobby.messages.room_joined", room_id: @room_id))
-			update_room_list
+			
+			# 跳轉到房間等待頁面
+			Console.info(self, "Redirecting to room waiting page: room_id=#{@room_id}, player_id=#{@player_id}")
+			redirect_to_room(@room_id, @player_id)
 		else
 			show_alert(I18n.t("lobby.messages.room_join_failed"))
 		end
@@ -354,7 +354,13 @@ class AsyncRedisLobbyI18nView < Live::View
 		
 		if @room_id
 			show_alert(I18n.t("lobby.messages.quick_join_success", room_id: @room_id))
+			# 立即更新並延遲再次更新
 			update_room_list
+			Async do
+				sleep 0.5
+				update_room_list
+				update_stats
+			end
 		else
 			show_alert(I18n.t("lobby.messages.quick_join_failed"))
 		end
@@ -368,21 +374,47 @@ class AsyncRedisLobbyI18nView < Live::View
 		@custom_player_id = detail[:player_id]&.strip
 		room_id = detail[:room_id]
 		
-		# Use custom player ID if provided
-		@player_id = @custom_player_id unless @custom_player_id.nil? || @custom_player_id.empty?
+		# Use custom player ID if provided, otherwise use the existing @player_id
+		if !@custom_player_id.nil? && !@custom_player_id.empty?
+			@player_id = @custom_player_id
+		end
+		
+		# Log the player ID being used
+		Console.info(self, "Starting game with player_id: #{@player_id} for room: #{room_id}")
 		
 		result = @@room_manager.start_game(@player_id, room_id)
 		
 		if result[:success]
 			show_alert("遊戲開始成功！房間 ID: #{room_id}。多人遊戲功能開發中，敬請期待！")
+			# 立即更新並延遲再次更新
 			update_room_list
+			Async do
+				sleep 0.5
+				update_room_list
+				update_stats
+			end
 		else
-			show_alert(I18n.t("lobby.messages.game_start_failed", error: result[:error]))
+			Console.warn(self, "Failed to start game: #{result[:error]}")
+			show_alert("遊戲開始失敗: #{result[:error]}\n您的玩家 ID: #{@player_id}")
 		end
 		
 	rescue => e
 		Console.error(self, "Error starting game: #{e.message}")
 		show_alert(I18n.t("lobby.messages.error", message: e.message))
+	end
+	
+	def redirect_to_room(room_id, player_id)
+		# Use JavaScript to redirect to the room waiting page
+		self.script(<<~JAVASCRIPT)
+			console.log('Redirecting to room waiting page...', {room_id: '#{room_id}', player_id: '#{player_id}'});
+			
+			// Small delay to let the notification show
+			setTimeout(() => {
+				const url = '/room?room_id=#{room_id}&player_id=#{player_id}';
+				console.log('Navigating to:', url);
+				window.location.href = url;
+			}, 2000); // 2 second delay to show success message
+		JAVASCRIPT
 	end
 	
 	def show_alert(message)
@@ -412,27 +444,51 @@ class AsyncRedisLobbyI18nView < Live::View
 	def forward_create_room
 		<<~JAVASCRIPT
 			(function() {
-				// Use more reliable selectors based on form structure
-				const createForm = document.querySelector('#create-form');
-				if (!createForm) {
-					console.error('Create form not found');
-					return;
-				}
-				
-				const playerIdInput = createForm.querySelector('input[placeholder*="玩家 ID"]') || createForm.querySelector('input[type="text"]');
-				const roomNameInput = createForm.querySelector('input[placeholder*="房間名稱"]') || createForm.querySelectorAll('input[type="text"]')[1];
-				const maxPlayersSelect = createForm.querySelector('select') || document.querySelector('select[aria-label*="最大玩家數"]');
-				const mapSelect = createForm.querySelectorAll('select')[1] || document.querySelectorAll('select')[1];
-				
-				const detail = {
-					player_id: playerIdInput ? playerIdInput.value : '',
-					room_name: roomNameInput ? roomNameInput.value : '',
-					max_players: maxPlayersSelect ? maxPlayersSelect.value : '4',
-					map: mapSelect ? mapSelect.value : 'de_dust2'
-				};
-				
-				console.log('Creating room with details:', detail);
-				window.live.forwardEvent('#{@id}', {type: 'create_room'}, detail);
+				// Add small delay to avoid DOM update conflicts
+				setTimeout(() => {
+					// Use ID-based selectors which are more reliable
+					const playerIdInput = document.getElementById('player_id');
+					const roomNameInput = document.getElementById('room_name');
+					const maxPlayersSelect = document.getElementById('max_players');
+					const mapSelect = document.getElementById('map');
+					
+					// Force re-read values to avoid stale data
+					let playerIdValue = playerIdInput ? playerIdInput.value.trim() : '';
+					
+					// If player ID field is empty, use the current player ID from the page
+					if (!playerIdValue) {
+						const currentPlayerIdElement = document.getElementById('current-player-id');
+						if (currentPlayerIdElement) {
+							playerIdValue = currentPlayerIdElement.textContent.trim();
+							console.log('Using current player ID from page:', playerIdValue);
+						}
+					}
+					
+					const roomNameValue = roomNameInput ? roomNameInput.value.trim() : '';
+					const maxPlayersValue = maxPlayersSelect ? maxPlayersSelect.value : '4';
+					const mapValue = mapSelect ? mapSelect.value : 'de_dust2';
+					
+					console.log('Form elements and values:', {
+						playerIdInput: !!playerIdInput,
+						playerIdValue: playerIdValue,
+						roomNameInput: !!roomNameInput,
+						roomNameValue: roomNameValue,
+						maxPlayersSelect: !!maxPlayersSelect,
+						maxPlayersValue: maxPlayersValue,
+						mapSelect: !!mapSelect,
+						mapValue: mapValue
+					});
+					
+					const detail = {
+						player_id: playerIdValue,
+						room_name: roomNameValue,
+						max_players: maxPlayersValue,
+						map: mapValue
+					};
+					
+					console.log('Creating room with details:', detail);
+					window.live.forwardEvent('#{@id}', {type: 'create_room'}, detail);
+				}, 100); // 100ms delay to let DOM settle
 			})()
 		JAVASCRIPT
 	end
@@ -476,23 +532,6 @@ class AsyncRedisLobbyI18nView < Live::View
 		JAVASCRIPT
 	end
 	
-	def forward_change_player_id
-		<<~JAVASCRIPT
-			(function() {
-				const detail = {
-					new_player_id: document.getElementById('new-player-id').value
-				};
-				window.live.forwardEvent('#{@id}', {type: 'change_player_id'}, detail);
-				// Close modal immediately after sending
-				setTimeout(() => {
-					const modal = document.getElementById('player-id-modal');
-					if (modal) {
-						modal.style.display = 'none';
-					}
-				}, 100);
-			})()
-		JAVASCRIPT
-	end
 	
 	def forward_start_game(room_id)
 		<<~JAVASCRIPT
@@ -527,6 +566,13 @@ class AsyncRedisLobbyI18nView < Live::View
 						builder.tag(:br)
 						state_key = "lobby.room_states.#{room[:state] || 'waiting'}"
 						builder.text("#{I18n.t('lobby.join.status')}: #{I18n.t(state_key)}")
+						# Show creator ID for debugging
+						if room[:creator_id]
+							builder.tag(:br)
+							builder.tag(:span, style: "color: #FF9800; font-size: 12px;") do
+								builder.text("房主 ID: #{room[:creator_id]}")
+							end
+						end
 					end
 					
 					builder.tag(:div, style: "margin-top: 10px;") do
@@ -555,16 +601,30 @@ class AsyncRedisLobbyI18nView < Live::View
 							total_players = room[:player_count] # TODO: Add bots count if needed
 							if total_players >= 2
 								builder.tag(:br, style: "margin: 10px 0;")
-								builder.tag(:input, 
-									type: "text", 
-									id: "start_player_#{room[:room_id]}", 
-									placeholder: I18n.t("lobby.start.creator_id_placeholder"),
-									style: "padding: 5px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;")
 								
-								builder.tag(:button, 
-									onclick: forward_start_game(room[:room_id]),
-									style: "padding: 8px 20px; background: #FF5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;") do
-									builder.text(I18n.t("lobby.start.start_button"))
+								# Check if current player is the room creator
+								is_creator = room[:creator_id] == @player_id
+								
+								if is_creator
+									# If player is creator, show simplified button
+									builder.tag(:button, 
+										onclick: "window.live.forwardEvent('#{@id}', {type: 'start_game'}, {player_id: '#{@player_id}', room_id: '#{room[:room_id]}'})",
+										style: "padding: 10px 24px; background: #FF5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px;") do
+										builder.text("🎮 開始遊戲（您是房主）")
+									end
+								else
+									# Show input for non-creators (e.g., for testing or manual override)
+									builder.tag(:input, 
+										type: "text", 
+										id: "start_player_#{room[:room_id]}", 
+										placeholder: "需要輸入房主 ID: #{room[:creator_id][0..7]}...",
+										style: "padding: 5px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;")
+									
+									builder.tag(:button, 
+										onclick: forward_start_game(room[:room_id]),
+										style: "padding: 8px 20px; background: #FF5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;") do
+										builder.text(I18n.t("lobby.start.start_button"))
+									end
 								end
 							end
 						else
@@ -591,18 +651,18 @@ class AsyncRedisLobbyI18nView < Live::View
 				end
 				
 				builder.tag(:div, style: "display: flex; align-items: center; gap: 20px;") do
-					# Player ID display and edit
+					# Player ID display with copy hint
 					builder.tag(:div, style: "display: flex; align-items: center; gap: 8px;") do
 						builder.tag(:span, style: "color: #666; font-size: 14px;") do
-							builder.text(I18n.t("lobby.player.current_id", default: "Player ID:"))
+							builder.text(I18n.t("lobby.player.current_id", default: "您的 ID:"))
 						end
-						builder.tag(:code, id: "current-player-id", style: "background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #333;") do
+						builder.tag(:code, id: "current-player-id", style: "background: #ffeb3b; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #333; font-weight: bold; cursor: pointer;", 
+							title: "點擊複製完整 ID",
+							onclick: "navigator.clipboard.writeText('#{@player_id}').then(() => { alert('已複製玩家 ID: #{@player_id}'); });") do
 							builder.text(@player_id)
 						end
-						builder.tag(:button, 
-							onclick: "togglePlayerIdEdit()",
-							style: "padding: 4px 8px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;") do
-							builder.text(I18n.t("lobby.player.edit", default: "Edit"))
+						builder.tag(:span, style: "color: #4CAF50; font-size: 11px; margin-left: 5px;") do
+							builder.text("(點擊複製)")
 						end
 					end
 					
@@ -642,15 +702,8 @@ class AsyncRedisLobbyI18nView < Live::View
 				builder.tag(:h2) { builder.text(I18n.t("lobby.create.title")) }
 				
 				builder.tag(:div, id: "create-form", style: "max-width: 500px;") do
-					# Player ID
-					builder.tag(:div, style: "margin-bottom: 15px;") do
-						builder.tag(:label, for: "player_id", style: "display: block; margin-bottom: 5px;") do
-							builder.text(I18n.t("lobby.create.player_id"))
-						end
-						builder.tag(:input, type: "text", id: "player_id",
-							placeholder: I18n.t("lobby.create.player_id_placeholder"),
-							style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;")
-					end
+					# Player ID (hidden, auto-populated)
+					builder.tag(:input, type: "hidden", id: "player_id", value: @player_id)
 					
 					# Room name
 					builder.tag(:div, style: "margin-bottom: 15px;") do
@@ -688,7 +741,8 @@ class AsyncRedisLobbyI18nView < Live::View
 						end
 					end
 					
-					builder.tag(:button, type: "button", onclick: forward_create_room,
+					builder.tag(:button, type: "button", 
+						onclick: forward_create_room,
 						style: "padding: 10px 30px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;") do
 						builder.text(I18n.t("lobby.create.create_button"))
 					end
@@ -716,58 +770,33 @@ class AsyncRedisLobbyI18nView < Live::View
 					end
 				end
 				
-				# Room list
-				builder.tag(:h3) { builder.text(I18n.t("lobby.join.room_list_title")) }
-				builder.tag(:div, id: "room-list", style: "display: grid; gap: 15px;") do
-					# Render initial room list immediately
-					begin
-						rooms = @@room_manager.get_room_list
-						render_room_list(builder, rooms)
-						Console.info(self, "Initial render: #{rooms.length} rooms displayed")
-					rescue => e
-						Console.error(self, "Error in initial room list render: #{e.message}")
-						builder.tag(:p, style: "color: red;") do
-							builder.text("房間列表載入出錯: #{e.message}")
+				# Room list with refresh button
+				builder.tag(:div, style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;") do
+					builder.tag(:h3, style: "margin: 0;") { builder.text(I18n.t("lobby.join.room_list_title")) }
+					builder.tag(:button, 
+						onclick: "window.live.forwardEvent('#{@id}', {type: 'manual_refresh'}, {})",
+						style: "padding: 8px 16px; background: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;") do
+						builder.text("🔄 立即刷新")
+					end
+				end
+				builder.tag(:div, id: "room-list", style: "display: block;") do
+					builder.tag(:div, id: "room-list-content", style: "display: grid; gap: 15px;") do
+						# Render initial room list immediately
+						begin
+							rooms = @@room_manager.get_room_list
+							render_room_list(builder, rooms)
+							Console.info(self, "Initial render: #{rooms.length} rooms displayed")
+						rescue => e
+							Console.error(self, "Error in initial room list render: #{e.message}")
+							builder.tag(:p, style: "color: red;") do
+								builder.text("房間列表載入出錯: #{e.message}")
+							end
 						end
 					end
 				end
 			end
 		end
 		
-		# Player ID edit modal
-		builder.tag(:div, id: "player-id-modal", onclick: "event.target === this && cancelPlayerIdEdit()", style: "display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;") do
-			builder.tag(:div, style: "background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%;") do
-				builder.tag(:h3, style: "margin: 0 0 20px 0; color: #333;") do
-					builder.text(I18n.t("lobby.player.change_id", default: "Change Player ID"))
-				end
-				builder.tag(:p, style: "color: #666; margin-bottom: 20px;") do
-					builder.text(I18n.t("lobby.player.id_explanation", default: "Your Player ID is stored in a cookie and persists across sessions. You can change it if needed."))
-				end
-				builder.tag(:div, style: "margin-bottom: 20px;") do
-					builder.tag(:label, for: "new-player-id", style: "display: block; margin-bottom: 5px; font-weight: bold;") do
-						builder.text(I18n.t("lobby.player.new_id", default: "New Player ID:"))
-					end
-					builder.tag(:input, 
-						type: "text", 
-						id: "new-player-id", 
-						value: @player_id,
-						onkeydown: "if(event.key === 'Enter') { #{forward_change_player_id} }",
-						style: "width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;")
-				end
-				builder.tag(:div, style: "display: flex; justify-content: flex-end; gap: 10px;") do
-					builder.tag(:button, 
-						onclick: "cancelPlayerIdEdit()",
-						style: "padding: 10px 20px; background: #ddd; color: #333; border: none; border-radius: 4px; cursor: pointer;") do
-						builder.text(I18n.t("lobby.player.cancel", default: "Cancel"))
-					end
-					builder.tag(:button, 
-						onclick: forward_change_player_id,
-						style: "padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;") do
-						builder.text(I18n.t("lobby.player.save", default: "Save"))
-				end
-				end
-			end
-		end
 		
 		# JavaScript for tab switching and player ID management
 		builder.tag(:script, type: "text/javascript") do
@@ -792,48 +821,46 @@ class AsyncRedisLobbyI18nView < Live::View
 					event.target.style.color = 'white';
 				}
 				
-				function togglePlayerIdEdit() {
-					console.log('Opening player ID edit modal');
-					const modal = document.getElementById('player-id-modal');
-					if (modal) {
-						modal.style.display = 'flex';
-						
-						// Focus the input field
-						setTimeout(() => {
-							const input = document.getElementById('new-player-id');
-							if (input) {
-								input.focus();
-								input.select(); // Select all text for easy editing
-							}
-						}, 100);
-					} else {
-						console.error('Player ID modal not found');
-					}
-				}
 				
-				function cancelPlayerIdEdit() {
-					console.log('Closing player ID edit modal');
-					const modal = document.getElementById('player-id-modal');
-					if (modal) {
-						modal.style.display = 'none';
-					} else {
-						console.error('Player ID modal not found when trying to close');
-					}
-				}
-				
-				// Close modal on escape key
-				document.addEventListener('keydown', (e) => {
-					if (e.key === 'Escape') {
-						const modal = document.getElementById('player-id-modal');
-						if (modal && modal.style.display === 'flex') {
-							cancelPlayerIdEdit();
+				// Function to create room with current form values
+				function createRoomWithCurrentValues() {
+					// Capture values immediately at click time
+					const playerIdInput = document.getElementById('player_id');
+					let playerIdValue = playerIdInput ? playerIdInput.value.trim() : '';
+					
+					console.log('Player ID input element:', playerIdInput);
+					console.log('Player ID input value:', playerIdValue);
+					console.log('Player ID input type:', playerIdInput ? playerIdInput.type : 'not found');
+					
+					// If player ID field is empty, use the current player ID from the page
+					if (!playerIdValue) {
+						const currentPlayerIdElement = document.getElementById('current-player-id');
+						if (currentPlayerIdElement) {
+							playerIdValue = currentPlayerIdElement.textContent.trim();
+							console.log('Using current player ID from page:', playerIdValue);
 						}
 					}
-				});
-				
-				// Make functions globally available
-				window.togglePlayerIdEdit = togglePlayerIdEdit;
-				window.cancelPlayerIdEdit = cancelPlayerIdEdit;
+					
+					const roomNameValue = document.getElementById('room_name')?.value.trim() || '';
+					const maxPlayersValue = document.getElementById('max_players')?.value || '4';
+					const mapValue = document.getElementById('map')?.value || 'de_dust2';
+					
+					console.log('Creating room at click time with values:', {
+						playerIdValue: playerIdValue,
+						roomNameValue: roomNameValue,
+						maxPlayersValue: maxPlayersValue,
+						mapValue: mapValue
+					});
+					
+					// Use event forwarding with captured values
+					console.log('FINAL: Sending player_id to server:', playerIdValue);
+					window.live.forwardEvent('#{@id}', {type: 'create_room'}, {
+						player_id: playerIdValue,
+						room_name: roomNameValue,
+						max_players: maxPlayersValue,
+						map: mapValue
+					});
+				}
 				
 				// Initial room list will be updated by periodic updates
 				console.log('Room list will update automatically via periodic updates');
@@ -851,6 +878,5 @@ end
 
 # TODO: Add CS16MultiplayerView class later
 
-# Create application - for now just use the lobby view
-# TODO: Add proper routing for multiplayer
-Application = Lively::Application[AsyncRedisLobbyI18nView]
+# Application is defined in main_server.rb for proper routing
+# Application = Lively::Application[AsyncRedisLobbyI18nView]
