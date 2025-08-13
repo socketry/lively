@@ -465,4 +465,6 @@ class CS16MultiplayerView < Live::View
 end
 
 # Create the multiplayer application
-Application = Lively::Application[CS16MultiplayerView]
+# Application is defined in application.rb
+# Uncomment the line below only for standalone running (not recommended)
+# Application = Lively::Application[CS16MultiplayerView]

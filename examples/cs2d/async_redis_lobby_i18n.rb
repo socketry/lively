@@ -404,12 +404,14 @@ class AsyncRedisLobbyI18nView < Live::View
 	end
 	
 	def redirect_to_room(room_id, player_id)
-		# Use JavaScript to redirect to the room waiting page
+		# Use JavaScript to redirect to the room waiting page on port 9293
 		self.script(<<~JAVASCRIPT)
 			console.log('Redirecting to room waiting page...', {room_id: '#{room_id}', player_id: '#{player_id}'});
 			
 			// Small delay to let the notification show
 			setTimeout(() => {
+				// Note: In production, room server runs on port 9293
+				// For single-server setup, this would need nginx proxy from /room -> :9293
 				const url = '/room?room_id=#{room_id}&player_id=#{player_id}';
 				console.log('Navigating to:', url);
 				window.location.href = url;
@@ -878,5 +880,6 @@ end
 
 # TODO: Add CS16MultiplayerView class later
 
-# Application is defined in main_server.rb for proper routing
+# Application is defined in application.rb
+# Uncomment the line below only for standalone running (not recommended)
 # Application = Lively::Application[AsyncRedisLobbyI18nView]

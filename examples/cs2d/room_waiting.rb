@@ -453,4 +453,6 @@ class RoomWaitingView < Live::View
 	end
 end
 
-# Application created in main_server.rb
+# Application is defined in application.rb
+# Uncomment the line below only for standalone running (not recommended)
+# Application = Lively::Application[RoomWaitingView]
