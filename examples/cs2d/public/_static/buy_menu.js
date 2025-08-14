@@ -193,8 +193,20 @@ class BuyMenuUI {
 
     setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
-            if (!this.isOpen && e.key.toLowerCase() === 'b') {
-                this.open();
+            // B key toggles the menu
+            if (e.key.toLowerCase() === 'b') {
+                if (this.isOpen) {
+                    this.close();
+                } else {
+                    this.open();
+                }
+                e.preventDefault();
+                return;
+            }
+            
+            // ESC key closes the menu
+            if (e.key === 'Escape' && this.isOpen) {
+                this.close();
                 e.preventDefault();
                 return;
             }
@@ -207,9 +219,6 @@ class BuyMenuUI {
                 e.preventDefault();
             } else if (e.key.toLowerCase() >= 'a' && e.key.toLowerCase() <= 'z') {
                 this.handleMenuSelection(e.key.toLowerCase());
-                e.preventDefault();
-            } else if (e.key === 'Escape' || e.key.toLowerCase() === 'b') {
-                this.close();
                 e.preventDefault();
             } else if (e.key === 'F1') {
                 this.quickBuy('eco');
@@ -224,6 +233,21 @@ class BuyMenuUI {
                 this.quickBuy('awp');
                 e.preventDefault();
             }
+        });
+        
+        // Add click listener to close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.isOpen) {
+                // Check if click was outside the menu
+                if (!this.menuContainer.contains(e.target)) {
+                    this.close();
+                }
+            }
+        });
+        
+        // Prevent clicks inside the menu from closing it
+        this.menuContainer.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     }
 

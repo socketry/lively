@@ -298,6 +298,7 @@ function initializeGame(localPlayerId) {
 		viewportY: 0,
 		killfeed: [],
 		chatMessages: [],
+		droppedWeapons: [],
 		lastUpdate: Date.now()
 	};
 	
@@ -843,6 +844,26 @@ function renderPlayers() {
 				ctx.font = '12px Arial';
 				ctx.fillText('🔧', player.x + 15, player.y);
 			}
+			
+			// Reload progress bar (vertical white bar next to player)
+			if (player.isReloading) {
+				const reloadTime = getWeaponReloadTime(player);
+				const elapsed = Date.now() - player.reloadStartTime;
+				const progress = Math.min(elapsed / reloadTime, 1);
+				
+				// Draw reload bar background
+				ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+				ctx.fillRect(player.x + 20, player.y - 15, 4, 30);
+				
+				// Draw reload progress
+				ctx.fillStyle = '#ffffff';
+				ctx.fillRect(player.x + 20, player.y + 15 - (30 * progress), 4, 30 * progress);
+				
+				// Draw reload bar border
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 1;
+				ctx.strokeRect(player.x + 20, player.y - 15, 4, 30);
+			}
 		} else {
 			// Render dead players with gray body and cross
 			
@@ -1168,44 +1189,15 @@ function renderHUD() {
 	const player = gameState.players[gameState.localPlayerId];
 	if (!player) return;
 
-	// HUD Background
+	// HUD Background (only for ammo/money area)
 	ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-	ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
-
-	// Health
-	ctx.fillStyle = '#ffffff';
-	ctx.font = 'bold 24px Arial';
-	ctx.textAlign = 'left';
-	ctx.fillText('Health:', 20, canvas.height - 80);
-	
-	const healthPercent = player.health / 100;
-	ctx.fillStyle = healthPercent > 0.5 ? '#00ff00' : healthPercent > 0.25 ? '#ffaa00' : '#ff0000';
-	ctx.fillRect(110, canvas.height - 95, 100 * healthPercent, 20);
-	ctx.strokeStyle = '#ffffff';
-	ctx.strokeRect(110, canvas.height - 95, 100, 20);
-	
-	ctx.fillStyle = '#ffffff';
-	ctx.font = '16px Arial';
-	ctx.fillText(player.health.toString(), 120, canvas.height - 80);
-
-	// Armor
-	if (player.armor > 0) {
-		ctx.fillText('Armor:', 20, canvas.height - 50);
-		const armorPercent = player.armor / 100;
-		ctx.fillStyle = '#4444ff';
-		ctx.fillRect(110, canvas.height - 65, 100 * armorPercent, 20);
-		ctx.strokeStyle = '#ffffff';
-		ctx.strokeRect(110, canvas.height - 65, 100, 20);
-		
-		ctx.fillStyle = '#ffffff';
-		ctx.fillText(player.armor.toString(), 120, canvas.height - 50);
-	}
+	ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
 
 	// Money
 	ctx.fillStyle = '#00ff00';
 	ctx.font = 'bold 20px Arial';
 	ctx.textAlign = 'left';
-	ctx.fillText(`$${player.money}`, 240, canvas.height - 80);
+	ctx.fillText(`$${player.money}`, 20, canvas.height - 30);
 
 	// Current weapon
 	ctx.fillStyle = '#ffffff';
@@ -1218,46 +1210,32 @@ function renderHUD() {
 	} else if (player.currentWeapon === 'knife') {
 		weaponDisplayName = 'KNIFE';
 	}
-	ctx.fillText(`Weapon: ${weaponDisplayName}`, 240, canvas.height - 55);
+	ctx.fillText(`Weapon: ${weaponDisplayName}`, 150, canvas.height - 30);
 	
 	// Ammunition display
 	if (player.currentWeapon === 'primary' || player.currentWeapon === 'secondary') {
 		const weaponSlot = player.currentWeapon;
 		const currentAmmo = player.ammo[weaponSlot];
 		
-		// Show reload status
-		if (player.isReloading) {
-			ctx.fillStyle = '#ffaa00';
-			ctx.fillText('RELOADING...', 400, canvas.height - 80);
-		} else {
-			// Show ammo count
-			ctx.fillStyle = '#ffffff';
-			ctx.font = 'bold 18px Arial';
-			ctx.fillText(`${currentAmmo.clip}`, 400, canvas.height - 80);
-			
-			ctx.font = '14px Arial';
-			ctx.fillStyle = '#aaaaaa';
-			ctx.fillText(`/ ${currentAmmo.reserve}`, 430, canvas.height - 80);
-		}
+		// Show ammo count
+		ctx.fillStyle = '#ffffff';
+		ctx.font = 'bold 24px Arial';
+		ctx.textAlign = 'right';
+		ctx.fillText(`${currentAmmo.clip}`, canvas.width - 100, canvas.height - 25);
 		
-		// Low ammo warning
-		if (currentAmmo.clip <= 3 && !player.isReloading) {
-			ctx.fillStyle = '#ff4444';
-			ctx.font = '12px Arial';
-			ctx.fillText('LOW AMMO', 400, canvas.height - 60);
-		}
+		ctx.font = '16px Arial';
+		ctx.fillStyle = '#aaaaaa';
+		ctx.fillText(`/ ${currentAmmo.reserve}`, canvas.width - 40, canvas.height - 25);
 	}
 	
-	// Equipment slots display
-	ctx.fillStyle = '#ffffff';
-	ctx.font = '12px Arial';
-	ctx.textAlign = 'left';
-	ctx.fillText('Slots:', 20, canvas.height - 20);
+	// Equipment/Inventory bar at bottom center
+	const inventoryX = canvas.width / 2 - 150;
+	const inventoryY = canvas.height - 40;
 	
 	for (let slotNum = 1; slotNum <= 5; slotNum++) {
 		const slotItem = player.slots[slotNum];
-		const slotX = 80 + (slotNum - 1) * 60;
-		const slotY = canvas.height - 35;
+		const slotX = inventoryX + (slotNum - 1) * 60;
+		const slotY = inventoryY;
 		
 		// Draw slot background
 		if (
@@ -1268,31 +1246,30 @@ function renderHUD() {
 			(slotNum === 5 && player.currentWeapon === 'grenade2')
 		) {
 			// Active slot - highlighted background
-			ctx.fillStyle = 'rgba(255, 107, 0, 0.7)';
+			ctx.fillStyle = 'rgba(255, 170, 0, 0.8)';
 		} else {
 			// Inactive slot - dark background
-			ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
 		}
-		ctx.fillRect(slotX - 2, slotY - 2, 56, 16);
+		ctx.fillRect(slotX, slotY, 55, 30);
 		
 		// Draw slot border
-		ctx.strokeStyle = '#666666';
-		ctx.lineWidth = 1;
-		ctx.strokeRect(slotX - 2, slotY - 2, 56, 16);
+		ctx.strokeStyle = slotItem ? '#ffffff' : '#666666';
+		ctx.lineWidth = 2;
+		ctx.strokeRect(slotX, slotY, 55, 30);
 		
-		// Draw slot number and item
+		// Draw slot number
 		ctx.fillStyle = '#ffffff';
 		ctx.font = 'bold 10px Arial';
-		ctx.textAlign = 'left';
-		ctx.fillText(`[${slotNum}]`, slotX, slotY + 10);
+		ctx.textAlign = 'center';
+		ctx.fillText(slotNum.toString(), slotX + 27, slotY + 10);
 		
+		// Draw item icon or name
 		if (slotItem) {
-			ctx.font = '9px Arial';
-			ctx.fillText(slotItem.toUpperCase(), slotX + 22, slotY + 10);
-		} else {
-			ctx.fillStyle = '#666666';
-			ctx.font = '9px Arial';
-			ctx.fillText('EMPTY', slotX + 22, slotY + 10);
+			ctx.font = 'bold 9px Arial';
+			ctx.fillStyle = '#ffffff';
+			const itemName = slotItem.toUpperCase().substring(0, 6);
+			ctx.fillText(itemName, slotX + 27, slotY + 22);
 		}
 	}
 
@@ -1994,6 +1971,134 @@ function formatTime(seconds) {
 	return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
+function getWeaponReloadTime(player) {
+	const reloadTimes = {
+		pistol: 1500,
+		smg: 2000,
+		rifle: 2500,
+		sniper: 3000,
+		shotgun: 2800
+	};
+	
+	const weaponSlot = player.currentWeapon;
+	const weaponId = weaponSlot === 'primary' ? player.primaryWeapon : player.secondaryWeapon;
+	
+	if (!weaponId) return 2000; // Default if no weapon
+	
+	if (['glock', 'usp', 'p228', 'deagle', 'fiveseven', 'elite'].includes(weaponId)) {
+		return reloadTimes.pistol;
+	} else if (['ak47', 'm4a1', 'galil', 'famas', 'sg552', 'aug'].includes(weaponId)) {
+		return reloadTimes.rifle;
+	} else if (['awp', 'scout', 'g3sg1', 'sg550'].includes(weaponId)) {
+		return reloadTimes.sniper;
+	} else if (['mac10', 'tmp', 'mp5', 'ump45', 'p90'].includes(weaponId)) {
+		return reloadTimes.smg;
+	} else if (['m3', 'xm1014'].includes(weaponId)) {
+		return reloadTimes.shotgun;
+	}
+	
+	return 2000; // Default reload time
+}
+
+function dropPlayerWeapons(player) {
+	if (!gameState.droppedWeapons) gameState.droppedWeapons = [];
+	
+	// Drop primary weapon if exists
+	if (player.primaryWeapon) {
+		gameState.droppedWeapons.push({
+			id: Date.now() + Math.random(),
+			weaponId: player.primaryWeapon,
+			x: player.x + (Math.random() - 0.5) * 40,
+			y: player.y + (Math.random() - 0.5) * 40,
+			ammo: player.ammo.primary,
+			timestamp: Date.now()
+		});
+	}
+	
+	// Drop secondary weapon if it's not default
+	if (player.secondaryWeapon && player.secondaryWeapon !== 'usp' && player.secondaryWeapon !== 'glock') {
+		gameState.droppedWeapons.push({
+			id: Date.now() + Math.random() + 1,
+			weaponId: player.secondaryWeapon,
+			x: player.x + (Math.random() - 0.5) * 40,
+			y: player.y + (Math.random() - 0.5) * 40,
+			ammo: player.ammo.secondary,
+			timestamp: Date.now()
+		});
+	}
+	
+	// Clean up old dropped weapons (remove after 30 seconds)
+	gameState.droppedWeapons = gameState.droppedWeapons.filter(w => 
+		Date.now() - w.timestamp < 30000
+	);
+}
+
+function pickupWeapon(player, weapon) {
+	const weaponType = getWeaponType(weapon.weaponId);
+	
+	if (weaponType === 'primary') {
+		// Drop current primary if exists
+		if (player.primaryWeapon) {
+			gameState.droppedWeapons.push({
+				id: Date.now() + Math.random(),
+				weaponId: player.primaryWeapon,
+				x: weapon.x,
+				y: weapon.y,
+				ammo: player.ammo.primary,
+				timestamp: Date.now()
+			});
+		}
+		player.primaryWeapon = weapon.weaponId;
+		player.ammo.primary = weapon.ammo;
+		player.slots[3] = weapon.weaponId;
+	} else if (weaponType === 'secondary') {
+		// Drop current secondary if exists
+		if (player.secondaryWeapon) {
+			gameState.droppedWeapons.push({
+				id: Date.now() + Math.random(),
+				weaponId: player.secondaryWeapon,
+				x: weapon.x,
+				y: weapon.y,
+				ammo: player.ammo.secondary,
+				timestamp: Date.now()
+			});
+		}
+		player.secondaryWeapon = weapon.weaponId;
+		player.ammo.secondary = weapon.ammo;
+		player.slots[2] = weapon.weaponId;
+	}
+}
+
+function getWeaponType(weaponId) {
+	const primaryWeapons = ['ak47', 'm4a1', 'awp', 'scout', 'galil', 'famas', 'sg552', 'aug', 'g3sg1', 'sg550', 'mac10', 'tmp', 'mp5', 'ump45', 'p90', 'm3', 'xm1014', 'm249'];
+	const secondaryWeapons = ['glock', 'usp', 'p228', 'deagle', 'fiveseven', 'elite'];
+	
+	if (primaryWeapons.includes(weaponId)) return 'primary';
+	if (secondaryWeapons.includes(weaponId)) return 'secondary';
+	return null;
+}
+
+function renderDroppedWeapons() {
+	if (!gameState.droppedWeapons) return;
+	
+	for (const weapon of gameState.droppedWeapons) {
+		// Draw weapon box
+		ctx.fillStyle = 'rgba(255, 255, 0, 0.7)';
+		ctx.fillRect(weapon.x - 15, weapon.y - 10, 30, 20);
+		
+		// Draw weapon name
+		ctx.fillStyle = '#000000';
+		ctx.font = 'bold 8px Arial';
+		ctx.textAlign = 'center';
+		ctx.fillText(weapon.weaponId.toUpperCase().substring(0, 5), weapon.x, weapon.y + 3);
+		
+		// Draw border
+		ctx.strokeStyle = '#ffaa00';
+		ctx.lineWidth = 2;
+		ctx.strokeRect(weapon.x - 15, weapon.y - 10, 30, 20);
+	}
+}
+
 // Bomb plant function
 function plantBomb(playerId, x, y) {
 	const player = gameState.players[playerId];
@@ -2081,6 +2186,9 @@ function checkBulletHit(bullet) {
 				player.alive = false;
 				player.deaths = (player.deaths || 0) + 1;
 				
+				// Drop weapons on death
+				dropPlayerWeapons(player);
+				
 				// Give kill credit and update killfeed
 				if (shooter) {
 					shooter.kills = (shooter.kills || 0) + 1;
@@ -2145,9 +2253,9 @@ function renderScoreboard() {
 	for (const player of Object.values(gameState.players)) {
 		ctx.fillStyle = player.team === 'ct' ? '#6666ff' : '#ffcc66';
 		ctx.fillText(player.name.substring(0, 15), 250, yPos);
-		ctx.fillText(player.kills.toString(), 450, yPos);
-		ctx.fillText(player.deaths.toString(), 500, yPos);
-		ctx.fillText(`$${player.money}`, 550, yPos);
+		ctx.fillText((player.kills || 0).toString(), 450, yPos);
+		ctx.fillText((player.deaths || 0).toString(), 500, yPos);
+		ctx.fillText(`$${player.money || 0}`, 550, yPos);
 		yPos += 25;
 	}
 	
@@ -2319,8 +2427,17 @@ function initializeInputHandlers() {
 		console.log('Key pressed:', e.code, 'Key:', e.key);
 		input.keys[e.code] = true;
 		
-		// Buy menu (both B and b) - DIRECT CREATION APPROACH
+		// Buy menu (both B and b) - TOGGLE APPROACH
 		if (e.code === 'KeyB' || e.key.toLowerCase() === 'b') {
+			const existingMenu = document.getElementById('claude-buy-menu');
+			
+			if (existingMenu) {
+				// Toggle off if already open
+				existingMenu.remove();
+				console.log('Buy menu closed with B key');
+				return;
+			}
+			
 			console.log('🚀 B key pressed - CREATING FRESH BUY MENU!');
 			
 			// Remove any existing buy menus
@@ -2465,6 +2582,27 @@ function initializeInputHandlers() {
 			}
 		}
 		
+		// Pickup weapon with G key
+		if (e.code === 'KeyG') {
+			const player = gameState.players[gameState.localPlayerId];
+			if (player && player.alive && gameState.droppedWeapons) {
+				for (let i = 0; i < gameState.droppedWeapons.length; i++) {
+					const weapon = gameState.droppedWeapons[i];
+					const distance = Math.sqrt(
+						Math.pow(weapon.x - player.x, 2) + 
+						Math.pow(weapon.y - player.y, 2)
+					);
+					
+					if (distance < 30) {
+						pickupWeapon(player, weapon);
+						gameState.droppedWeapons.splice(i, 1);
+						console.log(`Picked up ${weapon.weaponId}`);
+						break;
+					}
+				}
+			}
+		}
+		
 		// Weapon/slot switching with number keys (when buy menu is not open)
 		let buyMenuCheck = document.getElementById('claude-buy-menu');
 		if (!buyMenuCheck) {
@@ -2483,17 +2621,19 @@ function initializeInputHandlers() {
 		
 		// ESC to close menus
 		if (e.code === 'Escape') {
+			// Close any old-style buy menu
 			const buyMenu = document.getElementById('buy-menu');
 			if (buyMenu && buyMenu.style.display === 'block') {
 				buyMenu.style.display = 'none';
 				console.log('Buy menu closed with ESC');
 			}
 			
-			// Also close Claude buy menu
+			// Close Claude buy menu
 			const claudeBuyMenu = document.getElementById('claude-buy-menu');
 			if (claudeBuyMenu) {
 				claudeBuyMenu.remove();
 				console.log('Claude buy menu closed with ESC');
+				e.preventDefault();
 			}
 		}
 		

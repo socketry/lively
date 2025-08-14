@@ -932,87 +932,201 @@ class AsyncRedisLobbyI18nView < Live::View
 						gap: 1.5rem;
 					}
 				}
-			CSS
+				
+				/* Modern Glass morphism design */
+				.lobby-container {
+					max-width: 1200px !important;
+					width: 100%;
+					margin: 0 auto;
+					padding: 2rem;
+					background: linear-gradient(135deg, rgba(15, 15, 35, 0.9) 0%, rgba(26, 26, 46, 0.9) 100%);
+					backdrop-filter: blur(30px);
+					border-radius: 30px;
+					border: 1px solid rgba(102, 126, 234, 0.2);
+					box-shadow: 
+						0 30px 60px rgba(0, 0, 0, 0.4),
+						0 0 100px rgba(102, 126, 234, 0.1);
+				}
+				
+				.lobby-header {
+					text-align: center;
+					margin-bottom: 2rem;
+					padding-bottom: 1.5rem;
+					border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+				}
+				
+				.lobby-title {
+					font-size: 3rem;
+					background: linear-gradient(135deg, #667eea 0%, #f472b6 100%);
+					-webkit-background-clip: text;
+					-webkit-text-fill-color: transparent;
+					margin-bottom: 0.5rem;
+					font-weight: bold;
+				}
+				
+				.lobby-subtitle {
+					color: rgba(255, 255, 255, 0.6);
+					font-size: 1rem;
+					letter-spacing: 2px;
+					text-transform: uppercase;
+				}
+				
+				.user-bar {
+					background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+					border: 1px solid rgba(102, 126, 234, 0.2);
+					border-radius: 20px;
+					padding: 1.2rem;
+					margin-bottom: 1.5rem;
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					flexWrap: wrap;
+					gap: 1rem;
+				}
+				
+				.nickname-section {
+					display: flex;
+					align-items: center;
+					gap: 1rem;
+				}
+				
+				.player-id-section {
+					display: flex;
+					align-items: center;
+					gap: 0.5rem;
+				}
+				
+				#stats-bar {
+					background: linear-gradient(135deg, rgba(46, 204, 113, 0.1) 0%, rgba(52, 152, 219, 0.1) 100%);
+					border: 1px solid rgba(46, 204, 113, 0.2);
+					border-radius: 15px;
+					padding: 1rem;
+					margin-bottom: 2rem;
+					display: grid;
+					grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+					gap: 1rem;
+					text-align: center;
+				}
+				
+				.stat-item {
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+				}
+				
+				.stat-value {
+					font-size: 2rem;
+					font-weight: bold;
+					color: #2ecc71;
+				}
+				
+				.stat-label {
+					color: rgba(255, 255, 255, 0.6);
+					font-size: 0.85rem;
+					text-transform: uppercase;
+				}
+				
+				.main-content {
+					display: grid;
+					grid-template-columns: 400px 1fr;
+					gap: 2rem;
+				}
+				
+				@media (max-width: 1024px) {
+					.main-content {
+						grid-template-columns: 1fr;
+					}
+					
+					.user-bar {
+						flex-direction: column;
+						align-items: flex-start;
+					}
+				}
+				CSS
 		end
 		
 		builder.tag(:div, id: "lobby-container", class: "lobby-container") do
-			# Header with title, player info, and language switcher
-			builder.tag(:div, class: "player-header") do
-				builder.tag(:h1) do
-					builder.text(I18n.t("lobby.title"))
-					builder.tag(:span, style: "font-size: 0.6em; margin-left: 10px;") do
-						builder.text(I18n.t("lobby.subtitle"))
+			# Modern Header Section
+			builder.tag(:div, class: "lobby-header") do
+				builder.tag(:h1, class: "lobby-title") do
+					builder.text("🎮 " + I18n.t("lobby.title"))
+				end
+				builder.tag(:div, class: "lobby-subtitle") do
+					builder.text(I18n.t("lobby.subtitle"))
+				end
+			end
+				
+			# User Information Bar
+			builder.tag(:div, class: "user-bar") do
+				# Nickname Section
+				builder.tag(:div, class: "nickname-section") do
+					builder.tag(:span, class: "user-label") do
+						builder.text(I18n.t("lobby.player.nickname", default: "暱稱:"))
+					end
+					
+					# Display mode
+					builder.tag(:div, id: "nickname-display", style: "display: flex; align-items: center; gap: 8px;") do
+						builder.tag(:strong, id: "current-player-nickname", style: "color: #667eea; font-size: 1.1em;") do
+							builder.text(@player_nickname || (@player_id ? "Player_#{@player_id[0..5]}" : "Loading..."))
+						end
+						builder.tag(:button, 
+							onclick: "startNicknameEdit()",
+							class: "btn btn-secondary",
+							style: "padding: 2px 8px; font-size: 12px;") do
+							builder.text("編輯")
+						end
+					end
+					
+					# Edit mode (hidden by default)
+					builder.tag(:div, id: "nickname-edit", style: "display: none; align-items: center; gap: 8px;") do
+						builder.tag(:input, 
+							type: "text",
+							id: "nickname-input",
+							maxlength: "20",
+							style: "padding: 4px 8px; border: 1px solid #667eea; border-radius: 4px; background: #1a1a1a; color: white;",
+							onkeydown: "handleNicknameKeydown(event)")
+						builder.tag(:button,
+							onclick: "saveNickname()",
+							class: "btn btn-primary",
+							style: "padding: 2px 8px; font-size: 12px;") do
+							builder.text("儲存")
+						end
+						builder.tag(:button,
+							onclick: "cancelNicknameEdit()",
+							class: "btn btn-secondary",
+							style: "padding: 2px 8px; font-size: 12px;") do
+							builder.text("取消")
+						end
 					end
 				end
 				
-				builder.tag(:div, class: "player-info") do
-					# Player Nickname display with inline edit
-					builder.tag(:div, id: "nickname-container", style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;") do
-						builder.tag(:span) do
-							builder.text("暱稱:")
-						end
-						
-						# Display mode
-						builder.tag(:div, id: "nickname-display", style: "display: flex; align-items: center; gap: 8px;") do
-							builder.tag(:strong, id: "current-player-nickname", style: "color: #667eea; font-size: 1.1em;") do
-								builder.text(@player_nickname || (@player_id ? "Player_#{@player_id[0..5]}" : "Loading..."))
-							end
-							builder.tag(:button, 
-								onclick: "startNicknameEdit()",
-								class: "btn btn-secondary",
-								style: "padding: 2px 8px; font-size: 12px;") do
-								builder.text("編輯")
-							end
-						end
-						
-						# Edit mode (hidden by default)
-						builder.tag(:div, id: "nickname-edit", style: "display: none; align-items: center; gap: 8px;") do
-							builder.tag(:input, 
-								type: "text",
-								id: "nickname-input",
-								maxlength: "20",
-								style: "padding: 4px 8px; border: 1px solid #667eea; border-radius: 4px; background: #1a1a1a; color: white;",
-								onkeydown: "handleNicknameKeydown(event)")
-							builder.tag(:button,
-								onclick: "saveNickname()",
-								class: "btn btn-primary",
-								style: "padding: 2px 8px; font-size: 12px;") do
-								builder.text("儲存")
-							end
-							builder.tag(:button,
-								onclick: "cancelNicknameEdit()",
-								class: "btn btn-secondary",
-								style: "padding: 2px 8px; font-size: 12px;") do
-								builder.text("取消")
-							end
-						end
+				# Player ID Section
+				builder.tag(:div, class: "player-id-section") do
+					builder.tag(:span, class: "user-label") do
+						builder.text(I18n.t("lobby.player.current_id", default: "ID:"))
 					end
-					
-					# Player ID display with copy hint
-					builder.tag(:div, style: "display: flex; align-items: center; gap: 8px;") do
-						builder.tag(:span) do
-							builder.text(I18n.t("lobby.player.current_id", default: "您的 ID:"))
-						end
-						builder.tag(:code, id: "current-player-id", class: "player-id", style: "cursor: pointer;", 
-							title: "點擊複製完整 ID",
-							onclick: "navigator.clipboard.writeText('#{@player_id}').then(() => { alert('已複製玩家 ID: #{@player_id}'); });") do
-							builder.text(@player_id)
-						end
-						builder.tag(:span, style: "color: #4CAF50; font-size: 11px; margin-left: 5px;") do
-							builder.text("(點擊複製)")
-						end
+					builder.tag(:code, id: "current-player-id", class: "user-value", 
+						style: "cursor: pointer; padding: 4px 8px; background: rgba(102, 126, 234, 0.1); border-radius: 6px;",
+						title: I18n.t("lobby.player.click_to_copy", default: "點擊複製完整 ID"),
+						onclick: "navigator.clipboard.writeText('#{@player_id}').then(() => { showNotification('#{I18n.t("lobby.messages.id_copied")}'); });") do
+						builder.text(@player_id ? @player_id[0..7] + "..." : "Loading...")
 					end
-					
-					# Language switcher
-					builder.tag(:div, class: "language-buttons") do
-						I18n.available_locales.each do |locale|
-							is_active = locale == @locale
-							button_class = is_active ? "btn btn-primary" : "btn btn-secondary"
-							builder.tag(:button,
-								onclick: forward_language_change(locale),
-								class: button_class) do
-								builder.text(I18n.locale_name(locale))
-							end
+					builder.tag(:span, style: "color: #4CAF50; font-size: 11px;") do
+						builder.text("📋")
+					end
+				end
+				
+				# Language Switcher
+				builder.tag(:div, class: "language-buttons", style: "display: flex; gap: 0.5rem;") do
+					I18n.available_locales.each do |locale|
+						is_active = locale == @locale
+						button_style = is_active ? 
+							"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;" :
+							"background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.7); border: 1px solid rgba(255, 255, 255, 0.2);"
+						builder.tag(:button,
+							onclick: forward_language_change(locale),
+							style: "padding: 6px 16px; border-radius: 20px; font-size: 14px; cursor: pointer; transition: all 0.3s; #{button_style}") do
+							builder.text(I18n.locale_name(locale))
 						end
 					end
 				end

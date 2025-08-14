@@ -79,7 +79,9 @@ module I18n
 						cancel: "Cancel",
 						id_required: "Player ID cannot be empty",
 						id_too_long: "Player ID must be 50 characters or less",
-						id_changed: "Player ID changed successfully"
+						id_changed: "Player ID changed successfully",
+						nickname: "Nickname:",
+						click_to_copy: "Click to copy full ID"
 					},
 					stats: {
 						online_rooms: "Online Rooms",
@@ -130,7 +132,8 @@ module I18n
 						quick_join_failed: "Quick join failed: Server error",
 						game_started: "Game started! Redirecting to game... Room ID: %{room_id}",
 						game_start_failed: "Failed to start game: %{error}",
-						error: "Error: %{message}"
+						error: "Error: %{message}",
+						id_copied: "Player ID copied!"
 					},
 					room_states: {
 						waiting: "Waiting",
@@ -261,7 +264,9 @@ module I18n
 						cancel: "取消",
 						id_required: "玩家 ID 不能為空",
 						id_too_long: "玩家 ID 長度不能超過 50 個字元",
-						id_changed: "玩家 ID 更改成功"
+						id_changed: "玩家 ID 更改成功",
+						nickname: "暱稱:",
+						click_to_copy: "點擊複製完整 ID"
 					},
 					stats: {
 						online_rooms: "線上房間",
@@ -312,7 +317,8 @@ module I18n
 						quick_join_failed: "快速加入失敗：伺服器錯誤",
 						game_started: "遊戲已開始！正在跳轉到遊戲... 房間 ID: %{room_id}",
 						game_start_failed: "遊戲開始失敗: %{error}",
-						error: "錯誤: %{message}"
+						error: "錯誤: %{message}",
+						id_copied: "已複製玩家 ID！"
 					},
 					room_states: {
 						waiting: "等待中",

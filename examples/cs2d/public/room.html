@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS2D - 房間等待</title>
+    <title data-i18n="room.title">CS2D - 房間等待</title>
+    <script src="/_static/i18n.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
@@ -36,6 +37,16 @@
             font-size: 2.5em;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
             margin-bottom: 10px;
+        }
+
+        /* Language switcher override for static pages */
+        #language-switcher {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .room-info {
@@ -206,81 +217,90 @@
 </head>
 <body>
     <a href="/" class="back-to-lobby">
-        ← 返回大廳
+        ← <span data-i18n="room.backToLobby">返回大廳</span>
     </a>
 
     <div class="container">
         <div class="header">
-            <h1>🎮 房間等待</h1>
-            <div id="room-title">Loading...</div>
+            <h1>🎮 <span data-i18n="room.heading">房間等待</span></h1>
+            <div id="room-title"><span data-i18n="common.loading">Loading...</span></div>
         </div>
 
         <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p>正在載入房間資訊...</p>
+            <p data-i18n="common.loading">正在載入房間資訊...</p>
         </div>
 
         <div id="room-content" style="display: none;">
             <div class="room-info">
-                <h2>房間設定</h2>
+                <h2 data-i18n="room.roomInfo">房間設定</h2>
                 <div class="room-details">
                     <div class="detail-item">
-                        <strong>房間 ID:</strong>
+                        <strong data-i18n="room.roomId">房間 ID:</strong>
                         <span id="room-id">-</span>
                     </div>
                     <div class="detail-item">
-                        <strong>地圖:</strong>
+                        <strong>Map:</strong>
                         <span id="room-map">-</span>
                     </div>
                     <div class="detail-item">
-                        <strong>遊戲模式:</strong>
+                        <strong data-i18n="room.gameMode">遊戲模式:</strong>
                         <span id="room-mode">-</span>
                     </div>
                     <div class="detail-item">
-                        <strong>最大玩家數:</strong>
+                        <strong data-i18n="room.maxPlayers">最大玩家數:</strong>
                         <span id="room-capacity">-</span>
                     </div>
                 </div>
             </div>
 
             <div class="players-section">
-                <h2>玩家列表 (<span id="player-count">0</span>/<span id="max-players">0</span>)</h2>
+                <h2><span data-i18n="room.playersList">玩家列表</span> (<span id="player-count">0</span>/<span id="max-players">0</span>)</h2>
                 <ul id="players-list" class="players-list">
                     <!-- Players will be populated by JavaScript -->
                 </ul>
                 
                 <!-- Bot controls for room host -->
                 <div id="bot-controls" style="display: none; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                    <h3 style="margin-bottom: 10px; color: #667eea;">Bot 控制</h3>
+                    <h3 style="margin-bottom: 10px; color: #667eea;" data-i18n="room.botSettings">Bot 控制</h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <button onclick="roomManager.addBot()" class="btn btn-secondary" style="padding: 8px 15px;">
-                            ➕ 新增 Bot
+                            ➕ <span data-i18n="room.addBot">新增 Bot</span>
                         </button>
                         <select id="bot-difficulty" style="padding: 5px 10px; background: #2d2d2d; color: white; border: 1px solid #667eea; border-radius: 5px;">
-                            <option value="easy">簡單</option>
-                            <option value="normal" selected>普通</option>
-                            <option value="hard">困難</option>
+                            <option value="easy" data-i18n="room.easy">簡單</option>
+                            <option value="normal" selected data-i18n="room.normal">普通</option>
+                            <option value="hard" data-i18n="room.hard">困難</option>
                         </select>
                     </div>
                 </div>
             </div>
 
             <div id="status-message" class="status-message waiting">
-                等待房主開始遊戲...
+                <span data-i18n="room.waitingForPlayers">等待房主開始遊戲...</span>
             </div>
 
             <div class="actions">
                 <button id="start-game-btn" class="btn start-game" style="display: none;">
-                    開始遊戲
+                    <span data-i18n="room.startGame">開始遊戲</span>
                 </button>
                 <button id="leave-room-btn" class="btn leave-room">
-                    離開房間
+                    <span data-i18n="room.leaveRoom">離開房間</span>
                 </button>
             </div>
         </div>
     </div>
 
     <script>
+        // Dynamic translation update function
+        function updateDynamicTranslations() {
+            // This function is called by i18n.js when language changes
+            // Update any dynamic content here
+            if (window.roomManager && window.roomManager.roomData) {
+                window.roomManager.updateUI();
+            }
+        }
+
         // Room state management
         class RoomManager {
             constructor() {
@@ -366,7 +386,7 @@
                     
                 } catch (error) {
                     console.error('Error loading room data:', error);
-                    this.showError('載入房間資料失敗');
+                    this.showError(i18n.t('common.error'));
                 }
             }
 
@@ -396,17 +416,18 @@
                     
                     let statusText = '';
                     if (player.is_host) {
-                        statusText = '房主';
+                        statusText = i18n.t('room.host');
                     } else if (player.is_bot) {
-                        statusText = `Bot (${player.difficulty || 'normal'})`;
+                        const difficultyText = i18n.t(`room.${player.difficulty || 'normal'}`);
+                        statusText = `Bot (${difficultyText})`;
                     } else {
-                        statusText = '玩家';
+                        statusText = 'Player';
                     }
                     
                     li.innerHTML = `
                         <span class="player-name">${player.name}</span>
                         <span class="player-status">${statusText}</span>
-                        ${player.is_bot && this.isHost ? `<button onclick="roomManager.removeBot('${player.id}')" class="btn" style="padding: 2px 8px; font-size: 12px; background: #dc3545;">移除</button>` : ''}
+                        ${player.is_bot && this.isHost ? `<button onclick="roomManager.removeBot('${player.id}')" class="btn" style="padding: 2px 8px; font-size: 12px; background: #dc3545;">${i18n.t('common.remove') || 'Remove'}</button>` : ''}
                     `;
                     playersList.appendChild(li);
                 });
@@ -428,10 +449,12 @@
                 // Update status message
                 const statusDiv = document.getElementById('status-message');
                 if (this.roomData.state === 'waiting') {
-                    statusDiv.textContent = this.isHost ? '點擊開始遊戲按鈕開始遊戲' : '等待房主開始遊戲...';
+                    statusDiv.innerHTML = this.isHost ? 
+                        `<span data-i18n="room.startGameHint">${i18n.t('room.startGameHint') || 'Click Start Game to begin'}</span>` : 
+                        `<span data-i18n="room.waitingForPlayers">${i18n.t('room.waitingForPlayers')}</span>`;
                     statusDiv.className = 'status-message waiting';
                 } else if (this.roomData.state === 'starting') {
-                    statusDiv.textContent = '遊戲即將開始...';
+                    statusDiv.innerHTML = `<span data-i18n="room.gameStarting">${i18n.t('room.gameStarting') || 'Game starting...'}</span>`;
                     statusDiv.className = 'status-message ready';
                 }
             }
