@@ -540,6 +540,28 @@ end
   - 🚀 **Startup**: Use `./start_hybrid_servers.sh` for instant deployment
 
 ### Recent Updates - August 2025 Major Fixes & Enhancements
+- **Aug 14, 2025** - **🎯 COMPLETE CS 1.6 GAME SYSTEMS IMPLEMENTATION**
+  - ✅ **完整購買選單系統** (`buy_menu_system.rb`)
+    - CS 1.6 authentic menu structure with team restrictions
+    - Quick buy presets (eco/force/full/awp)
+    - Automatic ammo purchasing
+  - ✅ **經濟管理系統** (`economy_manager.rb`)
+    - Round win/loss rewards ($3250/$1400-$3400)
+    - Kill rewards by weapon type ($100-$1500)
+    - Loss streak compensation system
+  - ✅ **炸彈系統** (`bomb_system.rb`)
+    - Plant/defuse mechanics (3s/10s/5s with kit)
+    - 45-second timer with accelerating beeps
+    - Explosion damage calculation
+  - ✅ **手榴彈系統** (`grenade_system.rb`)
+    - HE/Flash/Smoke grenades with physics
+    - Parabolic trajectories and bouncing
+    - Area effects and line-of-sight checking
+  - ✅ **遊戲總管理器** (`cs16_game_manager.rb`)
+    - Integrated all subsystems
+    - Complete round flow and win conditions
+    - Player actions and state management
+  - 📚 **Documentation**: See `docs/CS16_GAME_RULES.md` and `docs/CS16_IMPLEMENTATION_REPORT.md`
 - **Aug 14, 2025** - **Enhanced UI and Bot System Integration**
   - ✅ Replaced modal dialogs with inline editing for nickname changes
   - ✅ Fixed bot transfer from waiting room to game session
@@ -682,7 +704,7 @@ end
 
 ---
 
-*This document is actively maintained. Last updated: August 14, 2025 (09:10 UTC+8)*
+*This document is actively maintained. Last updated: August 14, 2025 (11:30 UTC+8)*
 
 ---
 

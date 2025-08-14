@@ -44,6 +44,24 @@ class APIBridgeServer < WEBrick::HTTPServlet::AbstractServlet
 			
 			response.body = response_data.to_json
 			
+		when %r{^/api/rooms/([^/]+)$}
+			# Get specific room by ID (fix for 404 error)
+			room_id = request.path_info.split('/').last
+			room_info = @room_manager.get_room_info(room_id)
+			players = @room_manager.get_room_players(room_id)
+			
+			if room_info
+				response_data = {
+					success: true,
+					room: room_info,
+					players: players
+				}
+			else
+				response_data = { success: false, error: "Room not found" }
+			end
+			
+			response.body = response_data.to_json
+			
 		when "/api/rooms"
 			# Get all rooms
 			rooms = @room_manager.get_room_list
