@@ -579,6 +579,7 @@
     </div>
 
     <!-- Load CS 1.6 Systems -->
+    <script src="/_static/weapon_system.js"></script>
     <script src="/_static/buy_menu.js"></script>
     <script src="/_static/grenade_system.js"></script>
     <script src="/_static/bomb_system.js"></script>
@@ -659,6 +660,7 @@
                 }
 
                 // Initialize CS 1.6 systems
+                this.weaponSystem = new WeaponSystem(this);
                 this.buyMenu = new BuyMenuUI(this);
                 this.grenadeSystem = new GrenadeSystemUI(this);
                 this.bombSystem = new BombSystemUI(this);
@@ -694,6 +696,7 @@
                         case 'Tab':
                             e.preventDefault();
                             this.showScoreboard = true;
+                            this.updateScoreboard(); // Update content before showing
                             document.getElementById('scoreboard').style.display = 'block';
                             break;
                         case 'KeyG':
@@ -737,7 +740,10 @@
                 this.canvas.addEventListener('mousedown', (e) => {
                     if (e.button === 0) { // Left click
                         this.mouse.down = true;
-                        this.shoot();
+                        // Try advanced shooting first, fallback to basic
+                        if (!this.shootAdvanced()) {
+                            this.shoot();
+                        }
                     }
                 });
 
@@ -756,9 +762,12 @@
                     }
                 });
 
-                // Prevent context menu on canvas
+                // Right click for scoping and prevent context menu
                 this.canvas.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
+                    if (this.weaponSystem) {
+                        this.weaponSystem.toggleScope();
+                    }
                 });
 
                 // Window events
@@ -781,6 +790,9 @@
 
                     // Initialize game state
                     this.initializeGameState();
+                    
+                    // Initialize UI elements
+                    this.initializeUI();
                     
                     // Hide loading screen
                     document.getElementById('game-status').style.display = 'none';
@@ -897,6 +909,29 @@
                 this.updateScoreboard();
             }
             
+            initializeUI() {
+                // Ensure scoreboard is initially hidden
+                const scoreboard = document.getElementById('scoreboard');
+                if (scoreboard) {
+                    scoreboard.style.display = 'none';
+                }
+                
+                // Ensure other UI elements are in correct state
+                const reloadProgress = document.getElementById('reload-progress');
+                const reloadText = document.getElementById('reload-text');
+                
+                if (reloadProgress) reloadProgress.style.display = 'none';
+                if (reloadText) reloadText.style.display = 'none';
+                
+                // Initialize equipment bar
+                this.updateEquipmentBar();
+                
+                // Initialize HUD
+                this.updateHUD();
+                
+                console.log('UI initialized successfully');
+            }
+            
             initializeBotAI() {
                 // Start bot AI update loop
                 setInterval(() => {
@@ -984,7 +1019,10 @@
                 
                 // Handle continuous shooting while mouse is held
                 if (this.mouse.down && this.gameState === 'playing') {
-                    this.shoot();
+                    // Try advanced shooting first, fallback to basic
+                    if (!this.shootAdvanced()) {
+                        this.shoot();
+                    }
                 }
                 
                 // Update bullets
@@ -1176,13 +1214,28 @@
                 // Don't allow movement if dead
                 if (this.player.health <= 0 || !this.player.alive) return;
                 
-                const speed = 3;
+                // Get weapon-based movement speed
+                let baseSpeed = 3;
+                const weapon = this.weaponSystem ? this.weaponSystem.getWeapon(this.player.weapon) : null;
+                
+                // Apply weapon speed modifiers
+                if (weapon) {
+                    if (weapon.type === 'sniper') baseSpeed *= 0.7;
+                    else if (weapon.type === 'machinegun') baseSpeed *= 0.8;
+                    else if (weapon.type === 'rifle') baseSpeed *= 0.9;
+                }
+                
+                // Apply scope speed penalty
+                if (this.player.scopeSpeedMultiplier) {
+                    baseSpeed *= this.player.scopeSpeedMultiplier;
+                }
+                
                 let dx = 0, dy = 0;
 
-                if (this.keys['KeyW']) dy -= speed;
-                if (this.keys['KeyS']) dy += speed;
-                if (this.keys['KeyA']) dx -= speed;
-                if (this.keys['KeyD']) dx += speed;
+                if (this.keys['KeyW']) dy -= baseSpeed;
+                if (this.keys['KeyS']) dy += baseSpeed;
+                if (this.keys['KeyA']) dx -= baseSpeed;
+                if (this.keys['KeyD']) dx += baseSpeed;
 
                 // Normalize diagonal movement
                 if (dx !== 0 && dy !== 0) {
@@ -1599,31 +1652,82 @@
                     'deagle': 54,
                     'ak47': 36,
                     'm4a1': 33,
-                    'awp': 115
+                    'awp': 115,
+                    'm3': 20,  // Shotgun pellet damage
+                    'xm1014': 22  // Auto shotgun pellet damage
                 };
                 
-                // Create bullet object
-                const bulletSpeed = 15; // pixels per frame
-                const bullet = {
-                    x: this.player.x,
-                    y: this.player.y,
-                    vx: Math.cos(this.player.angle) * bulletSpeed,
-                    vy: Math.sin(this.player.angle) * bulletSpeed,
-                    angle: this.player.angle,
-                    damage: weaponDamage[this.player.weapon] || 25, // Use weapon damage or default to Glock
-                    owner: this.playerId,
-                    lifetime: 60 // frames before bullet disappears
-                };
+                // Check if weapon is a shotgun
+                const shotguns = ['m3', 'xm1014'];
+                const isShotgun = shotguns.includes(this.player.weapon);
                 
-                this.bullets.push(bullet);
-                
-                // Muzzle flash effect
-                this.createMuzzleFlash(this.player.x, this.player.y, this.player.angle);
+                if (isShotgun) {
+                    // Shotgun shoots multiple pellets with spread
+                    const pelletCount = this.player.weapon === 'xm1014' ? 6 : 8; // XM1014 has 6 pellets, M3 has 8
+                    const spreadAngle = 0.15; // Spread in radians
+                    
+                    for (let i = 0; i < pelletCount; i++) {
+                        // Calculate spread for each pellet
+                        const angleOffset = (Math.random() - 0.5) * spreadAngle;
+                        const pelletAngle = this.player.angle + angleOffset;
+                        
+                        // Add some distance variation
+                        const speedVariation = 0.8 + Math.random() * 0.4; // 80% to 120% speed
+                        const bulletSpeed = 15 * speedVariation;
+                        
+                        const bullet = {
+                            x: this.player.x,
+                            y: this.player.y,
+                            vx: Math.cos(pelletAngle) * bulletSpeed,
+                            vy: Math.sin(pelletAngle) * bulletSpeed,
+                            angle: pelletAngle,
+                            damage: weaponDamage[this.player.weapon] || 20,
+                            owner: this.playerId,
+                            lifetime: 40 // Shorter range for shotgun pellets
+                        };
+                        
+                        this.bullets.push(bullet);
+                    }
+                    
+                    // Bigger muzzle flash for shotguns
+                    this.createShotgunMuzzleFlash(this.player.x, this.player.y, this.player.angle);
+                    
+                } else {
+                    // Regular single bullet weapons
+                    const bulletSpeed = 15; // pixels per frame
+                    const bullet = {
+                        x: this.player.x,
+                        y: this.player.y,
+                        vx: Math.cos(this.player.angle) * bulletSpeed,
+                        vy: Math.sin(this.player.angle) * bulletSpeed,
+                        angle: this.player.angle,
+                        damage: weaponDamage[this.player.weapon] || 25, // Use weapon damage or default to Glock
+                        owner: this.playerId,
+                        lifetime: 60 // frames before bullet disappears
+                    };
+                    
+                    this.bullets.push(bullet);
+                    
+                    // Muzzle flash effect
+                    this.createMuzzleFlash(this.player.x, this.player.y, this.player.angle);
+                }
                 
                 // Play shooting sound (if implemented)
                 // this.playSound('shoot');
                 
-                console.log('Shot fired!', { angle: this.player.angle, ammo: this.player.ammo, bullets: this.bullets.length });
+                console.log('Shot fired!', { weapon: this.player.weapon, angle: this.player.angle, ammo: this.player.ammo, bullets: this.bullets.length });
+            }
+
+            shootAdvanced() {
+                // Use the weapon system for advanced shooting mechanics
+                if (this.weaponSystem) {
+                    const success = this.weaponSystem.shoot(this.player.weapon, this.player, this.mouse);
+                    if (success) {
+                        console.log('Advanced shot fired!', { weapon: this.player.weapon, ammo: this.player.ammo, bullets: this.bullets.length });
+                    }
+                    return success;
+                }
+                return false;
             }
             
             createBullet(x, y, angle, ownerId, isBot = false) {
@@ -1675,26 +1779,56 @@
                 
                 this.ctx.restore();
             }
+            
+            createShotgunMuzzleFlash(x, y, angle) {
+                // Bigger visual feedback for shotgun shooting
+                this.ctx.save();
+                this.ctx.translate(x, y);
+                this.ctx.rotate(angle);
+                
+                // Draw larger muzzle flash with spread effect
+                const gradient = this.ctx.createRadialGradient(20, 0, 0, 20, 0, 20);
+                gradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
+                gradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.8)');
+                gradient.addColorStop(1, 'rgba(255, 100, 0, 0.3)');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(20, 0, 20, -0.3, 0.3); // Cone shape for shotgun
+                this.ctx.lineTo(20, 0);
+                this.ctx.closePath();
+                this.ctx.fill();
+                
+                // Add some spark effects
+                for (let i = 0; i < 5; i++) {
+                    const sparkAngle = (Math.random() - 0.5) * 0.5;
+                    const sparkDistance = 25 + Math.random() * 10;
+                    this.ctx.fillStyle = 'rgba(255, 255, 100, 0.9)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(
+                        Math.cos(sparkAngle) * sparkDistance,
+                        Math.sin(sparkAngle) * sparkDistance,
+                        2, 0, Math.PI * 2
+                    );
+                    this.ctx.fill();
+                }
+                
+                this.ctx.restore();
+            }
 
             reload() {
+                // Get weapon data for proper reload mechanics
+                const weapon = this.weaponSystem ? this.weaponSystem.getWeapon(this.player.weapon) : null;
+                const maxAmmo = weapon ? weapon.magazine : 30;
+                const reloadTime = weapon ? weapon.reloadTime : 2500;
+                
                 // Check if can reload
-                if (this.player.isReloading || this.player.ammo === 30 || this.player.reserveAmmo === 0) return;
+                if (this.player.isReloading || this.player.ammo === maxAmmo || this.player.reserveAmmo === 0) return;
                 
                 // Start reload
                 this.player.isReloading = true;
                 this.player.reloadStartTime = Date.now();
-                
-                // Get weapon reload time based on weapon type
-                const reloadTimes = {
-                    'glock': 2200,
-                    'usp': 2500,
-                    'deagle': 2200,
-                    'ak47': 2600,
-                    'm4a1': 2500,
-                    'aug': 3100,
-                    'awp': 3700
-                };
-                this.player.reloadDuration = reloadTimes[this.player.weapon] || 2500;
+                this.player.reloadDuration = reloadTime;
                 
                 // Show reload UI
                 document.getElementById('reload-progress').style.display = 'block';
@@ -1815,7 +1949,11 @@
             completeReload() {
                 if (!this.player.isReloading) return;
                 
-                const needed = 30 - this.player.ammo;
+                // Get weapon data for proper ammo calculation
+                const weapon = this.weaponSystem ? this.weaponSystem.getWeapon(this.player.weapon) : null;
+                const maxAmmo = weapon ? weapon.magazine : 30;
+                
+                const needed = maxAmmo - this.player.ammo;
                 const available = Math.min(needed, this.player.reserveAmmo);
                 
                 this.player.ammo += available;
@@ -1856,6 +1994,12 @@
                         this.player.weapon = item;
                         this.player.ammo = 30; // Full mag
                         this.player.reserveAmmo = 90;
+                    } else if (item === 'm3' || item === 'xm1014') {
+                        // Shotgun purchases
+                        this.player.weapon = item;
+                        this.player.ammo = item === 'xm1014' ? 7 : 8; // XM1014 has 7 rounds, M3 has 8
+                        this.player.reserveAmmo = 32; // 32 shells in reserve
+                        this.fireRate = item === 'xm1014' ? 250 : 880; // XM1014 is auto, M3 is pump-action
                     } else if (item === 'kevlar' || item === 'kevlar_helmet') {
                         this.player.armor = item === 'kevlar' ? 65 : 100;
                     } else if (item === 'defuser') {
@@ -1999,6 +2143,12 @@
 
             cleanup() {
                 this.gameState = 'stopped';
+                
+                // Cleanup weapon system
+                if (this.weaponSystem) {
+                    this.weaponSystem.cleanup();
+                }
+                
                 // In real implementation, notify server that player left
                 console.log('Game cleanup completed');
             }

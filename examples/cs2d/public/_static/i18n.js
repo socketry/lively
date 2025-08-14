@@ -242,6 +242,30 @@ const i18n = {
     
     // Create language switcher UI
     createLanguageSwitcher() {
+        // Only show language switcher on the lobby page (port 9292)
+        // Room and game pages should use the saved language preference
+        const currentURL = window.location.href;
+        const hostname = window.location.hostname;
+        const port = window.location.port;
+        const pathname = window.location.pathname;
+        
+        // Check if this is the lobby page 
+        // Lobby conditions: port 9292, OR root path without .html files, OR explicitly Lively server
+        const isLobbyPage = port === '9292' || 
+                           currentURL.includes(':9292') ||
+                           (hostname === 'localhost' && !pathname.includes('.html') && !currentURL.includes(':9293')) ||
+                           (!pathname.includes('room.html') && !pathname.includes('game.html') && !currentURL.includes(':9293'));
+        
+        console.log('Language switcher detection:', {
+            currentURL, hostname, port, pathname,
+            isLobbyPage
+        });
+        
+        if (!isLobbyPage) {
+            // Don't show language switcher on room or game pages
+            return;
+        }
+        
         const existingSwitcher = document.getElementById('language-switcher');
         if (existingSwitcher) {
             existingSwitcher.remove();

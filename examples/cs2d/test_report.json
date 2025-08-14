@@ -1,0 +1,502 @@
+{
+  "timestamp": "2025-08-14T16:33:27.842Z",
+  "summary": {
+    "passed": 58,
+    "failed": 4,
+    "total": 62,
+    "successRate": "93.5"
+  },
+  "categories": {
+    "Initialization": {
+      "passed": 4,
+      "failed": 2,
+      "total": 6
+    },
+    "Weapons": {
+      "passed": 28,
+      "failed": 0,
+      "total": 28
+    },
+    "Shooting": {
+      "passed": 3,
+      "failed": 2,
+      "total": 5
+    },
+    "Scoping": {
+      "passed": 3,
+      "failed": 0,
+      "total": 3
+    },
+    "Scoreboard": {
+      "passed": 4,
+      "failed": 0,
+      "total": 4
+    },
+    "UI": {
+      "passed": 3,
+      "failed": 0,
+      "total": 3
+    },
+    "Bots": {
+      "passed": 3,
+      "failed": 0,
+      "total": 3
+    },
+    "Movement": {
+      "passed": 2,
+      "failed": 0,
+      "total": 2
+    },
+    "Reload": {
+      "passed": 3,
+      "failed": 0,
+      "total": 3
+    },
+    "Visual": {
+      "passed": 3,
+      "failed": 0,
+      "total": 3
+    },
+    "Error Handling": {
+      "passed": 2,
+      "failed": 0,
+      "total": 2
+    }
+  },
+  "details": [
+    {
+      "test": "Lobby page loads",
+      "passed": false,
+      "details": "Title: Application",
+      "category": "Initialization",
+      "timestamp": "2025-08-14T16:33:17.079Z"
+    },
+    {
+      "test": "Language switcher on lobby",
+      "passed": false,
+      "details": "Should be visible on port 9292",
+      "category": "Initialization",
+      "timestamp": "2025-08-14T16:33:17.090Z"
+    },
+    {
+      "test": "No language switcher on room",
+      "passed": true,
+      "details": "Should be hidden on room page",
+      "category": "Initialization",
+      "timestamp": "2025-08-14T16:33:19.238Z"
+    },
+    {
+      "test": "Game canvas rendered",
+      "passed": true,
+      "details": "Main game canvas present",
+      "category": "Initialization",
+      "timestamp": "2025-08-14T16:33:24.389Z"
+    },
+    {
+      "test": "No language switcher on game",
+      "passed": true,
+      "details": "Should be hidden on game page",
+      "category": "Initialization",
+      "timestamp": "2025-08-14T16:33:24.392Z"
+    },
+    {
+      "test": "Game fully initialized",
+      "passed": true,
+      "details": "Game state is playing",
+      "category": "Initialization",
+      "timestamp": "2025-08-14T16:33:24.394Z"
+    },
+    {
+      "test": "Weapon system initialized",
+      "passed": true,
+      "details": "WeaponSystem class available",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.394Z"
+    },
+    {
+      "test": "Weapon database loaded",
+      "passed": true,
+      "details": "25 weapons available",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.395Z"
+    },
+    {
+      "test": "glock data loaded",
+      "passed": true,
+      "details": "burst/20rd/25dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.395Z"
+    },
+    {
+      "test": "glock fire mode",
+      "passed": true,
+      "details": "Expected: burst, Got: burst",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.395Z"
+    },
+    {
+      "test": "usp data loaded",
+      "passed": true,
+      "details": "semi/12rd/34dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.396Z"
+    },
+    {
+      "test": "usp fire mode",
+      "passed": true,
+      "details": "Expected: semi, Got: semi",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.396Z"
+    },
+    {
+      "test": "deagle data loaded",
+      "passed": true,
+      "details": "semi/7rd/54dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.396Z"
+    },
+    {
+      "test": "deagle fire mode",
+      "passed": true,
+      "details": "Expected: semi, Got: semi",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.396Z"
+    },
+    {
+      "test": "elite data loaded",
+      "passed": true,
+      "details": "dual/30rd/38dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.397Z"
+    },
+    {
+      "test": "elite fire mode",
+      "passed": true,
+      "details": "Expected: dual, Got: dual",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.397Z"
+    },
+    {
+      "test": "m3 data loaded",
+      "passed": true,
+      "details": "pump/8rd/20dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.397Z"
+    },
+    {
+      "test": "m3 fire mode",
+      "passed": true,
+      "details": "Expected: pump, Got: pump",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.397Z"
+    },
+    {
+      "test": "xm1014 data loaded",
+      "passed": true,
+      "details": "auto_shotgun/7rd/22dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.397Z"
+    },
+    {
+      "test": "xm1014 fire mode",
+      "passed": true,
+      "details": "Expected: auto_shotgun, Got: auto_shotgun",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.397Z"
+    },
+    {
+      "test": "mp5 data loaded",
+      "passed": true,
+      "details": "auto/30rd/26dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.398Z"
+    },
+    {
+      "test": "mp5 fire mode",
+      "passed": true,
+      "details": "Expected: auto, Got: auto",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.398Z"
+    },
+    {
+      "test": "p90 data loaded",
+      "passed": true,
+      "details": "auto/50rd/21dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.398Z"
+    },
+    {
+      "test": "p90 fire mode",
+      "passed": true,
+      "details": "Expected: auto, Got: auto",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.398Z"
+    },
+    {
+      "test": "ak47 data loaded",
+      "passed": true,
+      "details": "auto/30rd/36dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.398Z"
+    },
+    {
+      "test": "ak47 fire mode",
+      "passed": true,
+      "details": "Expected: auto, Got: auto",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.398Z"
+    },
+    {
+      "test": "m4a1 data loaded",
+      "passed": true,
+      "details": "auto/30rd/33dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.399Z"
+    },
+    {
+      "test": "m4a1 fire mode",
+      "passed": true,
+      "details": "Expected: auto, Got: auto",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.399Z"
+    },
+    {
+      "test": "famas data loaded",
+      "passed": true,
+      "details": "burst/25rd/30dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.400Z"
+    },
+    {
+      "test": "famas fire mode",
+      "passed": true,
+      "details": "Expected: burst, Got: burst",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.400Z"
+    },
+    {
+      "test": "awp data loaded",
+      "passed": true,
+      "details": "bolt/10rd/115dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.400Z"
+    },
+    {
+      "test": "awp fire mode",
+      "passed": true,
+      "details": "Expected: bolt, Got: bolt",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.400Z"
+    },
+    {
+      "test": "scout data loaded",
+      "passed": true,
+      "details": "bolt/10rd/75dmg",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.400Z"
+    },
+    {
+      "test": "scout fire mode",
+      "passed": true,
+      "details": "Expected: bolt, Got: bolt",
+      "category": "Weapons",
+      "timestamp": "2025-08-14T16:33:24.400Z"
+    },
+    {
+      "test": "glock shooting",
+      "passed": true,
+      "details": "3 bullets (Burst Fire)",
+      "category": "Shooting",
+      "timestamp": "2025-08-14T16:33:24.702Z"
+    },
+    {
+      "test": "usp shooting",
+      "passed": false,
+      "details": "Failed to shoot",
+      "category": "Shooting",
+      "timestamp": "2025-08-14T16:33:25.004Z"
+    },
+    {
+      "test": "elite shooting",
+      "passed": false,
+      "details": "Failed to shoot",
+      "category": "Shooting",
+      "timestamp": "2025-08-14T16:33:25.507Z"
+    },
+    {
+      "test": "m3 shooting",
+      "passed": true,
+      "details": "8 bullets (Shotgun)",
+      "category": "Shooting",
+      "timestamp": "2025-08-14T16:33:25.808Z"
+    },
+    {
+      "test": "ak47 shooting",
+      "passed": true,
+      "details": "1 bullets (Single Shot)",
+      "category": "Shooting",
+      "timestamp": "2025-08-14T16:33:26.111Z"
+    },
+    {
+      "test": "Scope toggle functionality",
+      "passed": true,
+      "details": "AWP scope on/off cycle",
+      "category": "Scoping",
+      "timestamp": "2025-08-14T16:33:26.114Z"
+    },
+    {
+      "test": "Scope overlay rendering",
+      "passed": true,
+      "details": "Scope UI created",
+      "category": "Scoping",
+      "timestamp": "2025-08-14T16:33:26.617Z"
+    },
+    {
+      "test": "Scope movement penalty",
+      "passed": true,
+      "details": "50% speed reduction",
+      "category": "Scoping",
+      "timestamp": "2025-08-14T16:33:26.617Z"
+    },
+    {
+      "test": "Scoreboard initially hidden",
+      "passed": true,
+      "details": "Display: none",
+      "category": "Scoreboard",
+      "timestamp": "2025-08-14T16:33:26.619Z"
+    },
+    {
+      "test": "Scoreboard shows on Tab",
+      "passed": true,
+      "details": "Display: block",
+      "category": "Scoreboard",
+      "timestamp": "2025-08-14T16:33:27.227Z"
+    },
+    {
+      "test": "Scoreboard has content",
+      "passed": true,
+      "details": "1 rows",
+      "category": "Scoreboard",
+      "timestamp": "2025-08-14T16:33:27.230Z"
+    },
+    {
+      "test": "Scoreboard hides on Tab release",
+      "passed": true,
+      "details": "Display: none",
+      "category": "Scoreboard",
+      "timestamp": "2025-08-14T16:33:27.835Z"
+    },
+    {
+      "test": "Equipment bar updates",
+      "passed": true,
+      "details": "Weapon: AK47, Ammo: 25",
+      "category": "UI",
+      "timestamp": "2025-08-14T16:33:27.835Z"
+    },
+    {
+      "test": "Ammo display updates",
+      "passed": true,
+      "details": "Current: 20, Reserve: 60",
+      "category": "UI",
+      "timestamp": "2025-08-14T16:33:27.836Z"
+    },
+    {
+      "test": "Health bar updates",
+      "passed": true,
+      "details": "Width: 75%",
+      "category": "UI",
+      "timestamp": "2025-08-14T16:33:27.836Z"
+    },
+    {
+      "test": "Bot player creation",
+      "passed": true,
+      "details": "Bot added to players map",
+      "category": "Bots",
+      "timestamp": "2025-08-14T16:33:27.837Z"
+    },
+    {
+      "test": "Bot weapon integration",
+      "passed": true,
+      "details": "Bot can create bullets",
+      "category": "Bots",
+      "timestamp": "2025-08-14T16:33:27.837Z"
+    },
+    {
+      "test": "Bot AI system",
+      "passed": true,
+      "details": "Bot AI update cycle works",
+      "category": "Bots",
+      "timestamp": "2025-08-14T16:33:27.837Z"
+    },
+    {
+      "test": "Weapon speed modifiers",
+      "passed": true,
+      "details": "Knife: 3, AK47: 2.7, AWP: 2.0999999999999996",
+      "category": "Movement",
+      "timestamp": "2025-08-14T16:33:27.838Z"
+    },
+    {
+      "test": "Scoped movement penalty",
+      "passed": true,
+      "details": "Normal: 2.0999999999999996, Scoped: 1.0499999999999998",
+      "category": "Movement",
+      "timestamp": "2025-08-14T16:33:27.838Z"
+    },
+    {
+      "test": "Magazine sizes",
+      "passed": true,
+      "details": "Glock: 20, Deagle: 7, P90: 50",
+      "category": "Reload",
+      "timestamp": "2025-08-14T16:33:27.839Z"
+    },
+    {
+      "test": "Reload times vary",
+      "passed": true,
+      "details": "Glock: 2200ms, AWP: 3700ms",
+      "category": "Reload",
+      "timestamp": "2025-08-14T16:33:27.839Z"
+    },
+    {
+      "test": "Reload initiation",
+      "passed": true,
+      "details": "Reload state activated",
+      "category": "Reload",
+      "timestamp": "2025-08-14T16:33:27.840Z"
+    },
+    {
+      "test": "Muzzle flash methods",
+      "passed": true,
+      "details": "Muzzle flash functions available",
+      "category": "Visual",
+      "timestamp": "2025-08-14T16:33:27.840Z"
+    },
+    {
+      "test": "Bullet rendering system",
+      "passed": true,
+      "details": "Bullets can be created and stored",
+      "category": "Visual",
+      "timestamp": "2025-08-14T16:33:27.840Z"
+    },
+    {
+      "test": "Canvas rendering",
+      "passed": true,
+      "details": "Canvas context available",
+      "category": "Visual",
+      "timestamp": "2025-08-14T16:33:27.841Z"
+    },
+    {
+      "test": "Invalid weapon handling",
+      "passed": true,
+      "details": "Falls back to default weapon",
+      "category": "Error Handling",
+      "timestamp": "2025-08-14T16:33:27.841Z"
+    },
+    {
+      "test": "No ammo handling",
+      "passed": true,
+      "details": "Prevents shooting with no ammo",
+      "category": "Error Handling",
+      "timestamp": "2025-08-14T16:33:27.841Z"
+    }
+  ]
+}
