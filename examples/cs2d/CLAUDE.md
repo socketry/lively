@@ -503,6 +503,11 @@ end
 - **Cookie-based player ID persistence** (30-day expiry)
 - **Application.rb as server entrypoint** (Aug 13, 2025)
 - **Complete Playwright testing and bug fixes** (Aug 12-13, 2025)
+- **CS 1.6 authentic game mechanics** (Aug 13, 2025)
+  - Proper bullet physics and collision detection
+  - Death mechanics with visual indicators
+  - 5-second respawn system
+  - Authentic weapon damage and pricing
 - Comprehensive test coverage
 - Production-ready error handling
 
@@ -524,7 +529,18 @@ end
   - 📋 **Documentation**: Complete success report in `HYBRID_ARCHITECTURE_SUCCESS.md`
   - 🚀 **Startup**: Use `./start_hybrid_servers.sh` for instant deployment
 
-### Recent Updates - August 2025 Major Fixes
+### Recent Updates - August 2025 Major Fixes & Enhancements
+- **Aug 13, 2025** - **CS 1.6 Authentic Game Mechanics Implementation**
+  - ✅ Fixed shooting mechanism with proper bullet physics
+  - ✅ Implemented CS 1.6 authentic weapon damage values
+  - ✅ Added proper death mechanics (gray appearance, X mark, no collision)
+  - ✅ Created respawn system with 5-second timer
+  - ✅ Standardized all game values to CS 1.6 specifications:
+    - Freeze time: 15s, Buy time: 15s, Bomb timer: 45s
+    - Weapon prices: AK-47 $2500, Desert Eagle $650, Defuse Kit $200
+    - Weapon damage: Glock 25, USP 34, Desert Eagle 54, AK-47 36
+    - Movement speeds: Base 250 units/sec, Rifles 215, AWP 150
+    - Team weapon restrictions properly enforced
 - **Aug 13, 2025** - **Application.rb as Server Entrypoint**
   - ✅ Established application.rb as the single server entrypoint
   - ✅ Removed duplicate Application class definitions from other files
@@ -648,7 +664,7 @@ end
 
 ---
 
-*This document is actively maintained. Last updated: August 13, 2025*
+*This document is actively maintained. Last updated: August 13, 2025 (18:30 UTC+8)*
 
 ---
 

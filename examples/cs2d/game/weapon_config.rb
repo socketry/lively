@@ -10,13 +10,13 @@ class WeaponConfig
 					name: "Glock-18",
 					type: "pistol",
 					cost: 200,
-					damage: { base: 28, headshot_multiplier: 2.5, armor_reduction: 0.75 },
+					damage: { base: 25, headshot_multiplier: 2.5, armor_reduction: 0.75 },  # CS 1.6 authentic damage
 					firerate: 400, # ms between shots (higher = slower)
 					accuracy: { standing: 0.85, moving: 0.65, crouching: 0.95 },
 					recoil: { pattern: [0.2, 0.3, 0.4, 0.5], recovery: 0.8 },
 					ammo: { magazine: 20, reserve: 120, reload_time: 2200 },
 					range: { effective: 300, max: 500 },
-					movement_speed_multiplier: 1.0,
+					movement_speed_multiplier: 1.0,  # CS 1.6: pistols = 250 units/sec
 					penetration_power: 1,
 					kill_reward: 600
 			},
@@ -31,7 +31,7 @@ class WeaponConfig
 					recoil: { pattern: [0.15, 0.25, 0.35, 0.45], recovery: 0.9 },
 					ammo: { magazine: 12, reserve: 100, reload_time: 2500 },
 					range: { effective: 350, max: 550 },
-					movement_speed_multiplier: 1.0,
+					movement_speed_multiplier: 1.0,  # CS 1.6: pistols = 250 units/sec
 					penetration_power: 1,
 					kill_reward: 600
 			},
@@ -39,14 +39,14 @@ class WeaponConfig
 			"deagle" => {
 					name: "Desert Eagle",
 					type: "pistol",
-					cost: 700,
-					damage: { base: 63, headshot_multiplier: 2.5, armor_reduction: 0.85 },
+					cost: 650,  # CS 1.6 authentic price
+					damage: { base: 54, headshot_multiplier: 2.5, armor_reduction: 0.85 },  # CS 1.6 authentic damage
 					firerate: 267,
 					accuracy: { standing: 0.75, moving: 0.40, crouching: 0.85 },
 					recoil: { pattern: [0.8, 1.2, 1.5, 1.8], recovery: 0.6 },
 					ammo: { magazine: 7, reserve: 35, reload_time: 2200 },
 					range: { effective: 400, max: 600 },
-					movement_speed_multiplier: 0.95,
+					movement_speed_multiplier: 1.0,  # CS 1.6: Desert Eagle = 250 units/sec (pistol)
 					penetration_power: 2,
 					kill_reward: 300
 			},
@@ -62,7 +62,7 @@ class WeaponConfig
 					recoil: { pattern: [0.2, 0.25, 0.3, 0.35, 0.4], recovery: 0.85 },
 					ammo: { magazine: 30, reserve: 120, reload_time: 2600 },
 					range: { effective: 200, max: 400 },
-					movement_speed_multiplier: 1.15,
+					movement_speed_multiplier: 1.0,  # CS 1.6: SMGs = 250 units/sec
 					penetration_power: 1,
 					kill_reward: 600
 			},
@@ -71,14 +71,14 @@ class WeaponConfig
 			"ak47" => {
 					name: "AK-47",
 					type: "rifle",
-					cost: 2700,
+					cost: 2500,  # CS 1.6 authentic price
 					damage: { base: 36, headshot_multiplier: 2.5, armor_reduction: 0.9 },
 					firerate: 100,
 					accuracy: { standing: 0.75, moving: 0.45, crouching: 0.85 },
 					recoil: { pattern: [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], recovery: 0.7 },
 					ammo: { magazine: 30, reserve: 90, reload_time: 2500 },
 					range: { effective: 500, max: 800 },
-					movement_speed_multiplier: 0.85,
+					movement_speed_multiplier: 0.86,  # CS 1.6: rifles = 215 units/sec
 					penetration_power: 2.5,
 					kill_reward: 300
 			},
@@ -93,7 +93,7 @@ class WeaponConfig
 					recoil: { pattern: [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], recovery: 0.75 },
 					ammo: { magazine: 25, reserve: 75, reload_time: 3100 },
 					range: { effective: 550, max: 850 },
-					movement_speed_multiplier: 0.85,
+					movement_speed_multiplier: 0.86,  # CS 1.6: rifles = 215 units/sec
 					penetration_power: 2.5,
 					kill_reward: 300
 			},
@@ -109,7 +109,7 @@ class WeaponConfig
 					recoil: { pattern: [1.5], recovery: 0.5 },
 					ammo: { magazine: 10, reserve: 30, reload_time: 3700 },
 					range: { effective: 1000, max: 1200 },
-					movement_speed_multiplier: 0.65,
+					movement_speed_multiplier: 0.60,  # CS 1.6: AWP = 150 units/sec
 					penetration_power: 3,
 					kill_reward: 100
 			},
@@ -135,7 +135,7 @@ class WeaponConfig
 			"defuse_kit" => {
 					name: "Defuse Kit",
 					type: "equipment",
-					cost: 400,
+					cost: 200,  # CS 1.6 authentic price
 					defuse_time_reduction: 5000 # 5 seconds faster
 			},
 			
@@ -179,18 +179,18 @@ class WeaponConfig
 			consecutive_loss_bonus_cap: 3400
 	}.freeze
 		
-	# Movement speed configuration (pixels per frame at 60fps)
+	# Movement speed configuration (CS 1.6 authentic values)
 	MOVEMENT_SPEEDS = {
-			base_speed: 5.0,
-			crouch_multiplier: 0.34,
-			walk_multiplier: 0.52,
+			base_speed: 250.0,  # CS 1.6 authentic base speed (units/second)
+			crouch_multiplier: 0.34,  # CS 1.6 authentic crouch speed
+			walk_multiplier: 0.52,    # CS 1.6 authentic walk speed
 			weapon_speed_multipliers: {
-					"knife" => 1.15,
-					"pistol" => 1.0,
-					"smg" => 0.95,
-					"rifle" => 0.85,
-					"sniper" => 0.65,
-					"grenade" => 0.9
+					"knife" => 1.0,      # 250 units/sec
+					"pistol" => 1.0,     # 250 units/sec
+					"smg" => 1.0,        # 250 units/sec
+					"rifle" => 0.86,     # 215 units/sec (CS 1.6 authentic)
+					"sniper" => 0.60,    # 150 units/sec (CS 1.6 authentic)
+					"grenade" => 1.0     # 250 units/sec
 			}
 	}.freeze
 		
@@ -239,5 +239,37 @@ class WeaponConfig
 	def self.get_kill_reward(weapon_name)
 		weapon_stats = get_weapon(weapon_name)
 		weapon_stats[:kill_reward] || 300
+	end
+	
+	# CS 1.6 Team Weapon Restrictions
+	def self.can_buy_weapon?(weapon_name, team)
+		weapon_name = weapon_name&.downcase
+		
+		# Team-specific weapons (CS 1.6 authentic restrictions)
+		ct_only_weapons = %w[m4a1 m4a4 famas tmp mp5 fiveseven]
+		t_only_weapons = %w[ak47 galil mac10]
+		
+		case team&.to_s&.downcase
+		when "ct", "counter-terrorist"
+			return false if t_only_weapons.include?(weapon_name)
+		when "t", "terrorist"  
+			return false if ct_only_weapons.include?(weapon_name)
+		else
+			return false  # Invalid team
+		end
+		
+		# Check if weapon exists
+		WEAPONS.key?(weapon_name)
+	end
+	
+	def self.get_team_weapons(team)
+		case team&.to_s&.downcase
+		when "ct", "counter-terrorist"
+			WEAPONS.reject { |name, _| %w[ak47 galil mac10].include?(name) }
+		when "t", "terrorist"
+			WEAPONS.reject { |name, _| %w[m4a1 m4a4 famas tmp mp5 fiveseven].include?(name) }
+		else
+			{}
+		end
 	end
 end

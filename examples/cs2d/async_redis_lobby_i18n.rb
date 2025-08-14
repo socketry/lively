@@ -3,6 +3,7 @@
 
 require "securerandom"
 require "json"
+require "erb"
 require "lively/application"
 require "live"
 
@@ -23,6 +24,7 @@ class AsyncRedisLobbyI18nView < Live::View
 	def initialize(...)
 		super
 		@player_id = nil # Will be set from cookie or generated in bind
+		@player_nickname = nil # Display name for the player
 		@room_id = nil
 		@custom_player_id = nil
 		@room_update_task = nil
@@ -40,6 +42,114 @@ class AsyncRedisLobbyI18nView < Live::View
 		
 		# Initial render
 		self.update!
+		
+		# Aggressively remove all debug borders with continuous monitoring
+		Async do
+			sleep 0.5
+			self.script(<<~JAVASCRIPT)
+				// Ultimate border removal with MutationObserver
+				(function() {
+					// Create the highest priority style sheet
+					const killBordersStyle = document.createElement('style');
+					killBordersStyle.id = 'kill-all-borders';
+					killBordersStyle.innerHTML = `
+						*, *::before, *::after,
+						.live, [data-live], [id*="live"],
+						div, span, p, h1, h2, h3, h4, h5, h6,
+						form, input, select, button, textarea,
+						ul, li, a, code, pre {
+							border: none !important;
+							outline: none !important;
+							box-shadow: none !important;
+						}
+						
+						/* Only restore specific intended borders */
+						.lobby-container { border: 1px solid rgba(255, 255, 255, 0.08) !important; }
+						.form-group { border: 1px solid rgba(255, 255, 255, 0.03) !important; }
+						.room-card { border: 1px solid rgba(102, 126, 234, 0.12) !important; }
+						.room-card:hover { border-color: #667eea !important; }
+						input[type="text"], select { border: 1px solid rgba(102, 126, 234, 0.15) !important; }
+						input[type="text"]:focus, select:focus { border-color: #667eea !important; }
+						.tab-nav { border: 1px solid rgba(255, 255, 255, 0.04) !important; }
+						.player-header { border: 1px solid rgba(255, 255, 255, 0.03) !important; }
+						.stats-bar { border: 1px solid rgba(102, 126, 234, 0.1) !important; }
+						.tab-content { border: 1px solid rgba(102, 126, 234, 0.1) !important; }
+						.room-list-header { border-bottom: 1px solid rgba(102, 126, 234, 0.1) !important; }
+						.quick-join-section { border-bottom: 1px solid rgba(102, 126, 234, 0.1) !important; }
+					`;
+					
+					// Remove existing kill-borders style if present
+					const existing = document.getElementById('kill-all-borders');
+					if (existing) existing.remove();
+					
+					// Add to head with highest priority
+					if (document.head.firstChild) {
+						document.head.insertBefore(killBordersStyle, document.head.firstChild);
+					} else {
+						document.head.appendChild(killBordersStyle);
+					}
+					
+					// Function to remove red borders from an element
+					function removeBorders(el) {
+						if (el && el.style) {
+							if (el.style.border && (el.style.border.includes('red') || el.style.border.includes('rgb(255, 0, 0)') || el.style.border.includes('1px solid'))) {
+								el.style.border = 'none';
+							}
+							if (el.style.outline && (el.style.outline.includes('red') || el.style.outline.includes('rgb(255, 0, 0)'))) {
+								el.style.outline = 'none';
+							}
+							if (el.style.boxShadow && el.style.boxShadow.includes('red')) {
+								el.style.boxShadow = 'none';
+							}
+						}
+					}
+					
+					// Initial cleanup
+					document.querySelectorAll('*').forEach(removeBorders);
+					
+					// Create MutationObserver to continuously remove borders
+					const observer = new MutationObserver(function(mutations) {
+						mutations.forEach(function(mutation) {
+							// Check added nodes
+							if (mutation.type === 'childList') {
+								mutation.addedNodes.forEach(function(node) {
+									if (node.nodeType === 1) { // Element node
+										removeBorders(node);
+										// Check all descendants
+										if (node.querySelectorAll) {
+											node.querySelectorAll('*').forEach(removeBorders);
+										}
+									}
+								});
+							}
+							// Check attribute changes
+							else if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+								removeBorders(mutation.target);
+							}
+						});
+					});
+					
+					// Start observing the entire document
+					observer.observe(document.body, {
+						childList: true,
+						subtree: true,
+						attributes: true,
+						attributeFilter: ['style']
+					});
+					
+					// Also periodically clean up (belt and suspenders approach)
+					setInterval(function() {
+						document.querySelectorAll('*').forEach(function(el) {
+							if (el.style && el.style.border && (el.style.border.includes('red') || el.style.border.includes('rgb(255, 0, 0)'))) {
+								el.style.border = 'none';
+							}
+						});
+					}, 500);
+					
+					console.log('Border removal system activated with MutationObserver');
+				})();
+			JAVASCRIPT
+		end
 		
 		Console.info(self, "Starting room list updates...")
 		
@@ -85,32 +195,53 @@ class AsyncRedisLobbyI18nView < Live::View
 			// Initialize player ID when DOM is ready
 			function initializePlayerIdWhenReady() {
 				const playerIdElement = document.getElementById('current-player-id');
+				const playerNicknameElement = document.getElementById('current-player-nickname');
 				if (!playerIdElement) {
 					console.log('Player ID element not found, retrying in 100ms...');
 					setTimeout(initializePlayerIdWhenReady, 100);
 					return;
 				}
 				
-				// Check for existing player ID cookie
+				// Check for existing player ID and nickname cookies
 				const existingPlayerId = getCookie('cs2d_player_id');
+				const existingNickname = getCookie('cs2d_player_nickname');
 				console.log('Checking for existing player cookie:', existingPlayerId);
+				console.log('Checking for existing nickname cookie:', existingNickname);
 				
 				if (existingPlayerId && existingPlayerId.trim() !== '') {
 					// Update UI immediately
 					playerIdElement.textContent = existingPlayerId;
 					
-					// Send existing player ID to server
+					// Set nickname if available, otherwise use player ID
+					const nickname = existingNickname || existingPlayerId.substring(0, 8);
+					if (playerNicknameElement) {
+						playerNicknameElement.textContent = nickname;
+					}
+					
+					// Send existing player ID and nickname to server
 					console.log('Found existing player ID, sending to server:', existingPlayerId);
-					window.live.forwardEvent('#{@id}', {type: 'set_player_id_from_cookie'}, {player_id: existingPlayerId});
+					window.live.forwardEvent('#{@id}', {type: 'set_player_id_from_cookie'}, {
+						player_id: existingPlayerId,
+						nickname: nickname
+					});
 				} else {
 					// Set new cookie with current player ID
 					const expiry = new Date();
 					expiry.setTime(expiry.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
 					document.cookie = 'cs2d_player_id=#{@player_id}; expires=' + expiry.toUTCString() + '; path=/; SameSite=Lax';
-					console.log('Set new player ID cookie: #{@player_id}');
 					
-					// Update UI with server-generated ID
+					// Set default nickname
+					const defaultNickname = 'Player_' + '#{@player_id}'.substring(0, 6);
+					document.cookie = 'cs2d_player_nickname=' + defaultNickname + '; expires=' + expiry.toUTCString() + '; path=/; SameSite=Lax';
+					
+					console.log('Set new player ID cookie: #{@player_id}');
+					console.log('Set new nickname cookie:', defaultNickname);
+					
+					// Update UI with server-generated ID and nickname
 					playerIdElement.textContent = '#{@player_id}';
+					if (playerNicknameElement) {
+						playerNicknameElement.textContent = defaultNickname;
+					}
 				}
 			}
 			
@@ -257,10 +388,12 @@ class AsyncRedisLobbyI18nView < Live::View
 	
 	def handle_set_player_id_from_cookie(detail)
 		cookie_player_id = detail[:player_id]&.strip
+		cookie_nickname = detail[:nickname]&.strip
 		
 		if cookie_player_id && !cookie_player_id.empty?
 			old_player_id = @player_id
 			@player_id = cookie_player_id
+			@player_nickname = cookie_nickname || "Player_#{@player_id[0..5]}"
 			
 			# Update the UI
 			self.replace("#current-player-id") do |builder|
@@ -271,6 +404,34 @@ class AsyncRedisLobbyI18nView < Live::View
 		end
 	rescue => e
 		Console.error(self, "Error setting player ID from cookie: #{e.message}")
+	end
+	
+	def handle_update_nickname(detail)
+		new_nickname = detail[:nickname]&.strip
+		
+		# Add timestamp to track rapid events
+		timestamp = Time.now.strftime("%H:%M:%S.%3N")
+		Console.info(self, "Handling update_nickname at #{timestamp} - Nickname: '#{new_nickname}'")
+		
+		# Ignore if same as current nickname to prevent unnecessary updates
+		if new_nickname == @player_nickname
+			Console.info(self, "Nickname unchanged, ignoring update")
+			return
+		end
+		
+		if new_nickname && !new_nickname.empty? && new_nickname.length <= 20
+			@player_nickname = new_nickname
+			Console.info(self, "Successfully updated player nickname: #{@player_nickname}")
+			
+			# Update only the nickname display element to prevent triggering room list refresh
+			self.replace("#current-player-nickname") do |builder|
+				builder.text(@player_nickname)
+			end
+		else
+			Console.warn(self, "Invalid nickname provided: '#{new_nickname}' (length: #{new_nickname&.length || 0})")
+		end
+	rescue => e
+		Console.error(self, "Error updating nickname: #{e.message}")
 	end
 	
 	def handle_create_room(detail)
@@ -404,14 +565,22 @@ class AsyncRedisLobbyI18nView < Live::View
 	end
 	
 	def redirect_to_room(room_id, player_id)
+		# Encode nickname for URL
+		nickname = @player_nickname || "Player_#{player_id[0..5]}"
+		encoded_nickname = ERB::Util.url_encode(nickname)
+		
 		# Use JavaScript to redirect to the room waiting page on port 9293
 		self.script(<<~JAVASCRIPT)
-			console.log('Redirecting to room waiting page...', {room_id: '#{room_id}', player_id: '#{player_id}'});
+			console.log('Redirecting to room waiting page...', {
+				room_id: '#{room_id}', 
+				player_id: '#{player_id}',
+				nickname: '#{nickname}'
+			});
 			
 			// Small delay to let the notification show
 			setTimeout(() => {
 				// Redirect to static server on port 9293 for room waiting page
-				const url = 'http://localhost:9293/room.html?room_id=#{room_id}&player_id=#{player_id}';
+				const url = 'http://localhost:9293/room.html?room_id=#{room_id}&player_id=#{player_id}&nickname=#{encoded_nickname}';
 				console.log('Navigating to:', url);
 				window.location.href = url;
 			}, 2000); // 2 second delay to show success message
@@ -548,17 +717,18 @@ class AsyncRedisLobbyI18nView < Live::View
 	
 	def render_room_list(builder, rooms)
 		if rooms.empty?
-			builder.tag(:p, style: "color: #666;") do
+			builder.tag(:div, class: "empty-state") do
 				builder.text(I18n.t("lobby.join.no_rooms"))
 			end
 		else
 			rooms.each do |room|
-				builder.tag(:div, style: "border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: white; margin-bottom: 15px;") do
-					builder.tag(:h4, style: "margin: 0 0 10px 0;") do
+				room_class = room[:state] == "waiting" ? "room-card" : "room-card room-full"
+				builder.tag(:div, class: room_class) do
+					builder.tag(:h4) do
 						builder.text(room[:room_name])
 					end
 					
-					builder.tag(:p, style: "margin: 5px 0; color: #666;") do
+					builder.tag(:p) do
 						builder.text("#{I18n.t('lobby.join.room_id')}: #{room[:room_id]}")
 						builder.tag(:br)
 						builder.text("#{I18n.t('lobby.join.players')}: #{room[:player_count]}/#{room[:max_players]}")
@@ -570,7 +740,7 @@ class AsyncRedisLobbyI18nView < Live::View
 						# Show creator ID for debugging
 						if room[:creator_id]
 							builder.tag(:br)
-							builder.tag(:span, style: "color: #FF9800; font-size: 12px;") do
+							builder.tag(:span, style: "color: #FF9800;") do
 								builder.text("房主 ID: #{room[:creator_id]}")
 							end
 						end
@@ -582,18 +752,18 @@ class AsyncRedisLobbyI18nView < Live::View
 								type: "text", 
 								id: "join_player_#{room[:room_id]}", 
 								placeholder: I18n.t("lobby.join.player_id_placeholder"),
-								style: "padding: 5px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;")
+								style: "padding: 5px; margin-right: 10px;")
 							
 							if room[:player_count] >= room[:max_players]
 								builder.tag(:button, 
 									disabled: true,
-									style: "padding: 8px 20px; background: #ccc; color: white; border: none; border-radius: 5px; cursor: not-allowed;") do
+									class: "btn btn-secondary", style: "cursor: not-allowed; opacity: 0.5;") do
 									builder.text(I18n.t("lobby.join.room_full"))
 								end
 							else
 								builder.tag(:button, 
 									onclick: forward_join_room(room[:room_id]),
-									style: "padding: 8px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;") do
+									class: "btn btn-success", style: "margin-right: 10px;") do
 									builder.text(I18n.t("lobby.join.join_button"))
 								end
 							end
@@ -610,7 +780,7 @@ class AsyncRedisLobbyI18nView < Live::View
 									# If player is creator, show simplified button
 									builder.tag(:button, 
 										onclick: "window.live.forwardEvent('#{@id}', {type: 'start_game'}, {player_id: '#{@player_id}', room_id: '#{room[:room_id]}'})",
-										style: "padding: 10px 24px; background: #FF5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px;") do
+										class: "btn btn-danger") do
 										builder.text("🎮 開始遊戲（您是房主）")
 									end
 								else
@@ -619,11 +789,11 @@ class AsyncRedisLobbyI18nView < Live::View
 										type: "text", 
 										id: "start_player_#{room[:room_id]}", 
 										placeholder: "需要輸入房主 ID: #{room[:creator_id][0..7]}...",
-										style: "padding: 5px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;")
+										style: "padding: 5px; margin-right: 10px;")
 									
 									builder.tag(:button, 
 										onclick: forward_start_game(room[:room_id]),
-										style: "padding: 8px 20px; background: #FF5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;") do
+										class: "btn btn-danger") do
 										builder.text(I18n.t("lobby.start.start_button"))
 									end
 								end
@@ -641,23 +811,161 @@ class AsyncRedisLobbyI18nView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag(:div, id: "lobby-container", style: "max-width: 1200px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;") do
+		# Add CSS link
+		builder.tag(:link, rel: "stylesheet", type: "text/css", href: "http://localhost:9293/_static/lobby.css") do
+		end
+		
+		# Override debug borders
+		builder.tag(:style) do
+			builder.raw(<<~CSS)
+				/* Remove all debug borders */
+				* {
+					border: none !important;
+					outline: none !important;
+				}
+				
+				/* Compact layout */
+				body {
+					overflow-x: hidden;
+				}
+				
+				.lobby-container {
+					max-width: 1400px !important;
+					padding: 1.5rem !important;
+					min-height: 100vh;
+					display: flex;
+					flex-direction: column;
+				}
+				
+				.player-header {
+					margin-bottom: 1rem !important;
+				}
+				
+				.main-content {
+					display: grid;
+					grid-template-columns: minmax(350px, 1fr) minmax(450px, 2fr);
+					gap: 2rem;
+					align-items: start;
+					flex: 1;
+				}
+				
+				.tab-content {
+					background: rgba(20, 20, 30, 0.6);
+					border: 1px solid rgba(102, 126, 234, 0.1);
+					border-radius: 20px;
+					padding: 1.5rem;
+					backdrop-filter: blur(20px);
+					box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+				}
+				
+				.tab-content h2 {
+					color: #667eea;
+					margin-bottom: 1.5rem;
+					font-size: 1.5rem;
+					text-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+				}
+				
+				.create-section {
+					min-height: 400px;
+				}
+				
+				.join-section {
+					min-height: 400px;
+				}
+				
+				#stats-bar {
+					margin-bottom: 1rem !important;
+					padding: 0.5rem 1rem !important;
+					font-size: 0.85rem !important;
+				}
+				
+				.room-grid {
+					max-height: 400px;
+					overflow-y: auto;
+					padding-right: 0.5rem;
+					scrollbar-width: thin;
+					scrollbar-color: rgba(102, 126, 234, 0.3) rgba(255, 255, 255, 0.05);
+				}
+				
+				.room-grid::-webkit-scrollbar {
+					width: 6px;
+				}
+				
+				.room-grid::-webkit-scrollbar-track {
+					background: rgba(255, 255, 255, 0.02);
+					border-radius: 3px;
+				}
+				
+				.room-grid::-webkit-scrollbar-thumb {
+					background: rgba(102, 126, 234, 0.3);
+					border-radius: 3px;
+				}
+				
+				.room-grid::-webkit-scrollbar-thumb:hover {
+					background: rgba(102, 126, 234, 0.5);
+				}
+				
+				.room-card {
+					margin-bottom: 1rem !important;
+				}
+				
+				.form-group {
+					margin-bottom: 1rem !important;
+				}
+				
+				.room-list-header {
+					margin-bottom: 1rem !important;
+					padding-bottom: 0.5rem !important;
+				}
+				
+				.quick-join-section {
+					margin-bottom: 1.5rem;
+					padding-bottom: 1rem;
+					border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+				}
+				
+				@media (max-width: 1024px) {
+					.main-content {
+						grid-template-columns: 1fr;
+						gap: 1.5rem;
+					}
+				}
+			CSS
+		end
+		
+		builder.tag(:div, id: "lobby-container", class: "lobby-container") do
 			# Header with title, player info, and language switcher
-			builder.tag(:div, style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;") do
-				builder.tag(:h1, style: "color: #333; margin: 0;") do
+			builder.tag(:div, class: "player-header") do
+				builder.tag(:h1) do
 					builder.text(I18n.t("lobby.title"))
-					builder.tag(:span, style: "font-size: 0.6em; color: #666; margin-left: 10px;") do
+					builder.tag(:span, style: "font-size: 0.6em; margin-left: 10px;") do
 						builder.text(I18n.t("lobby.subtitle"))
 					end
 				end
 				
-				builder.tag(:div, style: "display: flex; align-items: center; gap: 20px;") do
+				builder.tag(:div, class: "player-info") do
+					# Player Nickname display with edit button
+					builder.tag(:div, style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;") do
+						builder.tag(:span) do
+							builder.text("暱稱:")
+						end
+						builder.tag(:strong, id: "current-player-nickname", style: "color: #667eea; font-size: 1.1em;") do
+							builder.text(@player_nickname || (@player_id ? "Player_#{@player_id[0..5]}" : "Loading..."))
+						end
+						builder.tag(:button, 
+							onclick: "showNicknameEditModal()",
+							class: "btn btn-secondary",
+							style: "padding: 2px 8px; font-size: 12px;") do
+							builder.text("編輯")
+						end
+					end
+					
 					# Player ID display with copy hint
 					builder.tag(:div, style: "display: flex; align-items: center; gap: 8px;") do
-						builder.tag(:span, style: "color: #666; font-size: 14px;") do
+						builder.tag(:span) do
 							builder.text(I18n.t("lobby.player.current_id", default: "您的 ID:"))
 						end
-						builder.tag(:code, id: "current-player-id", style: "background: #ffeb3b; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #333; font-weight: bold; cursor: pointer;", 
+						builder.tag(:code, id: "current-player-id", class: "player-id", style: "cursor: pointer;", 
 							title: "點擊複製完整 ID",
 							onclick: "navigator.clipboard.writeText('#{@player_id}').then(() => { alert('已複製玩家 ID: #{@player_id}'); });") do
 							builder.text(@player_id)
@@ -668,12 +976,13 @@ class AsyncRedisLobbyI18nView < Live::View
 					end
 					
 					# Language switcher
-					builder.tag(:div, style: "display: flex; gap: 10px;") do
+					builder.tag(:div, class: "language-buttons") do
 						I18n.available_locales.each do |locale|
 							is_active = locale == @locale
+							button_class = is_active ? "btn btn-primary" : "btn btn-secondary"
 							builder.tag(:button,
 								onclick: forward_language_change(locale),
-								style: "padding: 8px 16px; background: #{is_active ? '#4CAF50' : '#ddd'}; color: #{is_active ? 'white' : '#333'}; border: none; border-radius: 5px; cursor: pointer; font-weight: #{is_active ? 'bold' : 'normal'};") do
+								class: button_class) do
 								builder.text(I18n.locale_name(locale))
 							end
 						end
@@ -682,47 +991,35 @@ class AsyncRedisLobbyI18nView < Live::View
 			end
 			
 			# Stats bar
-			builder.tag(:div, id: "stats-bar", style: "background: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;") do
+			builder.tag(:div, id: "stats-bar", class: "stats-bar") do
 				builder.text(I18n.t("lobby.stats.loading"))
 			end
 			
-			# Tab navigation
-			builder.tag(:div, id: "tab-nav", style: "display: flex; gap: 10px; margin-bottom: 20px;") do
-				builder.tag(:button, onclick: "showTab('create')", class: "tab-button active",
-					style: "padding: 10px 20px; border: none; background: #4CAF50; color: white; cursor: pointer; border-radius: 5px;") do
-					builder.text(I18n.t("lobby.tabs.create_room"))
-				end
-				builder.tag(:button, onclick: "showTab('join')", class: "tab-button",
-					style: "padding: 10px 20px; border: none; background: #ddd; color: #333; cursor: pointer; border-radius: 5px;") do
-					builder.text(I18n.t("lobby.tabs.join_room"))
-				end
-			end
-			
-			# Create room tab
-			builder.tag(:div, id: "create-tab", class: "tab-content", style: "display: block;") do
+			# Main content grid
+			builder.tag(:div, class: "main-content") do
+				# Create room section (left side)
+				builder.tag(:div, class: "tab-content create-section") do
 				builder.tag(:h2) { builder.text(I18n.t("lobby.create.title")) }
 				
-				builder.tag(:div, id: "create-form", style: "max-width: 500px;") do
+				builder.tag(:div, id: "create-form") do
 					# Player ID (hidden, auto-populated)
 					builder.tag(:input, type: "hidden", id: "player_id", value: @player_id)
 					
 					# Room name
-					builder.tag(:div, style: "margin-bottom: 15px;") do
-						builder.tag(:label, for: "room_name", style: "display: block; margin-bottom: 5px;") do
+					builder.tag(:div, class: "form-group") do
+						builder.tag(:label, for: "room_name") do
 							builder.text(I18n.t("lobby.create.room_name"))
 						end
 						builder.tag(:input, type: "text", id: "room_name",
-							placeholder: I18n.t("lobby.create.room_name_placeholder"),
-							style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;")
+							placeholder: I18n.t("lobby.create.room_name_placeholder"))
 					end
 					
 					# Max players
-					builder.tag(:div, style: "margin-bottom: 15px;") do
-						builder.tag(:label, for: "max_players", style: "display: block; margin-bottom: 5px;") do
+					builder.tag(:div, class: "form-group") do
+						builder.tag(:label, for: "max_players") do
 							builder.text(I18n.t("lobby.create.max_players"))
 						end
-						builder.tag(:select, id: "max_players",
-							style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;") do
+						builder.tag(:select, id: "max_players") do
 							(2..10).each do |n|
 								builder.tag(:option, value: n) { builder.text(I18n.t("lobby.create.players_count", count: n)) }
 							end
@@ -730,12 +1027,11 @@ class AsyncRedisLobbyI18nView < Live::View
 					end
 					
 					# Map selection
-					builder.tag(:div, style: "margin-bottom: 15px;") do
-						builder.tag(:label, for: "map", style: "display: block; margin-bottom: 5px;") do
+					builder.tag(:div, class: "form-group") do
+						builder.tag(:label, for: "map") do
 							builder.text(I18n.t("lobby.create.map"))
 						end
-						builder.tag(:select, id: "map",
-							style: "width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;") do
+						builder.tag(:select, id: "map") do
 							["de_dust2", "de_inferno", "de_mirage", "de_nuke", "cs_office"].each do |map|
 								builder.tag(:option, value: map) { builder.text(map) }
 							end
@@ -744,44 +1040,43 @@ class AsyncRedisLobbyI18nView < Live::View
 					
 					builder.tag(:button, type: "button", 
 						onclick: forward_create_room,
-						style: "padding: 10px 30px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;") do
+						class: "btn btn-primary") do
 						builder.text(I18n.t("lobby.create.create_button"))
 					end
 				end
-			end
-			
-			# Join room tab
-			builder.tag(:div, id: "join-tab", class: "tab-content", style: "display: none;") do
+				end # End create section
+				
+				# Join room section (right side)
+				builder.tag(:div, class: "tab-content join-section") do
 				builder.tag(:h2) { builder.text(I18n.t("lobby.join.title")) }
 				
 				# Quick join button
-				builder.tag(:div, style: "margin-bottom: 30px;") do
-					builder.tag(:div, style: "margin-bottom: 15px;") do
-						builder.tag(:label, for: "quick_player_id", style: "display: block; margin-bottom: 5px;") do
+				builder.tag(:div, class: "quick-join-section") do
+					builder.tag(:div, class: "form-group") do
+						builder.tag(:label, for: "quick_player_id") do
 							builder.text(I18n.t("lobby.join.quick_join_label"))
 						end
 						builder.tag(:input, type: "text", id: "quick_player_id",
-							placeholder: I18n.t("lobby.join.quick_join_placeholder"),
-							style: "width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;")
+							placeholder: I18n.t("lobby.join.quick_join_placeholder"))
 					end
 					
 					builder.tag(:button, type: "button", onclick: forward_quick_join,
-						style: "padding: 12px 40px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;") do
+						class: "btn btn-success") do
 						builder.text(I18n.t("lobby.join.quick_join_button"))
 					end
 				end
 				
 				# Room list with refresh button
-				builder.tag(:div, style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;") do
-					builder.tag(:h3, style: "margin: 0;") { builder.text(I18n.t("lobby.join.room_list_title")) }
+				builder.tag(:div, class: "room-list-header") do
+					builder.tag(:h3) { builder.text(I18n.t("lobby.join.room_list_title")) }
 					builder.tag(:button, 
 						onclick: "window.live.forwardEvent('#{@id}', {type: 'manual_refresh'}, {})",
-						style: "padding: 8px 16px; background: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;") do
+						class: "btn btn-secondary") do
 						builder.text("🔄 立即刷新")
 					end
 				end
-				builder.tag(:div, id: "room-list", style: "display: block;") do
-					builder.tag(:div, id: "room-list-content", style: "display: grid; gap: 15px;") do
+				builder.tag(:div, id: "room-list", class: "room-list") do
+					builder.tag(:div, id: "room-list-content", class: "room-grid") do
 						# Render initial room list immediately
 						begin
 							rooms = @@room_manager.get_room_list
@@ -795,33 +1090,144 @@ class AsyncRedisLobbyI18nView < Live::View
 						end
 					end
 				end
+				end # End join section
+			end # End main-content
+		end # End lobby-container
+		
+		# Nickname Edit Modal
+		builder.tag(:div, id: "nickname-modal", style: "display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000;") do
+			builder.tag(:div, style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2d2d2d; padding: 20px; border-radius: 10px; border: 1px solid #667eea;") do
+				builder.tag(:h3, style: "color: #667eea; margin-bottom: 15px;") { builder.text("編輯暱稱") }
+				builder.tag(:input, 
+					type: "text", 
+					id: "nickname-input",
+					maxlength: "20",
+					style: "width: 250px; padding: 8px; background: #1a1a1a; border: 1px solid #667eea; color: white; border-radius: 5px; margin-bottom: 15px;",
+					placeholder: "輸入您的暱稱 (最多20字)")
+				builder.tag(:div, style: "display: flex; gap: 10px; justify-content: flex-end;") do
+					builder.tag(:button, 
+						onclick: "saveNickname()",
+						class: "btn btn-primary") do
+						builder.text("儲存")
+					end
+					builder.tag(:button,
+						onclick: "closeNicknameModal()",
+						class: "btn btn-secondary") do
+						builder.text("取消")
+					end
+				end
 			end
 		end
 		
-		
-		# JavaScript for tab switching and player ID management
+		# JavaScript for player ID management
 		builder.tag(:script, type: "text/javascript") do
 			builder.raw(<<~JAVASCRIPT)
-				function showTab(tabName) {
-					// Hide all tabs
-					document.querySelectorAll('.tab-content').forEach(tab => {
-						tab.style.display = 'none';
-					});
+				// Nickname management functions
+				function showNicknameEditModal() {
+					const modal = document.getElementById('nickname-modal');
+					const input = document.getElementById('nickname-input');
+					const currentNickname = document.getElementById('current-player-nickname').textContent;
 					
-					// Deactivate all buttons
-					document.querySelectorAll('.tab-button').forEach(btn => {
-						btn.style.background = '#ddd';
-						btn.style.color = '#333';
-					});
-					
-					// Show selected tab
-					document.getElementById(tabName + '-tab').style.display = 'block';
-					
-					// Activate selected button
-					event.target.style.background = '#4CAF50';
-					event.target.style.color = 'white';
+					input.value = currentNickname;
+					modal.style.display = 'block';
+					input.focus();
+					input.select();
 				}
 				
+				function closeNicknameModal() {
+					document.getElementById('nickname-modal').style.display = 'none';
+				}
+				
+				let isSavingNickname = false; // Prevent multiple simultaneous saves
+				
+				function saveNickname() {
+					// Prevent multiple simultaneous saves
+					if (isSavingNickname) {
+						console.log('Save already in progress, ignoring');
+						return;
+					}
+					
+					const input = document.getElementById('nickname-input');
+					const nickname = input.value.trim();
+					
+					if (nickname && nickname.length > 0) {
+						isSavingNickname = true;
+						
+						// Disable save button to prevent multiple clicks
+						const saveBtn = document.querySelector('#nickname-modal .btn-primary');
+						if (saveBtn) {
+							saveBtn.disabled = true;
+							saveBtn.textContent = '儲存中...';
+						}
+						
+						// Update cookie
+						const expiry = new Date();
+						expiry.setTime(expiry.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+						document.cookie = 'cs2d_player_nickname=' + nickname + '; expires=' + expiry.toUTCString() + '; path=/; SameSite=Lax';
+						
+						// Update UI
+						document.getElementById('current-player-nickname').textContent = nickname;
+						
+						// Send to server
+						window.live.forwardEvent('#{@id}', {type: 'update_nickname'}, {nickname: nickname});
+						
+						// Close modal and reset state after a short delay
+						setTimeout(() => {
+							closeNicknameModal();
+							isSavingNickname = false;
+							if (saveBtn) {
+								saveBtn.disabled = false;
+								saveBtn.textContent = '儲存';
+							}
+						}, 500);
+					}
+				}
+				
+				// Close modal on escape key and handle Enter key on nickname input
+				document.addEventListener('keydown', function(e) {
+					if (e.key === 'Escape') {
+						closeNicknameModal();
+					}
+				});
+				
+				// Handle Enter key on nickname input field
+				document.addEventListener('keydown', function(e) {
+					if (e.target.id === 'nickname-input' && e.key === 'Enter') {
+						e.preventDefault(); // Prevent form submission
+						saveNickname();
+					}
+				});
+				
+				// Remove debug borders immediately
+				document.addEventListener('DOMContentLoaded', function() {
+					// Create style element to override all borders
+					const overrideStyle = document.createElement('style');
+					overrideStyle.innerHTML = `
+						* {
+							border: none !important;
+							outline: none !important;
+							box-shadow: none !important;
+						}
+						
+						[style*="border"] {
+							border: none !important;
+						}
+						
+						.live {
+							border: none !important;
+						}
+					`;
+					document.head.appendChild(overrideStyle);
+					
+					// Also remove inline style borders
+					document.querySelectorAll('*').forEach(el => {
+						if (el.style.border) {
+							el.style.border = 'none';
+						}
+					});
+				});
+				
+				// Player ID management
 				
 				// Function to create room with current form values
 				function createRoomWithCurrentValues() {

@@ -27,6 +27,12 @@ fi
 cleanup() {
     echo -e "\n🛑 正在停止伺服器..."
     
+    # Kill the API bridge server
+    if [ ! -z "$API_PID" ]; then
+        kill $API_PID 2>/dev/null
+        echo "✅ API Bridge 伺服器已停止"
+    fi
+    
     # Kill the static server
     if [ ! -z "$STATIC_PID" ]; then
         kill $STATIC_PID 2>/dev/null
@@ -45,6 +51,23 @@ cleanup() {
 
 # Set up signal handlers
 trap cleanup SIGINT SIGTERM
+
+echo ""
+echo "🚀 啟動 API Bridge 伺服器 (端口 9294)..."
+ruby api_bridge_server.rb 9294 > api_server.log 2>&1 &
+API_PID=$!
+
+# Wait a moment for API server to start
+sleep 2
+
+# Check if API server started successfully
+if ps -p $API_PID > /dev/null; then
+    echo "✅ API Bridge 伺服器啟動成功 (PID: $API_PID)"
+    echo "   - API 端點: http://localhost:9294/api"
+else
+    echo "❌ API Bridge 伺服器啟動失敗"
+    exit 1
+fi
 
 echo ""
 echo "🚀 啟動靜態文件伺服器 (端口 9293)..."
@@ -90,15 +113,18 @@ echo "🌐 服務器狀態:"
 echo "   📋 大廳 (Lively):     http://localhost:9292"
 echo "   🏠 房間 (靜態):       http://localhost:9293/room.html" 
 echo "   🎮 遊戲 (靜態):       http://localhost:9293/game.html"
+echo "   🔌 API Bridge:        http://localhost:9294/api"
 echo "   🗃️  Redis:           localhost:6379"
 echo ""
 echo "🎯 完整遊戲流程:"
 echo "   1. 訪問 http://localhost:9292 進入大廳"
 echo "   2. 創建或加入房間 → 自動跳轉到房間等待頁面"
-echo "   3. 房主點擊開始遊戲 → 進入遊戲頁面"
+echo "   3. 房主可以新增/移除 Bot"
+echo "   4. 房主點擊開始遊戲 → 進入遊戲頁面"
 echo ""
 echo "📝 日誌文件:"
 echo "   - Lively 服務器: lively_server.log"
+echo "   - API Bridge: api_server.log"
 echo "   - 靜態文件服務器: static_server.log"
 echo ""
 echo "⚡ 按 Ctrl+C 停止所有服務器"

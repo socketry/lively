@@ -13,6 +13,9 @@ class AsyncRedisRoomManager
 	def initialize
 		# Local cache for room instances (per process)
 		@room_instances = {}
+		
+		# Clear all rooms on server startup
+		clear_all_rooms_on_startup
 	end
 	
 	# Get Redis client within async context
@@ -441,6 +444,35 @@ class AsyncRedisRoomManager
 	rescue => e
 		Console.error(self, "Error getting room players: #{e.message}")
 		[]
+	end
+	
+	# Clear all rooms on server startup
+	def clear_all_rooms_on_startup
+		Console.info(self, "Clearing all rooms on server startup...")
+		
+		with_redis do |redis|
+			# Get all active rooms
+			room_ids = redis.smembers("active_rooms")
+			
+			# Clear each room
+			room_ids.each do |room_id|
+				redis.pipeline do |pipe|
+					pipe.del("room:#{room_id}:data")
+					pipe.del("room:#{room_id}:players")
+				end
+			end
+			
+			# Clear the active rooms set
+			redis.del("active_rooms")
+			
+			# Clear all player room assignments
+			player_keys = redis.keys("player:*:room")
+			redis.del(*player_keys) unless player_keys.empty?
+			
+			Console.info(self, "Cleared #{room_ids.length} rooms and #{player_keys.length} player assignments")
+		end
+	rescue => e
+		Console.warn(self, "Error clearing rooms on startup: #{e.message}")
 	end
 	
 	# Add bot to room

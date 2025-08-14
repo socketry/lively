@@ -9,7 +9,7 @@ module CS16GameState
 			phase: "warmup",
 			round_time: 115, # 1:55 classic round time
 			freeze_time: 15, # Classic 15 second freeze time
-			buy_time: 90, # Can buy for 90 seconds from round start
+			buy_time: 15, # Classic 15 second buy time after freeze
 			ct_score: 0,
 			t_score: 0,
 			round: 1,
@@ -18,7 +18,7 @@ module CS16GameState
 			consecutive_losses: { ct: 0, t: 0 }, # Track for loss bonus
 			bomb: {
 				planted: false,
-				time_left: 35, # Classic C4 timer: 35 seconds
+				time_left: 45, # Classic C4 timer: 45 seconds
 				x: nil,
 				y: nil,
 				planter_id: nil,
@@ -156,9 +156,9 @@ module CS16GameState
 		{
 			# Pistols
 			usp: { name: "USP", price: 0, category: "pistol", damage: 34, ammo: 12, team: "ct" },
-			glock: { name: "Glock-18", price: 0, category: "pistol", damage: 28, ammo: 20, team: "t" },
+			glock: { name: "Glock-18", price: 0, category: "pistol", damage: 25, ammo: 20, team: "t" },  # CS 1.6 authentic damage
 			p228: { name: "P228", price: 600, category: "pistol", damage: 32, ammo: 13 },
-			deagle: { name: "Desert Eagle", price: 650, category: "pistol", damage: 48, ammo: 7 },
+			deagle: { name: "Desert Eagle", price: 650, category: "pistol", damage: 54, ammo: 7 },  # CS 1.6 authentic damage
 			fiveseven: { name: "Five-SeveN", price: 750, category: "pistol", damage: 29, ammo: 20, team: "ct" },
 			elite: { name: "Dual Berettas", price: 800, category: "pistol", damage: 26, ammo: 30 },
 
@@ -170,7 +170,7 @@ module CS16GameState
 			p90: { name: "P90", price: 2350, category: "smg", damage: 25, ammo: 50 },
 
 			# Rifles
-			ak47: { name: "AK-47", price: 2500, category: "rifle", damage: 36, ammo: 30, team: "t" },
+			ak47: { name: "AK-47", price: 2500, category: "rifle", damage: 36, ammo: 30, team: "t" },  # CS 1.6 authentic price
 			m4a1: { name: "M4A1", price: 3100, category: "rifle", damage: 33, ammo: 30, team: "ct" },
 			galil: { name: "Galil", price: 2000, category: "rifle", damage: 30, ammo: 35, team: "t" },
 			famas: { name: "FAMAS", price: 2250, category: "rifle", damage: 30, ammo: 25, team: "ct" },
@@ -196,7 +196,7 @@ module CS16GameState
 		{
 			kevlar: { name: "Kevlar Vest", price: 650, armor_points: 100 },
 			kevlar_helmet: { name: "Kevlar + Helmet", price: 1000, armor_points: 100, helmet: true },
-			defuse_kit: { name: "Defuse Kit", price: 200, team: "ct", defuse_time_reduction: 5 },
+			defuse_kit: { name: "Defuse Kit", price: 200, team: "ct", defuse_time_reduction: 5 },  # CS 1.6 authentic price
 			nvg: { name: "Night Vision Goggles", price: 1250 }
 		}
 	end
@@ -214,11 +214,11 @@ module CS16GameState
 		@game_state[:phase] = "freeze"
 		@game_state[:freeze_time] = 15
 		@game_state[:round_time] = 115
-		@game_state[:buy_time] = 90
+		@game_state[:buy_time] = 15  # Consistent with CS 1.6
 		
 		# Reset bomb state
 		@game_state[:bomb][:planted] = false
-		@game_state[:bomb][:time_left] = 35
+		@game_state[:bomb][:time_left] = 45  # CS 1.6 authentic bomb timer
 		@game_state[:bomb][:x] = nil
 		@game_state[:bomb][:y] = nil
 		@game_state[:bomb][:planter_id] = nil

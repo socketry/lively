@@ -274,6 +274,40 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        #death-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(139, 0, 0, 0.3);
+            display: none;
+            z-index: 150;
+            pointer-events: none;
+        }
+        
+        #death-message {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff0000;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            text-align: center;
+        }
+        
+        #respawn-timer {
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+        }
 
         .crosshair {
             position: absolute;
@@ -390,6 +424,12 @@
         <div class="spinner"></div>
         <p id="status-text">連接到遊戲伺服器...</p>
     </div>
+    
+    <!-- Death screen overlay -->
+    <div id="death-screen">
+        <div id="death-message">你已死亡</div>
+        <div id="respawn-timer">重生倒數: <span id="respawn-seconds">5</span> 秒</div>
+    </div>
 
     <script>
         // Game engine
@@ -402,6 +442,7 @@
                 
                 this.roomId = null;
                 this.playerId = null;
+                this.playerNickname = null;
                 this.gameState = 'loading';
                 this.players = new Map();
                 this.gameData = null;
@@ -419,6 +460,11 @@
                     kills: 0,
                     deaths: 0
                 };
+                
+                // Bullet system
+                this.bullets = [];
+                this.lastShotTime = 0;
+                this.fireRate = 100; // milliseconds between shots
 
                 // Input state
                 this.keys = {};
@@ -434,6 +480,7 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 this.roomId = urlParams.get('room_id');
                 this.playerId = urlParams.get('player_id');
+                this.playerNickname = urlParams.get('nickname') || `Player_${this.playerId?.substring(0, 6)}`;
 
                 if (!this.roomId || !this.playerId) {
                     alert('缺少必要參數，返回大廳');
@@ -477,10 +524,11 @@
                     this.mouse.x = e.clientX - rect.left;
                     this.mouse.y = e.clientY - rect.top;
                     
-                    // Update player angle based on mouse position
-                    const centerX = this.canvas.width / 2;
-                    const centerY = this.canvas.height / 2;
-                    this.player.angle = Math.atan2(this.mouse.y - centerY, this.mouse.x - centerX);
+                    // Update player angle based on mouse position relative to player
+                    this.player.angle = Math.atan2(
+                        this.mouse.y - this.player.y, 
+                        this.mouse.x - this.player.x
+                    );
                 });
 
                 this.canvas.addEventListener('mousedown', (e) => {
@@ -556,10 +604,12 @@
                     y: 300,
                     angle: 0,
                     health: 100,
+                    alive: true,
                     score: 0,
                     kills: 0,
                     deaths: 0,
-                    isCurrentPlayer: true
+                    isCurrentPlayer: true,
+                    deathTime: null
                 });
 
                 // Add some sample players
@@ -570,10 +620,12 @@
                     y: 200,
                     angle: Math.PI,
                     health: 85,
+                    alive: true,
                     score: 1200,
                     kills: 3,
                     deaths: 1,
-                    isCurrentPlayer: false
+                    isCurrentPlayer: false,
+                    deathTime: null
                 });
 
                 this.updateScoreboard();
@@ -592,14 +644,150 @@
                 // Update player movement based on input
                 this.updatePlayerMovement();
                 
+                // Handle continuous shooting while mouse is held
+                if (this.mouse.down && this.gameState === 'playing') {
+                    this.shoot();
+                }
+                
+                // Update bullets
+                this.updateBullets();
+                
+                // Check collisions
+                this.checkCollisions();
+                
                 // Update game state (bullets, AI, etc.)
                 // In a real implementation, this would sync with server
                 
                 // Update HUD
                 this.updateHUD();
             }
+            
+            updateBullets() {
+                // Update bullet positions and remove expired bullets
+                this.bullets = this.bullets.filter(bullet => {
+                    // Update position
+                    bullet.x += bullet.vx;
+                    bullet.y += bullet.vy;
+                    bullet.lifetime--;
+                    
+                    // Remove bullets that are out of bounds or expired
+                    if (bullet.x < 0 || bullet.x > this.canvas.width ||
+                        bullet.y < 0 || bullet.y > this.canvas.height ||
+                        bullet.lifetime <= 0) {
+                        return false; // Remove bullet
+                    }
+                    
+                    return true; // Keep bullet
+                });
+            }
+            
+            checkCollisions() {
+                // Check bullet-player collisions
+                this.bullets.forEach((bullet, bulletIndex) => {
+                    this.players.forEach(player => {
+                        // Don't check collision with bullet owner or dead players
+                        if (player.id === bullet.owner || player.health <= 0) return;
+                        
+                        // Simple circle collision detection
+                        const distance = Math.sqrt(
+                            Math.pow(bullet.x - player.x, 2) + 
+                            Math.pow(bullet.y - player.y, 2)
+                        );
+                        
+                        if (distance < 15) { // Player radius is 15
+                            // Hit detected!
+                            player.health -= bullet.damage;
+                            this.bullets.splice(bulletIndex, 1); // Remove bullet
+                            
+                            // Visual hit effect
+                            this.createHitEffect(player.x, player.y);
+                            
+                            // Check if player died
+                            if (player.health <= 0) {
+                                player.health = 0; // Ensure HP doesn't go negative
+                                player.alive = false;
+                                player.deaths++;
+                                player.deathTime = Date.now();
+                                
+                                // Check if it's the current player who died
+                                if (player.isCurrentPlayer) {
+                                    this.handlePlayerDeath();
+                                } else if (bullet.owner === this.playerId) {
+                                    this.player.kills++;
+                                    this.player.score += 100;
+                                    this.addChatMessage('系統', `你擊殺了 ${player.name}!`, 'system');
+                                }
+                                
+                                // Schedule respawn
+                                setTimeout(() => this.respawnPlayer(player), 5000); // 5 second respawn
+                            }
+                            
+                            this.updateScoreboard();
+                        }
+                    });
+                });
+            }
+            
+            handlePlayerDeath() {
+                // Show death screen
+                document.getElementById('death-screen').style.display = 'block';
+                
+                // Update death timer
+                let respawnTime = 5;
+                const timerInterval = setInterval(() => {
+                    respawnTime--;
+                    document.getElementById('respawn-seconds').textContent = respawnTime;
+                    
+                    if (respawnTime <= 0) {
+                        clearInterval(timerInterval);
+                        document.getElementById('death-screen').style.display = 'none';
+                    }
+                }, 1000);
+                
+                this.player.deaths++;
+                this.addChatMessage('系統', '你已死亡！5秒後重生...', 'system');
+            }
+            
+            respawnPlayer(player) {
+                if (!player) return;
+                
+                player.health = 100;
+                player.alive = true;
+                player.deathTime = null;
+                
+                // Respawn at random position
+                player.x = 100 + Math.random() * (this.canvas.width - 200);
+                player.y = 100 + Math.random() * (this.canvas.height - 200);
+                
+                // If it's the current player, update their state
+                if (player.isCurrentPlayer) {
+                    this.player.health = 100;
+                    this.player.x = player.x;
+                    this.player.y = player.y;
+                    this.player.ammo = 30;
+                    this.player.reserveAmmo = 90;
+                    document.getElementById('death-screen').style.display = 'none';
+                    document.getElementById('respawn-seconds').textContent = '5';
+                }
+                
+                this.addChatMessage('系統', `${player.name} 已重生`, 'system');
+                this.updateScoreboard();
+            }
+            
+            createHitEffect(x, y) {
+                // Visual feedback for hit
+                this.ctx.save();
+                this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 20, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+            }
 
             updatePlayerMovement() {
+                // Don't allow movement if dead
+                if (this.player.health <= 0) return;
+                
                 const speed = 3;
                 let dx = 0, dy = 0;
 
@@ -642,9 +830,35 @@
                 this.players.forEach(player => {
                     this.drawPlayer(player);
                 });
+                
+                // Draw bullets
+                this.drawBullets();
 
                 // Draw minimap
                 this.drawMinimap();
+            }
+            
+            drawBullets() {
+                this.ctx.save();
+                
+                // Draw each bullet
+                this.bullets.forEach(bullet => {
+                    // Draw bullet trail
+                    this.ctx.strokeStyle = 'rgba(255, 255, 100, 0.8)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(bullet.x - bullet.vx * 2, bullet.y - bullet.vy * 2);
+                    this.ctx.lineTo(bullet.x, bullet.y);
+                    this.ctx.stroke();
+                    
+                    // Draw bullet
+                    this.ctx.fillStyle = '#ffff00';
+                    this.ctx.beginPath();
+                    this.ctx.arc(bullet.x, bullet.y, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                
+                this.ctx.restore();
             }
 
             drawGrid() {
@@ -670,42 +884,91 @@
             drawPlayer(player) {
                 this.ctx.save();
                 
-                // Draw player circle
-                this.ctx.fillStyle = player.isCurrentPlayer ? '#3498db' : '#e74c3c';
-                this.ctx.beginPath();
-                this.ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
-                this.ctx.fill();
+                // Check if player is dead
+                const isDead = player.health <= 0;
+                
+                if (isDead) {
+                    // Draw dead player as gray with X mark
+                    this.ctx.fillStyle = '#555555';
+                    this.ctx.globalAlpha = 0.5;
+                    this.ctx.beginPath();
+                    this.ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Draw X mark over dead player
+                    this.ctx.strokeStyle = '#ff0000';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.globalAlpha = 0.8;
+                    
+                    // Draw X
+                    const size = 12;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(player.x - size, player.y - size);
+                    this.ctx.lineTo(player.x + size, player.y + size);
+                    this.ctx.moveTo(player.x + size, player.y - size);
+                    this.ctx.lineTo(player.x - size, player.y + size);
+                    this.ctx.stroke();
+                    
+                    // Draw death timer
+                    if (player.deathTime) {
+                        const respawnIn = Math.ceil((5000 - (Date.now() - player.deathTime)) / 1000);
+                        if (respawnIn > 0) {
+                            this.ctx.globalAlpha = 1;
+                            this.ctx.fillStyle = '#fff';
+                            this.ctx.font = 'bold 14px Arial';
+                            this.ctx.textAlign = 'center';
+                            this.ctx.fillText(respawnIn + 's', player.x, player.y + 5);
+                        }
+                    }
+                } else {
+                    // Draw alive player
+                    this.ctx.fillStyle = player.isCurrentPlayer ? '#3498db' : '#e74c3c';
+                    this.ctx.beginPath();
+                    this.ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+                    this.ctx.fill();
 
-                // Draw direction indicator
-                this.ctx.strokeStyle = '#fff';
-                this.ctx.lineWidth = 3;
-                this.ctx.beginPath();
-                this.ctx.moveTo(player.x, player.y);
-                this.ctx.lineTo(
-                    player.x + Math.cos(player.angle) * 25,
-                    player.y + Math.sin(player.angle) * 25
-                );
-                this.ctx.stroke();
+                    // Draw direction indicator (only for alive players)
+                    this.ctx.strokeStyle = '#fff';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(player.x, player.y);
+                    this.ctx.lineTo(
+                        player.x + Math.cos(player.angle) * 25,
+                        player.y + Math.sin(player.angle) * 25
+                    );
+                    this.ctx.stroke();
+                }
 
                 // Draw player name
-                this.ctx.fillStyle = '#fff';
+                this.ctx.globalAlpha = 1;
+                this.ctx.fillStyle = isDead ? '#888' : '#fff';
                 this.ctx.font = '12px Arial';
                 this.ctx.textAlign = 'center';
                 this.ctx.fillText(player.name, player.x, player.y - 25);
 
                 // Draw health bar
-                if (player.health < 100) {
-                    const barWidth = 30;
-                    const barHeight = 4;
-                    const barX = player.x - barWidth / 2;
-                    const barY = player.y + 20;
+                const barWidth = 30;
+                const barHeight = 4;
+                const barX = player.x - barWidth / 2;
+                const barY = player.y + 20;
 
-                    this.ctx.fillStyle = '#333';
-                    this.ctx.fillRect(barX, barY, barWidth, barHeight);
+                this.ctx.fillStyle = '#333';
+                this.ctx.fillRect(barX, barY, barWidth, barHeight);
 
+                if (!isDead && player.health > 0) {
                     this.ctx.fillStyle = player.health > 50 ? '#27ae60' : '#e74c3c';
                     this.ctx.fillRect(barX, barY, (barWidth * player.health) / 100, barHeight);
+                } else {
+                    // Show empty health bar for dead players
+                    this.ctx.fillStyle = '#222';
+                    this.ctx.fillRect(barX, barY, barWidth, barHeight);
                 }
+                
+                // Show HP text (0/100 for dead)
+                this.ctx.fillStyle = isDead ? '#888' : '#fff';
+                this.ctx.font = '10px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(`${Math.max(0, Math.floor(player.health))}/100`, player.x, barY + 15);
 
                 this.ctx.restore();
             }
@@ -721,7 +984,15 @@
 
                 // Draw players on minimap
                 this.players.forEach(player => {
-                    this.minimapCtx.fillStyle = player.isCurrentPlayer ? '#3498db' : '#e74c3c';
+                    // Skip dead players or show them differently
+                    if (player.health <= 0) {
+                        this.minimapCtx.fillStyle = '#555'; // Gray for dead players
+                        this.minimapCtx.globalAlpha = 0.3;
+                    } else {
+                        this.minimapCtx.fillStyle = player.isCurrentPlayer ? '#3498db' : '#e74c3c';
+                        this.minimapCtx.globalAlpha = 1;
+                    }
+                    
                     this.minimapCtx.beginPath();
                     this.minimapCtx.arc(
                         player.x * scaleX,
@@ -730,6 +1001,8 @@
                     );
                     this.minimapCtx.fill();
                 });
+                
+                this.minimapCtx.globalAlpha = 1; // Reset alpha
             }
 
             updateHUD() {
@@ -766,25 +1039,73 @@
             }
 
             shoot() {
+                // Check if player is dead
+                if (this.player.health <= 0) {
+                    this.addChatMessage('系統', '你已死亡，等待重生...', 'system');
+                    return;
+                }
+                
+                // Check fire rate
+                const now = Date.now();
+                if (now - this.lastShotTime < this.fireRate) {
+                    return; // Too soon to shoot again
+                }
+                
                 if (this.player.ammo <= 0) {
                     this.addChatMessage('系統', '彈藥不足！按 R 重新裝彈', 'system');
                     return;
                 }
 
                 this.player.ammo--;
+                this.lastShotTime = now;
                 
-                // Visual effect for shooting
+                // Get weapon damage based on CS 1.6 authentic values
+                const weaponDamage = {
+                    'glock': 25,
+                    'usp': 34,
+                    'deagle': 54,
+                    'ak47': 36,
+                    'm4a1': 33,
+                    'awp': 115
+                };
+                
+                // Create bullet object
+                const bulletSpeed = 15; // pixels per frame
+                const bullet = {
+                    x: this.player.x,
+                    y: this.player.y,
+                    vx: Math.cos(this.player.angle) * bulletSpeed,
+                    vy: Math.sin(this.player.angle) * bulletSpeed,
+                    angle: this.player.angle,
+                    damage: weaponDamage[this.player.weapon] || 25, // Use weapon damage or default to Glock
+                    owner: this.playerId,
+                    lifetime: 60 // frames before bullet disappears
+                };
+                
+                this.bullets.push(bullet);
+                
+                // Muzzle flash effect
+                this.createMuzzleFlash(this.player.x, this.player.y, this.player.angle);
+                
+                // Play shooting sound (if implemented)
+                // this.playSound('shoot');
+                
+                console.log('Shot fired!', { angle: this.player.angle, ammo: this.player.ammo, bullets: this.bullets.length });
+            }
+            
+            createMuzzleFlash(x, y, angle) {
+                // Visual feedback for shooting
                 this.ctx.save();
-                this.ctx.strokeStyle = '#fff';
-                this.ctx.lineWidth = 2;
+                this.ctx.translate(x, y);
+                this.ctx.rotate(angle);
+                
+                // Draw muzzle flash
+                this.ctx.fillStyle = 'rgba(255, 255, 100, 0.8)';
                 this.ctx.beginPath();
-                this.ctx.moveTo(this.player.x, this.player.y);
-                this.ctx.lineTo(this.mouse.x, this.mouse.y);
-                this.ctx.stroke();
+                this.ctx.arc(20, 0, 10, 0, Math.PI * 2);
+                this.ctx.fill();
+                
                 this.ctx.restore();
-
-                // In real implementation, send shot to server
-                console.log('Shot fired!', { angle: this.player.angle, ammo: this.player.ammo });
             }
 
             reload() {

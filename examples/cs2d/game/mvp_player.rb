@@ -36,15 +36,18 @@ class MVPPlayer
 	def default_weapon
 		case @team
 		when :ct
-			{ name: "USP", damage: 35, firerate: 0.17, clip_size: 12, reload_time: 2.2, move_speed: 1.0, penetration: 1 }
+			{ name: "USP", damage: 34, firerate: 0.17, clip_size: 12, reload_time: 2.2, move_speed: 1.0, penetration: 1 }  # CS 1.6 authentic
 		when :t
-			{ name: "Glock", damage: 28, firerate: 0.15, clip_size: 20, reload_time: 2.2, move_speed: 1.0, penetration: 1 }
+			{ name: "Glock", damage: 25, firerate: 0.15, clip_size: 20, reload_time: 2.2, move_speed: 1.0, penetration: 1 }  # CS 1.6 authentic
 		else
 			{ name: "Knife", damage: 50, firerate: 0.5, clip_size: 0, reload_time: 0, move_speed: 1.1, penetration: 0 }
 		end
 	end
 		
 	def add_weapon(weapon_type)
+		# CS 1.6 Team Restrictions
+		return false unless can_buy_weapon?(weapon_type)
+		
 		weapon = case weapon_type
 											when :ak47
 												{ name: "AK-47", damage: 36, firerate: 0.1, clip_size: 30, reload_time: 2.5, move_speed: 0.85, penetration: 2 }
@@ -53,9 +56,9 @@ class MVPPlayer
 											when :awp
 												{ name: "AWP", damage: 115, firerate: 1.45, clip_size: 10, reload_time: 3.7, move_speed: 0.7, penetration: 3 }
 											when :deagle
-												{ name: "Desert Eagle", damage: 48, firerate: 0.225, clip_size: 7, reload_time: 2.2, move_speed: 0.95, penetration: 2 }
+												{ name: "Desert Eagle", damage: 54, firerate: 0.225, clip_size: 7, reload_time: 2.2, move_speed: 0.95, penetration: 2 }  # CS 1.6 authentic
 											else
-												return
+												return false
 		end
 			
 		# 替換主武器或副武器
@@ -69,6 +72,19 @@ class MVPPlayer
 			
 		# 重置彈藥
 		@ammo = { clip: weapon[:clip_size], reserve: weapon[:clip_size] * 3 }
+		true
+	end
+	
+	def can_buy_weapon?(weapon_type)
+		# CS 1.6 Team Weapon Restrictions
+		case weapon_type
+		when :ak47, :galil, :mac10
+			@team == :t
+		when :m4a1, :famas, :mp5, :tmp, :fiveseven
+			@team == :ct
+		else
+			true  # Available to both teams
+		end
 	end
 		
 	def can_shoot?
@@ -139,8 +155,10 @@ class MVPPlayer
 	end
 		
 	def get_move_speed
-		base_speed = 5.0
-		base_speed * current_weapon[:move_speed]
+		# CS 1.6 authentic movement speeds
+		base_speed = 250.0  # units per second
+		weapon_multiplier = current_weapon[:move_speed] || 1.0
+		base_speed * weapon_multiplier
 	end
 		
 	def reset_for_round

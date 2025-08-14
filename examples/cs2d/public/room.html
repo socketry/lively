@@ -248,6 +248,21 @@
                 <ul id="players-list" class="players-list">
                     <!-- Players will be populated by JavaScript -->
                 </ul>
+                
+                <!-- Bot controls for room host -->
+                <div id="bot-controls" style="display: none; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <h3 style="margin-bottom: 10px; color: #667eea;">Bot 控制</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="roomManager.addBot()" class="btn btn-secondary" style="padding: 8px 15px;">
+                            ➕ 新增 Bot
+                        </button>
+                        <select id="bot-difficulty" style="padding: 5px 10px; background: #2d2d2d; color: white; border: 1px solid #667eea; border-radius: 5px;">
+                            <option value="easy">簡單</option>
+                            <option value="normal" selected>普通</option>
+                            <option value="hard">困難</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div id="status-message" class="status-message waiting">
@@ -271,6 +286,7 @@
             constructor() {
                 this.roomId = null;
                 this.playerId = null;
+                this.playerNickname = null;
                 this.roomData = null;
                 this.isHost = false;
                 this.updateInterval = null;
@@ -283,10 +299,12 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 this.roomId = urlParams.get('room_id');
                 this.playerId = urlParams.get('player_id');
+                this.playerNickname = urlParams.get('nickname') || `Player_${this.playerId?.substring(0, 6)}`;
 
                 console.log('Room Manager initialized:', {
                     roomId: this.roomId,
-                    playerId: this.playerId
+                    playerId: this.playerId,
+                    nickname: this.playerNickname
                 });
 
                 if (!this.roomId || !this.playerId) {
@@ -309,8 +327,23 @@
                 try {
                     console.log('Loading room data for:', this.roomId);
                     
-                    // In a real implementation, this would be an API call to get room data
-                    // For now, simulate room data with current player as host
+                    // Try to get real room data from API
+                    try {
+                        const response = await fetch(`http://localhost:9294/api/room?room_id=${this.roomId}`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.roomData = data.room;
+                            this.roomData.players = data.players || [];
+                            this.isHost = this.roomData.creator_id === this.playerId;
+                            this.updateUI();
+                            return;
+                        }
+                    } catch (apiError) {
+                        console.log('API not available, using simulated data');
+                    }
+                    
+                    // Fallback to simulated data if API is not available
                     this.roomData = {
                         room_id: this.roomId,
                         name: `Room ${this.roomId}`,
@@ -320,8 +353,8 @@
                         creator_id: this.playerId, // Make current player the host
                         state: 'waiting',
                         players: [
-                            { id: this.playerId, name: this.playerId, is_host: true }, // Current player is host
-                            { id: 'player_456', name: 'Player 456', is_host: false }
+                            { id: this.playerId, name: this.playerNickname, is_host: true, is_bot: false },
+                            { id: 'bot_1', name: 'Bot_Easy', is_host: false, is_bot: true, difficulty: 'easy' }
                         ]
                     };
 
@@ -357,9 +390,20 @@
                 this.roomData.players.forEach(player => {
                     const li = document.createElement('li');
                     li.className = `player-item ${player.is_host ? 'host' : ''}`;
+                    
+                    let statusText = '';
+                    if (player.is_host) {
+                        statusText = '房主';
+                    } else if (player.is_bot) {
+                        statusText = `Bot (${player.difficulty || 'normal'})`;
+                    } else {
+                        statusText = '玩家';
+                    }
+                    
                     li.innerHTML = `
                         <span class="player-name">${player.name}</span>
-                        <span class="player-status">${player.is_host ? '房主' : '玩家'}</span>
+                        <span class="player-status">${statusText}</span>
+                        ${player.is_bot && this.isHost ? `<button onclick="roomManager.removeBot('${player.id}')" class="btn" style="padding: 2px 8px; font-size: 12px; background: #dc3545;">移除</button>` : ''}
                     `;
                     playersList.appendChild(li);
                 });
@@ -367,12 +411,15 @@
                 playerCount.textContent = this.roomData.players.length;
                 maxPlayers.textContent = this.roomData.max_players;
 
-                // Show/hide start game button based on host status
+                // Show/hide bot controls and start game button based on host status
                 const startBtn = document.getElementById('start-game-btn');
+                const botControls = document.getElementById('bot-controls');
                 if (this.isHost) {
                     startBtn.style.display = 'inline-block';
+                    botControls.style.display = 'block';
                 } else {
                     startBtn.style.display = 'none';
+                    botControls.style.display = 'none';
                 }
 
                 // Update status message
@@ -423,13 +470,91 @@
                     // In a real implementation, this would make an API call to start the game
                     // For now, navigate to game page after short delay
                     setTimeout(() => {
-                        window.location.href = `/game.html?room_id=${this.roomId}&player_id=${this.playerId}`;
+                        const encodedNickname = encodeURIComponent(this.playerNickname);
+                        window.location.href = `/game.html?room_id=${this.roomId}&player_id=${this.playerId}&nickname=${encodedNickname}`;
                     }, 2000);
 
                 } catch (error) {
                     console.error('Error starting game:', error);
                     document.getElementById('start-game-btn').disabled = false;
                     this.showError('啟動遊戲失敗');
+                }
+            }
+
+            async addBot() {
+                try {
+                    const difficulty = document.getElementById('bot-difficulty').value;
+                    const botName = `Bot_${Math.floor(Math.random() * 1000)}`;
+                    
+                    // Try API first
+                    try {
+                        const response = await fetch('http://localhost:9294/api/room/add_bot', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                room_id: this.roomId,
+                                bot_name: botName,
+                                difficulty: difficulty
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.roomData.players = data.players;
+                            this.updateUI();
+                            return;
+                        }
+                    } catch (apiError) {
+                        console.log('API not available, adding bot locally');
+                    }
+                    
+                    // Fallback to local simulation
+                    if (this.roomData.players.length < this.roomData.max_players) {
+                        const botId = `bot_${Date.now()}`;
+                        this.roomData.players.push({
+                            id: botId,
+                            name: botName,
+                            is_bot: true,
+                            is_host: false,
+                            difficulty: difficulty
+                        });
+                        this.updateUI();
+                    } else {
+                        alert('房間已滿！');
+                    }
+                } catch (error) {
+                    console.error('Error adding bot:', error);
+                }
+            }
+            
+            async removeBot(botId) {
+                try {
+                    // Try API first
+                    try {
+                        const response = await fetch('http://localhost:9294/api/room/remove_bot', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                room_id: this.roomId,
+                                bot_id: botId
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.roomData.players = data.players;
+                            this.updateUI();
+                            return;
+                        }
+                    } catch (apiError) {
+                        console.log('API not available, removing bot locally');
+                    }
+                    
+                    // Fallback to local simulation
+                    this.roomData.players = this.roomData.players.filter(p => p.id !== botId);
+                    this.updateUI();
+                } catch (error) {
+                    console.error('Error removing bot:', error);
                 }
             }
 

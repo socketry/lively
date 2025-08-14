@@ -3,8 +3,8 @@
 class MVPRoundManager
 	attr_reader :phase, :round_number, :round_time, :ct_score, :t_score
 		
-	FREEZE_TIME = 5.0
-	BUY_TIME = 15.0
+	FREEZE_TIME = 15.0  # CS 1.6 authentic freeze time
+	BUY_TIME = 15.0     # CS 1.6 authentic buy time after freeze
 	ROUND_TIME = 115.0
 	MAX_ROUNDS = 30
 	HALF_TIME = 15
