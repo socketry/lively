@@ -344,19 +344,22 @@
                     }
                     
                     // Fallback to simulated data if API is not available
-                    this.roomData = {
-                        room_id: this.roomId,
-                        name: `Room ${this.roomId}`,
-                        map: 'de_dust2',
-                        game_mode: 'competitive',
-                        max_players: 10,
-                        creator_id: this.playerId, // Make current player the host
-                        state: 'waiting',
-                        players: [
-                            { id: this.playerId, name: this.playerNickname, is_host: true, is_bot: false },
-                            { id: 'bot_1', name: 'Bot_Easy', is_host: false, is_bot: true, difficulty: 'easy' }
-                        ]
-                    };
+                    // Only initialize if roomData doesn't exist
+                    if (!this.roomData) {
+                        this.roomData = {
+                            room_id: this.roomId,
+                            name: `Room ${this.roomId}`,
+                            map: 'de_dust2',
+                            game_mode: 'competitive',
+                            max_players: 10,
+                            creator_id: this.playerId, // Make current player the host
+                            state: 'waiting',
+                            players: [
+                                { id: this.playerId, name: this.playerNickname, is_host: true, is_bot: false },
+                                { id: 'bot_1', name: 'Bot_Easy', is_host: false, is_bot: true, difficulty: 'easy' }
+                            ]
+                        };
+                    }
 
                     this.isHost = this.roomData.creator_id === this.playerId;
                     this.updateUI();
@@ -462,13 +465,26 @@
 
                 try {
                     console.log('Starting game for room:', this.roomId);
+                    console.log('Current players:', this.roomData.players);
                     
                     // Update status
                     document.getElementById('status-message').textContent = '正在啟動遊戲...';
                     document.getElementById('start-game-btn').disabled = true;
 
-                    // In a real implementation, this would make an API call to start the game
-                    // For now, navigate to game page after short delay
+                    // Store room data in localStorage for game to access
+                    const gameData = {
+                        roomId: this.roomId,
+                        roomName: this.roomData.name,
+                        map: this.roomData.map,
+                        gameMode: this.roomData.game_mode,
+                        players: this.roomData.players,
+                        timestamp: Date.now()
+                    };
+                    
+                    localStorage.setItem('cs2d_game_data', JSON.stringify(gameData));
+                    console.log('Stored game data in localStorage:', gameData);
+
+                    // Navigate to game page after short delay
                     setTimeout(() => {
                         const encodedNickname = encodeURIComponent(this.playerNickname);
                         window.location.href = `/game.html?room_id=${this.roomId}&player_id=${this.playerId}&nickname=${encodedNickname}`;

@@ -364,6 +364,8 @@ class AsyncRedisLobbyI18nView < Live::View
 			handle_language_change(event[:detail])
 		when "set_player_id_from_cookie"
 			handle_set_player_id_from_cookie(event[:detail])
+		when "update_nickname"
+			handle_update_nickname(event[:detail])
 		end
 	rescue => e
 		Console.error(self, "Error handling event: #{e.message}")
@@ -944,19 +946,45 @@ class AsyncRedisLobbyI18nView < Live::View
 				end
 				
 				builder.tag(:div, class: "player-info") do
-					# Player Nickname display with edit button
-					builder.tag(:div, style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;") do
+					# Player Nickname display with inline edit
+					builder.tag(:div, id: "nickname-container", style: "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;") do
 						builder.tag(:span) do
 							builder.text("暱稱:")
 						end
-						builder.tag(:strong, id: "current-player-nickname", style: "color: #667eea; font-size: 1.1em;") do
-							builder.text(@player_nickname || (@player_id ? "Player_#{@player_id[0..5]}" : "Loading..."))
+						
+						# Display mode
+						builder.tag(:div, id: "nickname-display", style: "display: flex; align-items: center; gap: 8px;") do
+							builder.tag(:strong, id: "current-player-nickname", style: "color: #667eea; font-size: 1.1em;") do
+								builder.text(@player_nickname || (@player_id ? "Player_#{@player_id[0..5]}" : "Loading..."))
+							end
+							builder.tag(:button, 
+								onclick: "startNicknameEdit()",
+								class: "btn btn-secondary",
+								style: "padding: 2px 8px; font-size: 12px;") do
+								builder.text("編輯")
+							end
 						end
-						builder.tag(:button, 
-							onclick: "showNicknameEditModal()",
-							class: "btn btn-secondary",
-							style: "padding: 2px 8px; font-size: 12px;") do
-							builder.text("編輯")
+						
+						# Edit mode (hidden by default)
+						builder.tag(:div, id: "nickname-edit", style: "display: none; align-items: center; gap: 8px;") do
+							builder.tag(:input, 
+								type: "text",
+								id: "nickname-input",
+								maxlength: "20",
+								style: "padding: 4px 8px; border: 1px solid #667eea; border-radius: 4px; background: #1a1a1a; color: white;",
+								onkeydown: "handleNicknameKeydown(event)")
+							builder.tag(:button,
+								onclick: "saveNickname()",
+								class: "btn btn-primary",
+								style: "padding: 2px 8px; font-size: 12px;") do
+								builder.text("儲存")
+							end
+							builder.tag(:button,
+								onclick: "cancelNicknameEdit()",
+								class: "btn btn-secondary",
+								style: "padding: 2px 8px; font-size: 12px;") do
+								builder.text("取消")
+							end
 						end
 					end
 					
@@ -1094,109 +1122,69 @@ class AsyncRedisLobbyI18nView < Live::View
 			end # End main-content
 		end # End lobby-container
 		
-		# Nickname Edit Modal
-		builder.tag(:div, id: "nickname-modal", style: "display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000;") do
-			builder.tag(:div, style: "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2d2d2d; padding: 20px; border-radius: 10px; border: 1px solid #667eea;") do
-				builder.tag(:h3, style: "color: #667eea; margin-bottom: 15px;") { builder.text("編輯暱稱") }
-				builder.tag(:input, 
-					type: "text", 
-					id: "nickname-input",
-					maxlength: "20",
-					style: "width: 250px; padding: 8px; background: #1a1a1a; border: 1px solid #667eea; color: white; border-radius: 5px; margin-bottom: 15px;",
-					placeholder: "輸入您的暱稱 (最多20字)")
-				builder.tag(:div, style: "display: flex; gap: 10px; justify-content: flex-end;") do
-					builder.tag(:button, 
-						onclick: "saveNickname()",
-						class: "btn btn-primary") do
-						builder.text("儲存")
-					end
-					builder.tag(:button,
-						onclick: "closeNicknameModal()",
-						class: "btn btn-secondary") do
-						builder.text("取消")
-					end
-				end
-			end
-		end
-		
 		# JavaScript for player ID management
 		builder.tag(:script, type: "text/javascript") do
 			builder.raw(<<~JAVASCRIPT)
-				// Nickname management functions
-				function showNicknameEditModal() {
-					const modal = document.getElementById('nickname-modal');
+				// Inline nickname editing functions
+				function startNicknameEdit() {
+					const displayDiv = document.getElementById('nickname-display');
+					const editDiv = document.getElementById('nickname-edit');
 					const input = document.getElementById('nickname-input');
 					const currentNickname = document.getElementById('current-player-nickname').textContent;
 					
+					// Switch to edit mode
+					displayDiv.style.display = 'none';
+					editDiv.style.display = 'flex';
+					
+					// Set current value and focus
 					input.value = currentNickname;
-					modal.style.display = 'block';
 					input.focus();
 					input.select();
 				}
 				
-				function closeNicknameModal() {
-					document.getElementById('nickname-modal').style.display = 'none';
+				function cancelNicknameEdit() {
+					const displayDiv = document.getElementById('nickname-display');
+					const editDiv = document.getElementById('nickname-edit');
+					
+					// Switch back to display mode
+					displayDiv.style.display = 'flex';
+					editDiv.style.display = 'none';
 				}
 				
-				let isSavingNickname = false; // Prevent multiple simultaneous saves
-				
 				function saveNickname() {
-					// Prevent multiple simultaneous saves
-					if (isSavingNickname) {
-						console.log('Save already in progress, ignoring');
-						return;
-					}
-					
 					const input = document.getElementById('nickname-input');
 					const nickname = input.value.trim();
 					
-					if (nickname && nickname.length > 0) {
-						isSavingNickname = true;
-						
-						// Disable save button to prevent multiple clicks
-						const saveBtn = document.querySelector('#nickname-modal .btn-primary');
-						if (saveBtn) {
-							saveBtn.disabled = true;
-							saveBtn.textContent = '儲存中...';
-						}
-						
-						// Update cookie
+					console.log('Saving nickname:', nickname);
+					
+					if (nickname && nickname.length > 0 && nickname.length <= 20) {
+						// Save to cookie  
 						const expiry = new Date();
 						expiry.setTime(expiry.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
 						document.cookie = 'cs2d_player_nickname=' + nickname + '; expires=' + expiry.toUTCString() + '; path=/; SameSite=Lax';
 						
-						// Update UI
+						// Update UI immediately  
 						document.getElementById('current-player-nickname').textContent = nickname;
 						
 						// Send to server
 						window.live.forwardEvent('#{@id}', {type: 'update_nickname'}, {nickname: nickname});
 						
-						// Close modal and reset state after a short delay
-						setTimeout(() => {
-							closeNicknameModal();
-							isSavingNickname = false;
-							if (saveBtn) {
-								saveBtn.disabled = false;
-								saveBtn.textContent = '儲存';
-							}
-						}, 500);
+						// Switch back to display mode
+						cancelNicknameEdit();
+					} else {
+						alert('暱稱必須在1-20個字元之間');
 					}
 				}
 				
-				// Close modal on escape key and handle Enter key on nickname input
-				document.addEventListener('keydown', function(e) {
-					if (e.key === 'Escape') {
-						closeNicknameModal();
-					}
-				});
-				
-				// Handle Enter key on nickname input field
-				document.addEventListener('keydown', function(e) {
-					if (e.target.id === 'nickname-input' && e.key === 'Enter') {
-						e.preventDefault(); // Prevent form submission
+				function handleNicknameKeydown(event) {
+					if (event.key === 'Enter') {
+						event.preventDefault();
 						saveNickname();
+					} else if (event.key === 'Escape') {
+						event.preventDefault();
+						cancelNicknameEdit();
 					}
-				});
+				}
 				
 				// Remove debug borders immediately
 				document.addEventListener('DOMContentLoaded', function() {

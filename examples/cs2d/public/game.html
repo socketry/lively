@@ -596,39 +596,169 @@
             }
 
             initializeGameState() {
-                // Initialize sample players (in real implementation, this comes from server)
-                this.players.set(this.playerId, {
-                    id: this.playerId,
-                    name: this.playerId,
-                    x: 400,
-                    y: 300,
-                    angle: 0,
-                    health: 100,
-                    alive: true,
-                    score: 0,
-                    kills: 0,
-                    deaths: 0,
-                    isCurrentPlayer: true,
-                    deathTime: null
-                });
+                // Try to load game data from localStorage (passed from room page)
+                const storedGameData = localStorage.getItem('cs2d_game_data');
+                let roomPlayers = [];
+                
+                if (storedGameData) {
+                    try {
+                        const gameData = JSON.parse(storedGameData);
+                        console.log('Loaded game data from localStorage:', gameData);
+                        
+                        // Check if data is recent (within last 30 seconds)
+                        const dataAge = Date.now() - gameData.timestamp;
+                        if (dataAge < 30000) {
+                            roomPlayers = gameData.players || [];
+                            this.gameData = gameData;
+                        }
+                        
+                        // Clear the stored data after loading
+                        localStorage.removeItem('cs2d_game_data');
+                    } catch (e) {
+                        console.error('Error parsing stored game data:', e);
+                    }
+                }
+                
+                // Initialize players from room data
+                if (roomPlayers.length > 0) {
+                    console.log('Initializing players from room data:', roomPlayers);
+                    
+                    // Spawn positions for players (distribute around the map)
+                    const spawnPoints = [
+                        { x: 400, y: 300 },
+                        { x: 600, y: 200 },
+                        { x: 200, y: 400 },
+                        { x: 800, y: 500 },
+                        { x: 500, y: 600 },
+                        { x: 300, y: 200 },
+                        { x: 700, y: 400 },
+                        { x: 400, y: 500 },
+                        { x: 600, y: 300 },
+                        { x: 300, y: 600 }
+                    ];
+                    
+                    roomPlayers.forEach((player, index) => {
+                        const spawn = spawnPoints[index % spawnPoints.length];
+                        const isCurrentPlayer = player.id === this.playerId;
+                        
+                        this.players.set(player.id, {
+                            id: player.id,
+                            name: player.name || player.id,
+                            x: spawn.x,
+                            y: spawn.y,
+                            angle: Math.random() * Math.PI * 2,
+                            health: 100,
+                            alive: true,
+                            score: 0,
+                            kills: 0,
+                            deaths: 0,
+                            isCurrentPlayer: isCurrentPlayer,
+                            isBot: player.is_bot || false,
+                            difficulty: player.difficulty || 'normal',
+                            deathTime: null
+                        });
+                        
+                        console.log(`Initialized ${player.is_bot ? 'Bot' : 'Player'}: ${player.name} at position (${spawn.x}, ${spawn.y})`);
+                    });
+                    
+                    // Add chat message for each bot
+                    roomPlayers.forEach(player => {
+                        if (player.is_bot) {
+                            this.addChatMessage('系統', `Bot ${player.name} (${player.difficulty}) 已加入遊戲`, 'system');
+                        }
+                    });
+                    
+                } else {
+                    // Fallback to default player if no room data
+                    console.log('No room data found, using default player');
+                    this.players.set(this.playerId, {
+                        id: this.playerId,
+                        name: this.playerNickname,
+                        x: 400,
+                        y: 300,
+                        angle: 0,
+                        health: 100,
+                        alive: true,
+                        score: 0,
+                        kills: 0,
+                        deaths: 0,
+                        isCurrentPlayer: true,
+                        isBot: false,
+                        deathTime: null
+                    });
+                }
 
-                // Add some sample players
-                this.players.set('player_2', {
-                    id: 'player_2',
-                    name: 'Enemy Player',
-                    x: 600,
-                    y: 200,
-                    angle: Math.PI,
-                    health: 85,
-                    alive: true,
-                    score: 1200,
-                    kills: 3,
-                    deaths: 1,
-                    isCurrentPlayer: false,
-                    deathTime: null
-                });
-
+                // Initialize bot AI if we have bots
+                this.initializeBotAI();
+                
                 this.updateScoreboard();
+            }
+            
+            initializeBotAI() {
+                // Start bot AI update loop
+                setInterval(() => {
+                    this.updateBots();
+                }, 100); // Update bots every 100ms
+            }
+            
+            updateBots() {
+                if (this.gameState !== 'playing') return;
+                
+                this.players.forEach(player => {
+                    if (player.isBot && player.alive) {
+                        // Simple bot AI - random movement and shooting
+                        const moveSpeed = 2;
+                        const turnSpeed = 0.05;
+                        
+                        // Random movement
+                        if (Math.random() < 0.1) {
+                            player.angle += (Math.random() - 0.5) * turnSpeed * 10;
+                        }
+                        
+                        // Move forward most of the time
+                        if (Math.random() < 0.8) {
+                            player.x += Math.cos(player.angle) * moveSpeed;
+                            player.y += Math.sin(player.angle) * moveSpeed;
+                        }
+                        
+                        // Keep bots within bounds
+                        player.x = Math.max(50, Math.min(this.canvas.width - 50, player.x));
+                        player.y = Math.max(50, Math.min(this.canvas.height - 50, player.y));
+                        
+                        // Random shooting based on difficulty
+                        const shootChance = player.difficulty === 'easy' ? 0.01 : 
+                                          player.difficulty === 'hard' ? 0.05 : 0.03;
+                        
+                        if (Math.random() < shootChance) {
+                            // Find nearest player to shoot at
+                            let nearestPlayer = null;
+                            let minDistance = Infinity;
+                            
+                            this.players.forEach(otherPlayer => {
+                                if (otherPlayer.id !== player.id && otherPlayer.alive) {
+                                    const dx = otherPlayer.x - player.x;
+                                    const dy = otherPlayer.y - player.y;
+                                    const distance = Math.sqrt(dx * dx + dy * dy);
+                                    
+                                    if (distance < minDistance) {
+                                        minDistance = distance;
+                                        nearestPlayer = otherPlayer;
+                                    }
+                                }
+                            });
+                            
+                            if (nearestPlayer && minDistance < 500) {
+                                // Aim at nearest player
+                                const dx = nearestPlayer.x - player.x;
+                                const dy = nearestPlayer.y - player.y;
+                                player.angle = Math.atan2(dy, dx);
+                                
+                                // Shoot
+                                this.createBullet(player.x, player.y, player.angle, player.id, true);
+                            }
+                        }
+                    }
+                });
             }
 
             gameLoop() {
@@ -921,8 +1051,17 @@
                         }
                     }
                 } else {
-                    // Draw alive player
-                    this.ctx.fillStyle = player.isCurrentPlayer ? '#3498db' : '#e74c3c';
+                    // Draw alive player with different colors for bots
+                    if (player.isCurrentPlayer) {
+                        this.ctx.fillStyle = '#3498db'; // Blue for current player
+                    } else if (player.isBot) {
+                        // Different colors for bot difficulties
+                        this.ctx.fillStyle = player.difficulty === 'easy' ? '#27ae60' :  // Green for easy
+                                           player.difficulty === 'hard' ? '#8b4513' :  // Brown for hard
+                                           '#f39c12'; // Orange for normal
+                    } else {
+                        this.ctx.fillStyle = '#e74c3c'; // Red for other players
+                    }
                     this.ctx.beginPath();
                     this.ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
                     this.ctx.fill();
@@ -939,12 +1078,13 @@
                     this.ctx.stroke();
                 }
 
-                // Draw player name
+                // Draw player name with bot indicator
                 this.ctx.globalAlpha = 1;
                 this.ctx.fillStyle = isDead ? '#888' : '#fff';
                 this.ctx.font = '12px Arial';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(player.name, player.x, player.y - 25);
+                const displayName = player.isBot ? `[BOT] ${player.name}` : player.name;
+                this.ctx.fillText(displayName, player.x, player.y - 25);
 
                 // Draw health bar
                 const barWidth = 30;
@@ -1025,8 +1165,9 @@
 
                 sortedPlayers.forEach(player => {
                     const row = tbody.insertRow();
+                    const nameDisplay = player.isBot ? `[BOT] ${player.name}` : player.name;
                     row.innerHTML = `
-                        <td>${player.name}</td>
+                        <td>${nameDisplay}</td>
                         <td>${player.score}</td>
                         <td>${player.kills}</td>
                         <td>${player.deaths}</td>
@@ -1034,6 +1175,8 @@
                     
                     if (player.isCurrentPlayer) {
                         row.style.backgroundColor = 'rgba(52, 152, 219, 0.2)';
+                    } else if (player.isBot) {
+                        row.style.backgroundColor = 'rgba(243, 156, 18, 0.1)';
                     }
                 });
             }
@@ -1091,6 +1234,41 @@
                 // this.playSound('shoot');
                 
                 console.log('Shot fired!', { angle: this.player.angle, ammo: this.player.ammo, bullets: this.bullets.length });
+            }
+            
+            createBullet(x, y, angle, ownerId, isBot = false) {
+                // Get weapon damage based on CS 1.6 authentic values
+                const weaponDamage = {
+                    'glock': 25,
+                    'usp': 34,
+                    'deagle': 54,
+                    'ak47': 36,
+                    'm4a1': 33,
+                    'awp': 115
+                };
+                
+                // Create bullet object
+                const bulletSpeed = 15; // pixels per frame
+                const bullet = {
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * bulletSpeed,
+                    vy: Math.sin(angle) * bulletSpeed,
+                    angle: angle,
+                    damage: weaponDamage['ak47'] || 25, // Bots use AK47 by default
+                    owner: ownerId,
+                    isBot: isBot,
+                    lifetime: 60 // frames before bullet disappears
+                };
+                
+                this.bullets.push(bullet);
+                
+                // Muzzle flash effect
+                if (!isBot || Math.random() < 0.5) { // Show muzzle flash for bots sometimes
+                    this.createMuzzleFlash(x, y, angle);
+                }
+                
+                return bullet;
             }
             
             createMuzzleFlash(x, y, angle) {
