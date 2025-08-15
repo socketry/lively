@@ -22,8 +22,9 @@ class AsyncRedisRoomManager
 	def with_redis(&block)
 		# Ensure we're in an Async context
 		Async do
-			# Use default connection (localhost:6379)
-			client = Async::Redis::Client.new
+			# Use Redis URL from environment or default
+			redis_url = ENV['REDIS_URL'] || 'redis://localhost:6379/0'
+			client = Async::Redis::Client.new(Async::Redis::Endpoint.parse(redis_url))
 			
 			begin
 				yield client
