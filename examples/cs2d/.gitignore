@@ -1,6 +1,11 @@
 logs/
 *.log
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Playwright testing dependencies
 node_modules/
 package-lock.json
