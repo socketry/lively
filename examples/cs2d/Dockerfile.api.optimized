@@ -1,0 +1,17 @@
+# Optimized API Bridge Dockerfile
+FROM cs2d_base:latest
+
+# Copy API-specific files
+COPY api_bridge_server.rb ./
+COPY game/ ./game/
+COPY lib/ ./lib/
+
+# Expose port
+EXPOSE 9294
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:9294/api/maps || exit 1
+
+# Run the API bridge server
+CMD ["ruby", "api_bridge_server.rb", "9294"]

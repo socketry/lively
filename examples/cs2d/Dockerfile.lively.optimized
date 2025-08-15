@@ -1,0 +1,26 @@
+# Optimized Lively App Dockerfile
+FROM cs2d_base:latest
+
+# Copy only application-specific files (changes frequently)
+COPY application.rb ./
+COPY async_redis_lobby_i18n.rb ./
+
+# Copy shared directories
+COPY game/ ./game/
+COPY lib/ ./lib/
+COPY public/ ./public/
+COPY cstrike/ ./cstrike/
+
+# Set production environment
+ENV RACK_ENV=production
+ENV LIVELY_ENV=production
+
+# Expose port
+EXPOSE 9292
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:9292/ || exit 1
+
+# Run the application
+CMD ["bundle", "exec", "lively", "./application"]
