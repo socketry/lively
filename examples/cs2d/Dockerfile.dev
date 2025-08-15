@@ -1,0 +1,63 @@
+# Dockerfile for Development Environment
+FROM ruby:3.3.6
+
+# Install system dependencies and development tools
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    vim \
+    nano \
+    htop \
+    net-tools \
+    iputils-ping \
+    redis-tools \
+    nodejs \
+    npm \
+    libssl-dev \
+    libreadline-dev \
+    zlib1g-dev \
+    libxml2-dev \
+    libxslt-dev \
+    libyaml-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Playwright for testing
+RUN npm install -g playwright && \
+    npx playwright install chromium && \
+    npx playwright install-deps
+
+# Set working directory
+WORKDIR /app
+
+# Copy Gemfile and install dependencies
+COPY Gemfile* ./
+RUN bundle config set --local deployment 'false' && \
+    bundle install --jobs 4 --retry 3
+
+# Install additional development gems
+RUN gem install \
+    rubocop \
+    pry \
+    pry-byebug \
+    rspec \
+    rack-test \
+    minitest
+
+# Create necessary directories
+RUN mkdir -p tmp logs coverage
+
+# Set development environment
+ENV RACK_ENV=development
+ENV LIVELY_ENV=development
+ENV BUNDLE_PATH=/usr/local/bundle
+
+# Install useful aliases
+RUN echo 'alias ll="ls -la"' >> ~/.bashrc && \
+    echo 'alias be="bundle exec"' >> ~/.bashrc && \
+    echo 'alias lively="bundle exec lively"' >> ~/.bashrc && \
+    echo 'alias rubocop="bundle exec rubocop"' >> ~/.bashrc
+
+# Keep container running for development
+CMD ["tail", "-f", "/dev/null"]

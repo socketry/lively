@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # Redis service for room management and game state
+  redis:
+    image: redis:7-alpine
+    container_name: cs2d-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+
+  # Main Lively application (Lobby)
+  lively-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.lively
+    container_name: cs2d-lively
+    ports:
+      - "9292:9292"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - RACK_ENV=production
+      - LIVELY_ENV=production
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+    volumes:
+      - ./application.rb:/app/application.rb:ro
+      - ./async_redis_lobby_i18n.rb:/app/async_redis_lobby_i18n.rb:ro
+      - ./game:/app/game:ro
+      - ./lib:/app/lib:ro
+      - ./public:/app/public:ro
+      - ./cstrike:/app/cstrike:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+    command: bundle exec lively ./application
+
+  # Static game server for HTML/JS files
+  static-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.static
+    container_name: cs2d-static
+    ports:
+      - "9293:9293"
+    environment:
+      - PORT=9293
+    volumes:
+      - ./public:/app/public:ro
+      - ./static_pages:/app/static_pages:ro
+      - ./public/_static:/app/public/_static:ro
+      - ./cstrike:/app/cstrike:ro
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+    command: ruby static_server.rb 9293
+
+  # API Bridge server connecting static pages to Redis
+  api-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: cs2d-api-bridge
+    ports:
+      - "9294:9294"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PORT=9294
+    volumes:
+      - ./api_bridge_server.rb:/app/api_bridge_server.rb:ro
+      - ./game:/app/game:ro
+      - ./lib:/app/lib:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+    command: ruby api_bridge_server.rb 9294
+
+  # Nginx reverse proxy (optional - for production)
+  nginx:
+    image: nginx:alpine
+    container_name: cs2d-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - lively-app
+      - static-server
+      - api-bridge
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+  # Development tools container
+  dev-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cs2d-dev
+    volumes:
+      - .:/app
+      - bundle-cache:/usr/local/bundle
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - cs2d-network
+    profiles:
+      - development
+    command: tail -f /dev/null
+
+networks:
+  cs2d-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  redis-data:
+    driver: local
+  bundle-cache:
+    driver: local
