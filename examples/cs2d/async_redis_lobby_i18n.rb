@@ -1174,8 +1174,18 @@ class AsyncRedisLobbyI18nView < Live::View
 							builder.text(I18n.t("lobby.create.map"))
 						end
 						builder.tag(:select, id: "map") do
-							["de_dust2", "de_inferno", "de_mirage", "de_nuke", "cs_office"].each do |map|
-								builder.tag(:option, value: map) { builder.text(map) }
+							# Include our tile-based maps
+							maps = [
+								["de_dust2_simple", "de_dust2 (Tile-based)"],
+								["de_inferno_simple", "de_inferno (Tile-based)"],
+								["aim_map", "Aim Map (1v1)"],
+								["fy_iceworld", "FY Iceworld (DM)"],
+								["de_dust2", "de_dust2 (Classic)"],
+								["de_inferno", "de_inferno (Classic)"],
+								["de_mirage", "de_mirage (Classic)"]
+							]
+							maps.each do |value, label|
+								builder.tag(:option, value: value) { builder.text(label) }
 							end
 						end
 					end

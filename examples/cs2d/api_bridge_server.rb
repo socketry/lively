@@ -4,6 +4,7 @@
 require "webrick"
 require "json"
 require_relative "game/async_redis_room_manager"
+require_relative "game/map_templates"
 
 # API Bridge Server - connects static HTML pages to Redis backend
 class APIBridgeServer < WEBrick::HTTPServlet::AbstractServlet
@@ -22,7 +23,7 @@ class APIBridgeServer < WEBrick::HTTPServlet::AbstractServlet
 		query = request.query
 		
 		case path
-		when "/api/room"
+		when "/room"
 			# Get room info
 			room_id = query["room_id"]
 			if room_id
@@ -44,7 +45,7 @@ class APIBridgeServer < WEBrick::HTTPServlet::AbstractServlet
 			
 			response.body = response_data.to_json
 			
-		when %r{^/api/rooms/([^/]+)$}
+		when %r{^/rooms/([^/]+)$}
 			# Get specific room by ID (fix for 404 error)
 			room_id = request.path_info.split('/').last
 			room_info = @room_manager.get_room_info(room_id)
@@ -62,10 +63,36 @@ class APIBridgeServer < WEBrick::HTTPServlet::AbstractServlet
 			
 			response.body = response_data.to_json
 			
-		when "/api/rooms"
+		when "/rooms"
 			# Get all rooms
 			rooms = @room_manager.get_room_list
 			response.body = { success: true, rooms: rooms }.to_json
+			
+		when "/maps"
+			# Get list of available maps
+			maps = MapTemplates.available_templates.map do |template|
+				{
+					name: template[:name],
+					mode: template[:mode],
+					players: template[:players]
+				}
+			end
+			response.body = { success: true, maps: maps }.to_json
+			
+		when %r{^/map/([^/]+)$}
+			# Get specific map data
+			map_name = request.path_info.split('/').last
+			map = MapTemplates.get_template(map_name)
+			
+			if map
+				response.body = { 
+					success: true, 
+					map_data: map.export_to_json 
+				}.to_json
+			else
+				response.status = 404
+				response.body = { success: false, error: "Map not found" }.to_json
+			end
 			
 		else
 			response.status = 404
@@ -85,7 +112,7 @@ class APIBridgeServer < WEBrick::HTTPServlet::AbstractServlet
 			body = JSON.parse(request.body) rescue {}
 			
 			case path
-			when "/api/room/add_bot"
+			when "/room/add_bot"
 				# Add bot to room
 				room_id = body["room_id"]
 				bot_name = body["bot_name"] || "Bot_#{rand(1000..9999)}"
