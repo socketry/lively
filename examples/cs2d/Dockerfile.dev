@@ -31,8 +31,9 @@ RUN npm install -g playwright && \
 # Set working directory
 WORKDIR /app
 
-# Copy Gemfile and install dependencies
-COPY Gemfile* ./
+# Copy gems files and install dependencies
+COPY gems.docker.rb ./Gemfile
+COPY Gemfile.docker.lock ./Gemfile.lock
 RUN bundle config set --local deployment 'false' && \
     bundle install --jobs 4 --retry 3
 

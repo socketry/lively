@@ -17,7 +17,6 @@ COPY static_server.rb ./
 
 # Copy static files
 COPY public/ ./public/
-COPY static_pages/ ./static_pages/
 COPY cstrike/ ./cstrike/
 
 # Create necessary directories
