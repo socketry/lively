@@ -1,49 +1,48 @@
 import { cn } from '@/utils/tailwind';
-import React from 'react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '@/stores/app'
+import React, { useEffect } from 'react';
+import { useApp } from '@/contexts/AppContext';
 
-interface NotificationContainerProps {
-  // TODO: Define props from Vue component
-}
+const NotificationContainer: React.FC = () => {
+  const { state, actions } = useApp();
+  const { notifications } = state;
+  const { removeNotification } = actions;
 
-export const NotificationContainer: React.FC<NotificationContainerProps> = (props) => {
-  const navigate = useNavigate();
-  
-  
+  useEffect(() => {
+    if (!notifications || notifications.length === 0) return;
+    
+    // Auto-remove notifications after 5 seconds
+    const timers = notifications.map((notification: any) => {
+      return setTimeout(() => {
+        removeNotification(notification.id);
+      }, 5000);
+    });
 
-const appStore = useApp()
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
+  }, [notifications, removeNotification]);
 
-const notifications = useMemo(() => appStore.notifications, [])
-
-function removeNotification(id: string) {
-  appStore.removeNotification(id)
-}
+  if (!notifications || notifications.length === 0) return null;
 
   return (
-    <div className="container mx-auto px-4">
-      <div className="notification-container">
-    <TransitionGroup name="notification" tag="div">
-      <div
-        {notifications.map((notification, index) => (
-        key={notification.id}
-        className="notification"
-        className={notification.type}
-        onClick={removeNotification(notification.id)}
-      >
-        <div className="notification-content">
-          <h4 {notification.title && ( className="notification-title">
-            {notification.title }
-          </h4>)}
-          <p className="notification-message">{notification.message }</p>)}
+    <div className="notification-container">
+      {notifications.map((notification: any) => (
+        <div 
+          key={notification.id} 
+          className={cn('notification', notification.type)}
+        >
+          <div className="notification-content">
+            <h4 className="notification-title">{notification.title}</h4>
+            <p className="notification-message">{notification.message}</p>
+          </div>
+          <button 
+            onClick={() => removeNotification(notification.id)}
+            className="notification-close"
+          >
+            ×
+          </button>
         </div>
-        <button className="notification-close" @click.stop="removeNotification(notification.id)">
-          ×
-        </button>)}
-      </div>
-    </TransitionGroup>)}
-  </div>
+      ))}
     </div>
   );
 };

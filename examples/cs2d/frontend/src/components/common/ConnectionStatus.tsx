@@ -1,105 +1,104 @@
 import { cn } from '@/utils/tailwind';
-import React from 'react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useWebSocketStore } from '@/stores/websocket'
-import { useWebSocket } from '@/services/websocket'
+import React, { useState, useMemo } from 'react';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
 interface ConnectionStatusProps {
-  // TODO: Define props from Vue component
+  className?: string;
 }
 
-export const ConnectionStatus: React.FC<ConnectionStatusProps> = (props) => {
-  const navigate = useNavigate();
-  
-  
+export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ className }) => {
+  const { connectionStatus, latency, reconnectAttempts, connect } = useWebSocket();
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
-const wsStore = useWebSocket()
-const ws = useWebSocket()
+  const statusText = useMemo(() => {
+    switch (connectionStatus) {
+      case 'connected':
+        return 'Connected';
+      case 'connecting':
+        return 'Connecting...';
+      case 'disconnected':
+        return 'Disconnected';
+      case 'error':
+        return 'Connection Error';
+      case 'offline':
+        return 'Offline';
+      default:
+        return 'Unknown';
+    }
+  }, [connectionStatus]);
 
-const [isMinimized, set${this.capitalize("isMinimized")}] = useState(false)
-const [showDetails, set${this.capitalize("showDetails")}] = useState(false)
+  const toggleMinimized = () => {
+    setIsMinimized(!isMinimized);
+    if (isMinimized) {
+      setShowDetails(false);
+    }
+  };
 
-const connectionStatus = useMemo(() => wsStore.connectionStatus.status, [])
-const latency = useMemo(() => wsStore.latency, [])
-const reconnectAttempts = useMemo(() => wsStore.reconnectAttempts, [])
-const lastConnected = useMemo(() => wsStore.connectionStatus.lastConnected, [])
+  const toggleDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDetails(!showDetails);
+  };
 
-const statusText = useMemo(() => {
-  switch (connectionStatus.value, []) {
-    case 'connected':
-      return 'Connected'
-    case 'connecting':
-      return 'Connecting...'
-    case 'disconnected':
-      return 'Disconnected'
-    case 'error':
-      return 'Connection Error'
-    case 'offline':
-      return 'Offline'
-    default:
-      return 'Unknown'
-  }
-})
+  const reconnect = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    connect();
+  };
 
-function toggleMinimized() {
-  isMinimized.value = !isMinimized.value
-  if (!isMinimized.value) {
-    showDetails.value = false
-  }
-}
-
-function reconnect() {
-  ws.connect()
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
 
   return (
-    <div className="container mx-auto px-4">
-      <div
-    className="connection-status"
-    className={{
-      [connectionStatus]: true,
-      minimized: isMinimized
-    }}
-    onClick={toggleMinimized}
-  >
-    <div className="status-indicator">
-      <div className="status-dot"></div>)}
-    </div>
-    
-    <div {!isMinimized && ( className="status-content">
-      <div className="status-text">
-        <span className="status-label">{statusText }</span>)}
-        <span {latency && ( className="latency">{latency }ms</span>)}
+    <div className={cn('connection-status', connectionStatus, className, {
+      'minimized': isMinimized
+    })} onClick={toggleMinimized}>
+      <div className="status-indicator">
+        <div className="status-dot"></div>
       </div>
       
-      <div {showDetails && ( className="status-details">
-        <div className="detail-item">
-          <span className="detail-label">Reconnect attempts:</span>)}
-          <span className="detail-value">{reconnectAttempts }</span>)}
+      {!isMinimized && (
+        <div className="status-content">
+          <div className="status-text">
+            <span className="status-label">{statusText}</span>
+            {latency !== null && (
+              <span className="latency">{latency}ms</span>
+            )}
+          </div>
+          
+          <button 
+            className="toggle-details-btn"
+            onClick={toggleDetails}
+          >
+            {showDetails ? '▼' : '▶'}
+          </button>
+          
+          {showDetails && (
+            <div className="status-details">
+              <div className="detail-item">
+                <span className="detail-label">Reconnect attempts:</span>
+                <span className="detail-value">{reconnectAttempts}</span>
+              </div>
+            </div>
+          )}
+          
+          {connectionStatus === 'disconnected' && (
+            <div className="status-actions">
+              <button 
+                onClick={reconnect} 
+                className="reconnect-btn hover:scale-105 active:scale-95 transition-transform"
+              >
+                Reconnect
+              </button>
+            </div>
+          )}
         </div>
-        <div {lastConnected && ( className="detail-item">
-          <span className="detail-label">Last connected:</span>)}
-          <span className="detail-value">{formatTime(lastConnected) }</span>)}
-        </div>
-      </div>)}
-      
-      <div {connectionStatus === 'disconnected' && ( className="status-actions">
-        <button @click.stop="reconnect" className="reconnect-btn hover:scale-105 active:scale-95 transition-transform">
-          Reconnect
-        </button>)}
-      </div>
-    </div>)}
-  </div>
+      )}
     </div>
   );
 };
