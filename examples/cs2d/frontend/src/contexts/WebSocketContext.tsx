@@ -196,3 +196,25 @@ export const useWebSocketStore = (): WebSocketContextType => {
   }
   return context;
 };
+
+// Alias for compatibility  
+export const useWebSocket = () => {
+  const { state, actions, computed } = useWebSocketStore();
+  
+  // Mock sendMessage function for development
+  const sendMessage = (type: string, data: any) => {
+    console.log('WebSocket mock send:', type, data);
+    // Add to message history for testing
+    actions.addMessage({ type, data, timestamp: Date.now() });
+  };
+  
+  return {
+    connectionStatus: state.connectionStatus.status,
+    latency: state.connectionStatus.latency,
+    reconnectAttempts: state.connectionStatus.reconnectAttempts,
+    sendMessage,
+    connect: () => actions.setConnectionStatus('connected'),
+    disconnect: () => actions.setConnectionStatus('disconnected'),
+    ...computed
+  };
+};
