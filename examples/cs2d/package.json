@@ -1,0 +1,57 @@
+{
+  "name": "cs2d",
+  "version": "0.2.0",
+  "description": "CS2D Web Platform - TypeScript Edition",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "lint": "eslint src tests --ext .ts,.tsx --fix",
+    "lint:check": "eslint src tests --ext .ts,.tsx",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,css,html}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md,css,html}\"",
+    "typecheck": "tsc --noEmit",
+    "pre-commit": "pnpm run typecheck && pnpm run lint:check && pnpm run format:check && pnpm run test --run"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "@vitest/ui": "^1.0.0",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "husky": "^8.0.3",
+    "jsdom": "^23.0.0",
+    "lint-staged": "^15.1.0",
+    "playwright": "^1.40.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.2",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {},
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,html}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.11.0"
+}

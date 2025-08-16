@@ -36,11 +36,13 @@ Welcome to the CS2D documentation! This directory contains comprehensive guides 
 ## 🎮 Quick Links
 
 ### Start Playing
+
 - **Local Server**: `http://localhost:9292`
 - **Required**: Ruby 3.2+, Modern browser
 - **Recommended**: Chrome/Safari, Mac with touchpad
 
 ### Essential Controls
+
 ```
 Move:    WASD
 Aim:     Arrow Keys
@@ -51,6 +53,7 @@ Buy:     B
 ```
 
 ### First-Time Setup
+
 1. Install dependencies: `bundle install`
 2. Start server: `ruby cs16_server.rb`
 3. Open browser: `http://localhost:9292`
@@ -59,12 +62,12 @@ Buy:     B
 
 ## 🗺️ Game Modes
 
-| Mode | Players | Description |
-|------|---------|-------------|
-| **Classic** | 5v5 | Full competitive rules |
-| **Casual** | 2v2 | Simplified, faster rounds |
-| **Deathmatch** | FFA | Practice aim, instant respawn |
-| **Retake** | 3v3 | CT retakes planted bomb sites |
+| Mode           | Players | Description                   |
+| -------------- | ------- | ----------------------------- |
+| **Classic**    | 5v5     | Full competitive rules        |
+| **Casual**     | 2v2     | Simplified, faster rounds     |
+| **Deathmatch** | FFA     | Practice aim, instant respawn |
+| **Retake**     | 3v3     | CT retakes planted bomb sites |
 
 ## 🏆 Competitive Rules
 
@@ -77,32 +80,35 @@ Buy:     B
 
 ## 💰 Economy Quick Reference
 
-| Action | Reward |
-|--------|--------|
-| Round Win | $3250 |
-| Round Loss | $1400 (+$500/loss) |
-| Kill (Rifle) | $300 |
-| Kill (AWP) | $100 |
-| Kill (Knife) | $1500 |
-| Bomb Plant | $800 |
-| Bomb Defuse | $3500 |
+| Action       | Reward             |
+| ------------ | ------------------ |
+| Round Win    | $3250              |
+| Round Loss   | $1400 (+$500/loss) |
+| Kill (Rifle) | $300               |
+| Kill (AWP)   | $100               |
+| Kill (Knife) | $1500              |
+| Bomb Plant   | $800               |
+| Bomb Defuse  | $3500              |
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
 **Game Won't Load**
+
 - Check Ruby version: `ruby --version` (need 3.2+)
 - Install WEBrick: `gem install webrick`
 - Check port 9292 is free
 
 **Performance Issues**
+
 - Close other browser tabs
 - Enable hardware acceleration
 - Use Chrome or Safari
 - Reduce visual quality in settings
 
 **Control Problems**
+
 - Click game window to focus
 - Check keyboard layout (US recommended)
 - Disable browser extensions
@@ -111,12 +117,14 @@ Buy:     B
 ## 📊 System Requirements
 
 ### Minimum
+
 - **OS**: Windows 10, macOS 10.15, Linux
 - **Browser**: Chrome 90+, Safari 14+, Firefox 88+
 - **RAM**: 2GB
 - **Network**: Stable connection for multiplayer
 
 ### Recommended
+
 - **OS**: macOS 12+ with touchpad
 - **Browser**: Latest Chrome/Safari
 - **RAM**: 4GB+
@@ -126,12 +134,14 @@ Buy:     B
 ## 🚀 Advanced Features
 
 ### Mac Touchpad Gestures
+
 - **Two-finger swipe**: Precise aiming
 - **Two-finger tap**: Alternative fire
 - **Pinch**: Zoom tactical view
 - **Three-finger swipe**: Quick weapon switch
 
 ### Keyboard Shortcuts
+
 - **F11**: Fullscreen toggle
 - **H**: Show/hide help
 - **M**: Toggle map overview
@@ -141,6 +151,7 @@ Buy:     B
 ## 📈 Performance Metrics
 
 Monitor your gameplay stats:
+
 - **K/D Ratio**: Kills/Deaths
 - **ADR**: Average Damage per Round
 - **HS%**: Headshot percentage
@@ -150,6 +161,7 @@ Monitor your gameplay stats:
 ## 🎯 Training Recommendations
 
 ### Daily Practice (20 min)
+
 1. **Aim Training** (5 min)
    - 100 kills on aim map
    - Focus on headshot placement
@@ -169,11 +181,13 @@ Monitor your gameplay stats:
 ## 🌐 Community
 
 ### Join Us
+
 - **Discord**: [CS2D Community](#)
 - **Reddit**: [r/CS2D](#)
 - **Twitter**: [@CS2DGame](#)
 
 ### Contribute
+
 - Report bugs on [GitHub Issues](#)
 - Submit pull requests
 - Share strategies and guides

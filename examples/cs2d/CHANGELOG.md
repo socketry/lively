@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Initial open source release
 - Docker containerization with microservices architecture
 - Tile-based map system with visual editor
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scoreboard and statistics
 
 ### Technical Features
+
 - Docker Compose deployment
 - Nginx reverse proxy configuration
 - Ruby Lively framework integration
@@ -37,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - TBD
 
 Initial release planned with:
+
 - Stable multiplayer gameplay
 - Docker production deployment
 - Complete map editor

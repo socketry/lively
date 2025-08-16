@@ -544,11 +544,26 @@
   text-transform: uppercase;
 }
 
-.achievement-rarity.common { background: #666; color: #fff; }
-.achievement-rarity.uncommon { background: #1EFF00; color: #000; }
-.achievement-rarity.rare { background: #0070DD; color: #fff; }
-.achievement-rarity.epic { background: #A335EE; color: #fff; }
-.achievement-rarity.legendary { background: #FF8000; color: #fff; }
+.achievement-rarity.common {
+  background: #666;
+  color: #fff;
+}
+.achievement-rarity.uncommon {
+  background: #1eff00;
+  color: #000;
+}
+.achievement-rarity.rare {
+  background: #0070dd;
+  color: #fff;
+}
+.achievement-rarity.epic {
+  background: #a335ee;
+  color: #fff;
+}
+.achievement-rarity.legendary {
+  background: #ff8000;
+  color: #fff;
+}
 
 /* Leaderboard View */
 .leaderboard-categories {
@@ -635,7 +650,9 @@
   font-style: italic;
 }
 
-.level, .rating, .value {
+.level,
+.rating,
+.value {
   color: #ccc;
   text-align: center;
 }
@@ -685,9 +702,18 @@
   text-transform: uppercase;
 }
 
-.match-result.win { background: #00ff00; color: #000; }
-.match-result.loss { background: #ff4444; color: #fff; }
-.match-result.draw { background: #ffaa00; color: #000; }
+.match-result.win {
+  background: #00ff00;
+  color: #000;
+}
+.match-result.loss {
+  background: #ff4444;
+  color: #fff;
+}
+.match-result.draw {
+  background: #ffaa00;
+  color: #000;
+}
 
 .match-map {
   font-weight: bold;
@@ -860,18 +886,33 @@
 
 /* Animations */
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.7; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes levelUpAnimation {
@@ -894,42 +935,42 @@
     width: 95%;
     height: 90%;
   }
-  
+
   .progression-tabs {
     flex-wrap: wrap;
     gap: 5px;
   }
-  
+
   .tab-button {
     padding: 8px 12px;
     font-size: 12px;
   }
-  
+
   .profile-header {
     flex-direction: column;
     text-align: center;
     gap: 20px;
   }
-  
+
   .profile-stats {
     grid-template-columns: 1fr;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .achievements-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .leaderboard-header,
   .leaderboard-row {
     grid-template-columns: 60px 1fr 60px 80px;
     gap: 10px;
     font-size: 12px;
   }
-  
+
   .mini-profile {
     position: relative;
     top: auto;

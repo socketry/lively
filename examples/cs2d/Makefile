@@ -25,9 +25,16 @@ help:
 	@echo "  make static-logs   - View static server logs"
 	@echo ""
 	@echo "Testing & Quality:"
-	@echo "  make test          - Run all tests"
+	@echo "  make test          - Run comprehensive test suite"
+	@echo "  make test-ruby     - Run Ruby unit & integration tests"
+	@echo "  make test-playwright - Run Playwright end-to-end tests"
+	@echo "  make test-integration - Run integration tests only"
+	@echo "  make test-docker   - Run Docker health tests"
+	@echo "  make test-redis    - Run Redis operation tests"
+	@echo "  make test-coverage - Generate code coverage report"
 	@echo "  make rubocop       - Run RuboCop linter"
-	@echo "  make playwright    - Run Playwright tests"
+	@echo "  make quick-test    - Run quick unit tests"
+	@echo "  make smoke-test    - Run basic service health checks"
 	@echo ""
 	@echo "Database:"
 	@echo "  make db-up         - Start with database"
@@ -112,20 +119,181 @@ nginx-logs:
 
 # Testing Commands
 test:
-	@echo "🧪 Running tests..."
-	docker-compose -f docker/docker-compose.yml run --rm dev-tools bash -c "bundle exec rspec && npm test"
+	@echo "🧪 Running comprehensive test suite..."
+	@make test-setup
+	@make test-ruby
+	@make test-playwright
+	@make test-integration
+	@make test-coverage
+	@echo "✅ All tests completed!"
 
-rubocop:
-	@echo "🔍 Running RuboCop..."
-	docker-compose -f docker/docker-compose.yml run --rm dev-tools bundle exec rubocop
+test-setup:
+	@echo "🔧 Setting up test environment..."
+	@mkdir -p test-results
+	@docker-compose -f docker/docker-compose.yml up -d redis
+	@sleep 5
 
-playwright:
-	@echo "🎭 Running Playwright tests..."
-	docker-compose -f docker/docker-compose.yml run --rm dev-tools npx playwright test
+test-ruby:
+	@echo "💎 Running Ruby unit and integration tests..."
+	cd config && bundle install --quiet
+	cd config && bundle exec rspec ../spec --format progress --format RspecJunitFormatter --out ../test-results/rspec.xml
+
+test-unit:
+	@echo "🔬 Running unit tests only..."
+	cd config && bundle exec rspec ../spec/lib ../spec/game --format progress
 
 test-integration:
 	@echo "🔗 Running integration tests..."
-	docker-compose -f docker/docker-compose.yml run --rm dev-tools node test_map_integration.js
+	@make up
+	@sleep 10
+	cd config && bundle exec rspec ../spec/integration --format progress
+
+test-websocket:
+	@echo "🔌 Running WebSocket tests..."
+	@make up
+	@sleep 10
+	cd config && bundle exec rspec ../spec/integration/websocket_spec.rb --format progress
+
+test-redis:
+	@echo "📊 Running Redis tests..."
+	docker-compose -f docker/docker-compose.yml up -d redis
+	@sleep 5
+	cd config && bundle exec rspec ../spec/integration/redis_operations_spec.rb --format progress
+
+test-docker:
+	@echo "🐳 Running Docker health tests..."
+	@make up
+	@sleep 15
+	cd config && bundle exec rspec ../spec/integration/docker_health_spec.rb --format progress
+
+test-room-management:
+	@echo "🏠 Running room management tests..."
+	docker-compose -f docker/docker-compose.yml up -d redis
+	@sleep 5
+	cd config && bundle exec rspec ../spec/integration/room_management_spec.rb --format progress
+
+rubocop:
+	@echo "🔍 Running RuboCop linter..."
+	cd config && bundle exec rubocop ../ --format progress
+
+rubocop-fix:
+	@echo "🔧 Fixing RuboCop violations..."
+	cd config && bundle exec rubocop ../ --auto-correct
+
+playwright:
+	@echo "🎭 Running Playwright end-to-end tests..."
+	@make up
+	@sleep 20
+	npm ci --silent
+	npx playwright install --with-deps
+	npx playwright test
+
+playwright-debug:
+	@echo "🐛 Running Playwright tests in debug mode..."
+	@make up
+	@sleep 20
+	npm ci --silent
+	npx playwright install --with-deps
+	npx playwright test --debug
+
+playwright-headed:
+	@echo "👀 Running Playwright tests in headed mode..."
+	@make up
+	@sleep 20
+	npm ci --silent
+	npx playwright install --with-deps
+	npx playwright test --headed
+
+playwright-ui:
+	@echo "🖥️ Opening Playwright UI..."
+	npm ci --silent
+	npx playwright install --with-deps
+	npx playwright test --ui
+
+test-coverage:
+	@echo "📈 Generating test coverage report..."
+	cd config && COVERAGE=true bundle exec rspec ../spec --format progress
+	@echo "📊 Coverage report generated in coverage/"
+
+test-performance:
+	@echo "⚡ Running performance tests..."
+	@make up
+	@sleep 20
+	npm install -g artillery@latest --silent
+	artillery quick --count 10 --num 5 http://localhost:9292 > test-results/performance.txt
+	@echo "📊 Performance results saved to test-results/performance.txt"
+
+test-security:
+	@echo "🔒 Running security tests..."
+	docker run --rm -v $(PWD):/app aquasec/trivy fs /app --format table > test-results/security-scan.txt
+	@echo "🛡️ Security scan results saved to test-results/security-scan.txt"
+
+test-clean:
+	@echo "🧹 Cleaning test environment..."
+	docker-compose -f docker/docker-compose.yml down -v
+	rm -rf test-results/*.tmp
+	rm -rf coverage/.resultset.json.lock
+
+test-ci:
+	@echo "🤖 Running CI test suite..."
+	@make test-setup
+	@make test-ruby
+	@make test-docker
+	@make test-playwright
+	@make test-coverage
+	@echo "✅ CI test suite completed!"
+
+# Test reporting
+test-report:
+	@echo "📋 Generating comprehensive test report..."
+	@mkdir -p test-results
+	@echo "# CS2D Test Report" > test-results/README.md
+	@echo "Generated on: $$(date)" >> test-results/README.md
+	@echo "" >> test-results/README.md
+	@echo "## Test Results" >> test-results/README.md
+	@if [ -f test-results/rspec.xml ]; then echo "- ✅ Ruby tests: Available" >> test-results/README.md; else echo "- ❌ Ruby tests: Missing" >> test-results/README.md; fi
+	@if [ -f test-results/playwright-report/index.html ]; then echo "- ✅ Playwright tests: Available" >> test-results/README.md; else echo "- ❌ Playwright tests: Missing" >> test-results/README.md; fi
+	@if [ -d coverage ]; then echo "- ✅ Coverage report: Available" >> test-results/README.md; else echo "- ❌ Coverage report: Missing" >> test-results/README.md; fi
+	@echo "" >> test-results/README.md
+	@echo "📊 Test report summary created in test-results/README.md"
+
+# Test utilities
+test-gems:
+	@echo "💎 Installing test gems..."
+	cd config && bundle install
+
+test-deps:
+	@echo "📦 Installing all test dependencies..."
+	@make test-gems
+	npm ci --silent
+	npx playwright install --with-deps
+
+test-shell:
+	@echo "🐚 Opening test shell..."
+	docker-compose -f docker/docker-compose.yml run --rm dev-tools bash
+
+# Quick test commands for development
+quick-test:
+	@echo "⚡ Running quick tests..."
+	cd config && bundle exec rspec ../spec/lib --format progress
+
+smoke-test:
+	@echo "💨 Running smoke tests..."
+	@make up
+	@sleep 10
+	curl -f http://localhost:9292 && echo "✅ Lobby OK"
+	curl -f http://localhost:9293/game.html && echo "✅ Game OK"
+	curl -f http://localhost:9294/api/maps && echo "✅ API OK"
+	@make down
+
+# Continuous testing
+test-watch:
+	@echo "👀 Starting test watcher..."
+	cd config && bundle exec guard
+
+test-guard:
+	@echo "🛡️ Starting Guard for continuous testing..."
+	cd config && bundle exec guard
 
 # Database Commands
 db-up:

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/vite.svg"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>CS2D - Counter-Strike 2D Web Game</title>
+    <meta
+      name="description"
+      content="Play Counter-Strike 2D in your browser with authentic CS 1.6 gameplay, tile-based maps, and real-time multiplayer action."
+    />
+
+    <!-- Preconnect to external resources -->
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+
+    <!-- CSS Reset -->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a1a;
+        color: #ffffff;
+        overflow: hidden;
+      }
+
+      #app {
+        height: 100vh;
+        width: 100vw;
+      }
+
+      /* Loading screen while Vue.js loads */
+      .initial-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #1a1a1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      .loader-content {
+        text-align: center;
+        color: #ffffff;
+      }
+
+      .loader-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        border-top-color: #ff6b35;
+        animation: spin 1s ease-in-out infinite;
+        margin: 0 auto 1rem;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loader-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .loader-subtitle {
+        font-size: 0.9rem;
+        color: #999;
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Initial loading screen -->
+      <div
+        class="initial-loader"
+        id="initial-loader"
+      >
+        <div class="loader-content">
+          <div class="loader-spinner"></div>
+          <div class="loader-text">CS2D Loading...</div>
+          <div class="loader-subtitle">Initializing game client</div>
+        </div>
+      </div>
+    </div>
+
+    <script
+      type="module"
+      src="/src/main.ts"
+    ></script>
+
+    <!-- Remove initial loader once Vue app loads -->
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        // Remove loader after a short delay to ensure Vue has mounted
+        setTimeout(() => {
+          const loader = document.getElementById('initial-loader')
+          if (loader) {
+            loader.style.transition = 'opacity 0.3s ease'
+            loader.style.opacity = '0'
+            setTimeout(() => {
+              loader.remove()
+            }, 300)
+          }
+        }, 1000)
+      })
+    </script>
+  </body>
+</html>

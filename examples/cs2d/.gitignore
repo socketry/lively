@@ -16,12 +16,13 @@ yarn-error.log*
 node_modules/
 vendor/
 .bundle/
+.pnpm-store/
 
 # Package manager files
 package-lock.json
-package.json
 yarn.lock
 Gemfile.lock
+pnpm-lock.yaml
 
 # Test files and reports
 test_*.js
@@ -69,6 +70,22 @@ dist/
 build/
 out/
 *.pid
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# TypeScript cache
+.tscache/
+*.tscache
+
+# Testing outputs
+playwright-report/
+playwright/.cache/
+test-results/
+vitest.config.js.timestamp-*
+
+# Linting cache
+.eslintcache
+.prettiercache
 
 # Docker
 docker-compose.override.yml

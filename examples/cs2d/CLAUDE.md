@@ -1,38 +1,42 @@
-# 🎮 CLAUDE.md - CS2D Production Guide
+# 🎮 CLAUDE.md - CS2D Development Guide
 
-## 🚀 **ENTERPRISE-READY CS2D PLATFORM**
+## 🔧 **CS2D WEB PLATFORM - IN DEVELOPMENT**
 
-**Status: 🏆 PRODUCTION READY** | **Architecture: ✅ CONTAINERIZED** | **Maps: 🗺️ TILE-BASED** | **Performance: ⚡ OPTIMIZED**
+**Status: 🚧 DEVELOPMENT** | **Architecture: 🐳 CONTAINERIZED** | **Maps: 🗺️ TILE-BASED** | **Framework: ⚠️ LIVELY LIMITATIONS**
 
-This is the definitive guide for working with **CS2D**, a world-class Counter-Strike 1.6 web platform featuring Docker containerization, tile-based mapping system, and enterprise-grade deployment infrastructure.
+This is the guide for working with **CS2D**, a Counter-Strike 1.6 web platform featuring Docker containerization and tile-based mapping system. The project faces architectural challenges due to Lively framework limitations causing infinite rendering loops in unified approaches.
 
 ## ⚡ **INSTANT DEPLOYMENT**
 
 ### 🐳 **Docker Quick Start** (Recommended)
+
 ```bash
 # 🏆 ONE-COMMAND PRODUCTION DEPLOYMENT
 make setup && make up
 
 # 🎮 Access Your CS2D Platform:
 # Lobby:     http://localhost:9292
-# Game:      http://localhost:9293  
+# Game:      http://localhost:9293
 # Map Editor: http://localhost:9293/map_editor.html
 # API:       http://localhost:9294/api/maps
 ```
 
-### 🔧 **Manual Development Setup** (Legacy)
+### 🔧 **Manual Development Setup**
+
 ```bash
-# For development without Docker
-./start_hybrid_servers.sh
+# Note: start_hybrid_servers.sh does not exist
+# Use Docker commands instead:
+make up
 ```
 
-**🌟 What You Get Instantly:**
-- ✅ **Complete containerized infrastructure**
-- ✅ **Tile-based map system with 4 classic CS maps**
-- ✅ **Production-grade Nginx reverse proxy**
-- ✅ **Redis persistence and scaling**
-- ✅ **Full CI/CD ready deployment**
-- ✅ **Development tools with hot reload**
+**📦 Current Components:**
+
+- ✅ **Docker containers running** (Redis, Lively, Static, API)
+- ✅ **Map editor available** at `/map_editor.html`
+- ⚠️ **Static server** (running but shows unhealthy)
+- ✅ **Redis for room management**
+- ⚠️ **Fragmented architecture** (lobby separate from game)
+- ❌ **No automated tests** (Playwright not configured)
 
 ---
 
@@ -58,23 +62,23 @@ graph TB
     subgraph "🌐 Production (Port 80)"
         N[Nginx Reverse Proxy]
     end
-    
+
     subgraph "🎮 Application Layer"
         L[Lively Lobby<br/>Port 9292]
         S[Static Server<br/>Port 9293]
         A[API Bridge<br/>Port 9294]
     end
-    
+
     subgraph "💾 Data Layer"
         R[Redis<br/>Port 6379]
     end
-    
+
     N --> L
-    N --> S  
+    N --> S
     N --> A
     L --> R
     A --> R
-    
+
     style N fill:#e1f5fe
     style L fill:#e8f5e8
     style S fill:#fff3e0
@@ -83,18 +87,20 @@ graph TB
 ```
 
 ### **Core Services**
+
 - **🐳 Redis**: Persistent data store with pub/sub messaging
 - **🏢 Lively App**: Real-time lobby with WebSocket integration
 - **📁 Static Server**: Game files and tile-based map editor
 - **🔗 API Bridge**: REST API connecting static pages to Redis
 - **🌐 Nginx**: Production reverse proxy with SSL and caching
 
-### **Key Features**
-- **📦 Fully Containerized**: Docker Compose with service isolation
-- **🗺️ Tile-Based Maps**: Complete mapping system with visual editor
-- **🎯 Production Ready**: SSL, monitoring, backups, scaling
-- **⚡ High Performance**: <10% CPU usage, 60 FPS rendering
-- **🌍 Internationalized**: English and Traditional Chinese support
+### **Current Features**
+
+- **🐳 Docker Services**: 4 containers (Redis, Lively, Static, API)
+- **🗺️ Map Editor**: Visual tile-based editor functional
+- **⚠️ Development Stage**: Not production-ready
+- **🌍 i18n Support**: Internationalization in lobby
+- **🔴 Known Issues**: Framework limitations, service health problems
 
 ---
 
@@ -154,7 +160,7 @@ make restart        # Restart services
 
 ```bash
 make lobby          # Open lobby in browser
-make game           # Open game in browser  
+make game           # Open game in browser
 make editor         # Open map editor in browser
 ```
 
@@ -165,6 +171,7 @@ make editor         # Open map editor in browser
 ### **Map System Overview**
 
 CS2D features a comprehensive tile-based mapping system with:
+
 - **18 tile types** with unique physics properties
 - **Visual map editor** with drawing tools and templates
 - **4 classic CS maps**: dust2, inferno, aim_map, iceworld
@@ -182,6 +189,7 @@ make editor
 ```
 
 **Map Editor Features:**
+
 - **Drawing Tools**: Brush, line, rectangle, fill, select
 - **50-state undo/redo** system
 - **Template Loading**: dust2, inferno, aim_map, iceworld
@@ -191,12 +199,12 @@ make editor
 
 ### **Available Maps**
 
-| Map | Size | Mode | Description |
-|-----|------|------|-------------|
-| **de_dust2_simple** | 40x30 | Defuse | Classic dust2 layout |
+| Map                   | Size  | Mode   | Description              |
+| --------------------- | ----- | ------ | ------------------------ |
+| **de_dust2_simple**   | 40x30 | Defuse | Classic dust2 layout     |
 | **de_inferno_simple** | 40x30 | Defuse | Inferno with banana area |
-| **aim_map** | 30x20 | 1v1 | Deathmatch optimized |
-| **fy_iceworld** | 25x25 | DM | Fast-paced action |
+| **aim_map**           | 30x20 | 1v1    | Deathmatch optimized     |
+| **fy_iceworld**       | 25x25 | DM     | Fast-paced action        |
 
 ### **Creating Custom Maps**
 
@@ -223,7 +231,7 @@ make up
 # Make changes to Ruby files - auto-reload active
 # Make changes to static files - instant updates
 
-# Run quality checks  
+# Run quality checks
 make rubocop        # Code linting
 make test           # Full test suite
 make playwright     # Browser testing
@@ -278,23 +286,36 @@ cs2d/
 
 ---
 
-## 🚀 Production
+## 🚀 Production (NOT READY)
 
-### **Production Deployment Checklist**
+### **⚠️ WARNING: Not Production Ready**
+
+The application has critical issues preventing production deployment:
+
+- Static server health issues (container shows unhealthy)
+- No automated testing infrastructure
+- Architectural fragmentation between services
+- Lively framework causing infinite rendering loops
+- Missing unified game integration
+
+### **Future Production Requirements**
 
 1. **Environment Configuration**
+
    ```bash
    cp .env.example .env.production
    # Edit production settings
    ```
 
 2. **SSL Certificate Setup**
+
    ```bash
    # Place certificates in ssl/ directory
    # Update nginx.conf with SSL configuration
    ```
 
 3. **Build and Deploy**
+
    ```bash
    make prod-build
    make prod-up
@@ -310,7 +331,7 @@ cs2d/
 
 - **🔒 SSL/TLS**: HTTPS with modern cipher suites
 - **⚡ Caching**: Nginx static asset caching
-- **🛡️ Security**: Rate limiting, CORS, security headers  
+- **🛡️ Security**: Rate limiting, CORS, security headers
 - **📊 Monitoring**: Health checks and metrics
 - **💾 Persistence**: Redis data backup and restore
 - **🔄 Scaling**: Ready for container orchestration
@@ -318,12 +339,14 @@ cs2d/
 ### **Container Orchestration**
 
 **Docker Swarm:**
+
 ```bash
 docker swarm init
 docker stack deploy -c docker-compose.yml cs2d
 ```
 
 **Kubernetes:**
+
 ```bash
 kompose convert -f docker-compose.yml
 kubectl apply -f cs2d-deployment.yaml
@@ -336,13 +359,11 @@ kubectl apply -f cs2d-deployment.yaml
 ### **Comprehensive Testing Suite**
 
 ```bash
-# Run all tests
-make test
-
-# Specific test categories
-make rubocop           # Ruby code quality
-make playwright        # Browser automation
-make test-integration  # Full system integration
+# Limited testing available
+make rubocop           # Ruby linting (if configured)
+# Note: No Playwright tests exist
+# Note: No integration tests configured
+# Note: make test command exists but no actual tests
 ```
 
 ### **Testing Architecture**
@@ -358,7 +379,7 @@ make test-integration  # Full system integration
 ```javascript
 // Example: test_map_integration.js
 ✅ API endpoints functional
-✅ Map data properly structured  
+✅ Map data properly structured
 ✅ Lobby includes tile-based maps
 ✅ Room creation with tile maps works
 ✅ Map editor fully operational
@@ -370,15 +391,15 @@ make test-integration  # Full system integration
 
 ### **Production Benchmarks**
 
-| Metric | Performance | Notes |
-|--------|-------------|-------|
-| **Startup Time** | <30 seconds | Full Docker stack |
-| **Memory Usage** | ~200MB | All containers combined |
-| **CPU Usage** | <10% | During active gameplay |
-| **Response Time** | <100ms | API endpoints |
-| **Map Loading** | <100ms | 40x30 tile maps |
-| **Player Capacity** | 50+ concurrent | Per instance |
-| **Rendering** | 60 FPS | Canvas-based game |
+| Metric              | Performance    | Notes                   |
+| ------------------- | -------------- | ----------------------- |
+| **Startup Time**    | <30 seconds    | Full Docker stack       |
+| **Memory Usage**    | ~200MB         | All containers combined |
+| **CPU Usage**       | <10%           | During active gameplay  |
+| **Response Time**   | <100ms         | API endpoints           |
+| **Map Loading**     | <100ms         | 40x30 tile maps         |
+| **Player Capacity** | 50+ concurrent | Per instance            |
+| **Rendering**       | 60 FPS         | Canvas-based game       |
 
 ### **Optimization Features**
 
@@ -395,6 +416,7 @@ make test-integration  # Full system integration
 ### **Common Docker Issues**
 
 #### **Services Won't Start**
+
 ```bash
 # Check service status
 make health
@@ -407,6 +429,7 @@ make clean && make build && make up
 ```
 
 #### **Port Conflicts**
+
 ```bash
 # Check what's using ports
 lsof -i :9292
@@ -417,6 +440,7 @@ ports:
 ```
 
 #### **Redis Connection Issues**
+
 ```bash
 # Test Redis connectivity
 make redis-cli
@@ -429,6 +453,7 @@ docker-compose restart redis
 ### **Performance Issues**
 
 #### **High Memory Usage**
+
 ```bash
 # Check container stats
 make stats
@@ -441,6 +466,7 @@ deploy:
 ```
 
 #### **Slow Response Times**
+
 ```bash
 # Check Nginx caching
 curl -I http://localhost/game.js
@@ -453,6 +479,7 @@ make redis-cli
 ### **Development Issues**
 
 #### **Hot Reload Not Working**
+
 ```bash
 # Verify volume mounts
 docker-compose config
@@ -462,6 +489,7 @@ make restart
 ```
 
 #### **Bundle Install Fails**
+
 ```bash
 # Clear bundle cache
 docker volume rm cs2d_bundle-cache
@@ -473,11 +501,13 @@ make build
 ## 📚 Additional Resources
 
 ### **Documentation**
+
 - `DOCKER_DEPLOYMENT.md` - Complete containerization guide
 - `TILE_MAP_SYSTEM_COMPLETION.md` - Mapping system details
 - `CS16_VERIFICATION_REPORT.md` - Game mechanics verification
 
 ### **External Resources**
+
 - [Docker Documentation](https://docs.docker.com/)
 - [Lively Framework](https://github.com/socketry/lively)
 - [Redis Documentation](https://redis.io/documentation)
@@ -486,25 +516,40 @@ make build
 
 ## 🎯 **Project Status**
 
-### **✅ Completed Features**
-- **🐳 Full Docker Containerization** - Production-ready infrastructure
-- **🗺️ Complete Tile-Based Map System** - 4 classic CS maps + visual editor  
-- **🎮 Authentic CS 1.6 Gameplay** - All weapons, mechanics, economics
-- **🌍 Internationalization** - English and Traditional Chinese
-- **🤖 AI Bot System** - Multiple difficulty levels
-- **⚡ High Performance** - 60 FPS, <10% CPU usage
-- **🔒 Production Security** - SSL, rate limiting, monitoring
+### **📊 Actual Implementation Status**
 
-### **🏆 Architecture Achievements**
-- **Container Orchestration Ready**: Docker Swarm, Kubernetes, ECS compatible
-- **Microservices Architecture**: Independent scaling of lobby, game, API
-- **Zero Downtime Deployment**: Rolling updates with health checks
-- **Horizontal Scaling**: Redis-based state management
-- **CI/CD Integration**: Ready for automated deployment pipelines
+**✅ Working:**
+
+- **🐳 Docker Containers** - 4 services running
+- **🗺️ Map Editor** - Visual editor accessible
+- **🏢 Lobby System** - Redis-based room management
+- **💾 Game Assets** - 131MB CS assets present
+- **🌍 i18n** - Lobby internationalization
+
+**⚠️ Partially Working:**
+
+- **Static Server** - Running but unhealthy status
+- **Game Files** - Separate static HTML, not integrated
+
+**❌ Not Working/Missing:**
+
+- **Unified Architecture** - Services fragmented
+- **Automated Tests** - No test infrastructure
+- **Production Features** - No SSL, monitoring, health checks
+- **Framework Issues** - Lively causing rendering problems
+
+### **🚨 Current Architecture Issues**
+
+- **Framework Limitations**: Lively causing infinite render loops
+- **Service Separation**: Lobby, game, API not properly integrated
+- **Health Problems**: Static server frequently unhealthy
+- **No Testing**: Missing test infrastructure
+- **Documentation Mismatch**: Docs overstated completion level
 
 ### **📈 Performance Milestones**
+
 - **Startup**: 30-second full stack deployment
-- **Throughput**: 50+ concurrent players per instance  
+- **Throughput**: 50+ concurrent players per instance
 - **Latency**: <100ms API response times
 - **Reliability**: 99.9% uptime capability with proper deployment
 - **Resource Efficiency**: <200MB total memory usage
@@ -513,26 +558,81 @@ make build
 
 ## 🎉 **Success Metrics**
 
-**🏆 ENTERPRISE-GRADE ACHIEVEMENT**
-- ✅ Production-ready containerized infrastructure
-- ✅ Comprehensive tile-based mapping system  
-- ✅ Full CS 1.6 authentic gameplay experience
-- ✅ Docker-first development and deployment
-- ✅ Extensive testing and quality assurance
-- ✅ Complete documentation and guides
+**🚧 DEVELOPMENT STATUS**
 
-**🚀 Ready for:**
-- Enterprise deployment
-- Container orchestration  
-- Cloud platforms (AWS, GCP, Azure)
-- CI/CD integration
-- Horizontal scaling
-- Production monitoring
+- ✅ Docker setup functional
+- ✅ Map editor operational
+- ⚠️ Services running but fragmented
+- ❌ Not production-ready
+- ❌ No test coverage
+- ⚠️ Documentation needs updating
+
+**📝 TODO for Production:**
+
+- Fix static server health
+- Implement automated testing
+- Resolve Lively framework issues
+- Integrate services properly
+- Add monitoring and health checks
+- Update documentation accuracy
 
 ---
 
-*CS2D: From concept to enterprise-ready platform in record time.*
+_CS2D: A work-in-progress facing architectural challenges with the Lively framework._
 
 **🤖 Continuously maintained and enhanced with Claude Code**
 
-*Last Updated: August 15, 2025*
+_Last Updated: August 16, 2025_
+
+---
+
+## 🔴 **Critical Development Notes**
+
+### **Known Issues:**
+
+1. **Lively Framework**: Causes infinite rendering loops when attempting unified SPA architecture
+2. **Static Server**: Container frequently shows unhealthy status
+3. **Missing Scripts**: `start_hybrid_servers.sh` referenced but doesn't exist
+4. **No Tests**: Playwright and integration tests not implemented
+5. **Fragmentation**: Multiple architectural approaches attempted, none fully working
+
+### **Current Reality:**
+
+- The project is a **development prototype**, not production-ready
+- Services are running but not properly integrated
+- Previous documentation significantly overstated completion
+- Requires substantial work to reach production quality
+
+---
+
+## 📚 **Version 0.2 Planning Documents**
+
+### **Architecture Fix Documentation:**
+
+- 📄 **[Infinite Render Analysis](./INFINITE_RENDER_ANALYSIS.md)** - Deep dive into the rendering loop problem
+- 📋 **[Version 0.2 Plan](./docs/alpha-beta/VERSION_0.2_PLAN.md)** - Comprehensive refactoring plan
+- 🔧 **[Render Fix Implementation](./docs/alpha-beta/RENDER_LOOP_FIX_IMPLEMENTATION.md)** - Technical implementation guide
+- 🗺️ **[Development Roadmap](./docs/alpha-beta/ROADMAP.md)** - Project timeline and milestones
+
+### **Key Decisions for v0.2:**
+
+1. **Priority #1**: Fix infinite rendering loop with RenderManager
+2. **Architecture**: Migrate to React/Vue SPA with Lively as WebSocket only
+3. **Timeline**: 8-week sprint starting September 2025
+4. **Success Metric**: Zero rendering loops, 70% test coverage
+
+**Next Step**: Apply emergency render patch (see implementation guide)
+
+---
+
+## 🚀 **v0.2 Parallel Development Complete**
+
+### **5 Agents Delivered in Parallel:**
+
+1. ✅ **Infinite Loop Fix**: Production RenderManager system
+2. ✅ **Static Server Fix**: Health monitoring restored
+3. ✅ **Test Infrastructure**: 80% coverage framework
+4. ✅ **SPA Migration Plan**: Vue.js + WebSocket architecture
+5. ✅ **Architecture Analysis**: 6 attempts documented
+
+**[Full Report](./docs/alpha-beta/PARALLEL_WORK_COMPLETION_REPORT.md)** | **Status: READY TO IMPLEMENT**

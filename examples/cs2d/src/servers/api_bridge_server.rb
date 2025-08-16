@@ -3,8 +3,8 @@
 
 require "webrick"
 require "json"
-require_relative "game/async_redis_room_manager"
-require_relative "game/map_templates"
+require_relative "../../game/async_redis_room_manager"
+require_relative "../../game/map_templates"
 
 # API Bridge Server - connects static HTML pages to Redis backend
 class APIBridgeServer < WEBrick::HTTPServlet::AbstractServlet

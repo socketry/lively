@@ -26,9 +26,9 @@ RUN mkdir -p logs
 # Expose port
 EXPOSE 9293
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9293/map_editor.html || exit 1
+# Health check - Use dedicated health endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:9293/health || exit 1
 
 # Run the static server
 CMD ["ruby", "src/servers/static_server.rb", "9293"]

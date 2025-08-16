@@ -20,12 +20,14 @@ CS2D is built using a client-server architecture with real-time WebSocket commun
 ## Technology Stack
 
 ### Backend
+
 - **Language**: Ruby 3.2+
 - **Framework**: Lively (WebSocket + Live Views)
 - **Server**: WEBrick HTTP Server
 - **Protocol**: WebSocket for real-time communication
 
 ### Frontend
+
 - **Rendering**: HTML5 Canvas 2D Context
 - **Language**: Vanilla JavaScript ES6+
 - **Physics**: Custom 2D physics engine
@@ -112,19 +114,19 @@ end
 class Player
   # Identity
   attr_accessor :id, :name, :team
-  
+
   # Position & Physics
   attr_accessor :x, :y, :vx, :vy, :angle
-  
+
   # Combat Stats
   attr_accessor :health, :armor, :alive
-  
+
   # Weapons & Equipment
   attr_accessor :weapons, :current_weapon, :ammo
-  
+
   # Economy
   attr_accessor :money, :kills, :deaths
-  
+
   # Network
   attr_accessor :ping, :packet_loss
 end
@@ -137,22 +139,22 @@ end
 def game_loop
   loop do
     delta_time = 1.0 / 30.0
-    
+
     # 1. Process input queue
     process_player_inputs
-    
+
     # 2. Update physics
     update_physics(delta_time)
-    
+
     # 3. Check collisions
     check_collisions
-    
+
     # 4. Update game logic
     update_game_logic(delta_time)
-    
+
     # 5. Broadcast state
     broadcast_game_state
-    
+
     sleep(delta_time)
   end
 end
@@ -170,20 +172,20 @@ class MovementSystem {
     this.velocity = { x: 0, y: 0 };
     this.acceleration = { x: 0, y: 0 };
   }
-  
+
   update(deltaTime) {
     // Apply acceleration
     this.velocity.x += this.acceleration.x * deltaTime;
     this.velocity.y += this.acceleration.y * deltaTime;
-    
+
     // Apply friction
     this.velocity.x *= 0.9;
     this.velocity.y *= 0.9;
-    
+
     // Update position
     this.position.x += this.velocity.x * deltaTime;
     this.position.y += this.velocity.y * deltaTime;
-    
+
     // Collision detection
     this.checkCollisions();
   }
@@ -195,10 +197,7 @@ class MovementSystem {
 ```javascript
 // AABB Collision
 function checkAABB(a, b) {
-  return a.x < b.x + b.width &&
-         a.x + a.width > b.x &&
-         a.y < b.y + b.height &&
-         a.y + a.height > b.y;
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
 // Circle Collision
@@ -227,25 +226,25 @@ class ClientPrediction {
     this.inputBuffer = [];
     this.sequenceNumber = 0;
   }
-  
+
   predictMovement(input) {
     // Apply input immediately
     this.applyInput(input);
-    
+
     // Store for reconciliation
     this.inputBuffer.push({
       input: input,
       sequence: this.sequenceNumber++,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
-  
+
   reconcile(serverState) {
     // Find matching state
     const matchingInput = this.inputBuffer.find(
-      i => i.sequence === serverState.lastProcessedInput
+      (i) => i.sequence === serverState.lastProcessedInput,
     );
-    
+
     if (matchingInput) {
       // Replay inputs from that point
       this.replayInputs(matchingInput.sequence);
@@ -263,39 +262,38 @@ class Interpolator {
     this.buffer = [];
     this.renderDelay = 100; // 100ms behind
   }
-  
+
   addState(state) {
     this.buffer.push({
       state: state,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     // Keep only last 1 second
     const cutoff = Date.now() - 1000;
-    this.buffer = this.buffer.filter(s => s.timestamp > cutoff);
+    this.buffer = this.buffer.filter((s) => s.timestamp > cutoff);
   }
-  
+
   getInterpolatedState() {
     const renderTime = Date.now() - this.renderDelay;
-    
+
     // Find surrounding states
-    let before = null, after = null;
+    let before = null,
+      after = null;
     for (let i = 0; i < this.buffer.length - 1; i++) {
-      if (this.buffer[i].timestamp <= renderTime &&
-          this.buffer[i + 1].timestamp >= renderTime) {
+      if (this.buffer[i].timestamp <= renderTime && this.buffer[i + 1].timestamp >= renderTime) {
         before = this.buffer[i];
         after = this.buffer[i + 1];
         break;
       }
     }
-    
+
     if (before && after) {
       // Linear interpolation
-      const t = (renderTime - before.timestamp) / 
-                (after.timestamp - before.timestamp);
+      const t = (renderTime - before.timestamp) / (after.timestamp - before.timestamp);
       return this.lerp(before.state, after.state, t);
     }
-    
+
     return this.buffer[this.buffer.length - 1]?.state;
   }
 }
@@ -310,33 +308,35 @@ class RenderOptimizer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d', {
-      alpha: false,           // No transparency
-      desynchronized: true    // Reduce latency
+      alpha: false, // No transparency
+      desynchronized: true, // Reduce latency
     });
-    
+
     // Object pooling
     this.bulletPool = new ObjectPool(Bullet, 1000);
     this.particlePool = new ObjectPool(Particle, 500);
   }
-  
+
   render(gameState) {
     // Frustum culling
     const visibleEntities = this.frustumCull(gameState.entities);
-    
+
     // Batch rendering
     this.batchRender(visibleEntities);
-    
+
     // Level of detail
     this.applyLOD(visibleEntities);
   }
-  
+
   frustumCull(entities) {
     const camera = this.camera;
-    return entities.filter(e => {
-      return e.x > camera.left - 50 &&
-             e.x < camera.right + 50 &&
-             e.y > camera.top - 50 &&
-             e.y < camera.bottom + 50;
+    return entities.filter((e) => {
+      return (
+        e.x > camera.left - 50 &&
+        e.x < camera.right + 50 &&
+        e.y > camera.top - 50 &&
+        e.y < camera.bottom + 50
+      );
     });
   }
 }
@@ -351,13 +351,13 @@ class ObjectPool {
     this.Type = Type;
     this.pool = [];
     this.active = [];
-    
+
     // Pre-allocate objects
     for (let i = 0; i < size; i++) {
       this.pool.push(new Type());
     }
   }
-  
+
   acquire() {
     if (this.pool.length > 0) {
       const obj = this.pool.pop();
@@ -366,7 +366,7 @@ class ObjectPool {
     }
     return new this.Type();
   }
-  
+
   release(obj) {
     const index = this.active.indexOf(obj);
     if (index !== -1) {
@@ -393,7 +393,7 @@ class Quadtree {
     this.objects = [];
     this.nodes = [];
   }
-  
+
   insert(object) {
     if (this.nodes.length > 0) {
       const index = this.getIndex(object);
@@ -402,15 +402,14 @@ class Quadtree {
         return;
       }
     }
-    
+
     this.objects.push(object);
-    
-    if (this.objects.length > this.maxObjects && 
-        this.level < this.maxLevels) {
+
+    if (this.objects.length > this.maxObjects && this.level < this.maxLevels) {
       if (this.nodes.length === 0) {
         this.split();
       }
-      
+
       let i = 0;
       while (i < this.objects.length) {
         const index = this.getIndex(this.objects[i]);
@@ -422,25 +421,21 @@ class Quadtree {
       }
     }
   }
-  
+
   retrieve(object) {
     const index = this.getIndex(object);
     let returnObjects = this.objects;
-    
+
     if (this.nodes.length > 0) {
       if (index !== -1) {
-        returnObjects = returnObjects.concat(
-          this.nodes[index].retrieve(object)
-        );
+        returnObjects = returnObjects.concat(this.nodes[index].retrieve(object));
       } else {
         for (let node of this.nodes) {
-          returnObjects = returnObjects.concat(
-            node.retrieve(object)
-          );
+          returnObjects = returnObjects.concat(node.retrieve(object));
         }
       }
     }
-    
+
     return returnObjects;
   }
 }
@@ -454,35 +449,35 @@ class Quadtree {
 class AntiCheat
   def validate_input(player, input)
     # Movement speed check
-    return false if input[:move] && 
+    return false if input[:move] &&
                     calculate_speed(input[:move]) > MAX_SPEED
-    
+
     # Fire rate check
-    return false if input[:shoot] && 
+    return false if input[:shoot] &&
                     !can_shoot?(player)
-    
+
     # Position validation
-    return false if input[:position] && 
+    return false if input[:position] &&
                     !valid_position?(input[:position])
-    
+
     # Aim angle validation
-    return false if input[:angle] && 
+    return false if input[:angle] &&
                     (input[:angle] < 0 || input[:angle] > 2 * Math::PI)
-    
+
     true
   end
-  
+
   def validate_state(player)
     # Health bounds
     return false if player.health < 0 || player.health > 100
-    
+
     # Money bounds
     return false if player.money < 0 || player.money > 16000
-    
+
     # Ammo bounds
-    return false if player.ammo[:clip] < 0 || 
+    return false if player.ammo[:clip] < 0 ||
                     player.ammo[:clip] > player.weapon[:clip_size]
-    
+
     true
   end
 end
@@ -494,26 +489,26 @@ end
 // Client-side input validation
 function sanitizeInput(input) {
   const sanitized = {};
-  
+
   // Movement
   if (input.move) {
     sanitized.move = {
       x: Math.max(-1, Math.min(1, input.move.x || 0)),
       y: Math.max(-1, Math.min(1, input.move.y || 0)),
-      shift: Boolean(input.move.shift)
+      shift: Boolean(input.move.shift),
     };
   }
-  
+
   // Shooting
   if (input.shoot !== undefined) {
     sanitized.shoot = Boolean(input.shoot);
   }
-  
+
   // Angle
   if (input.angle !== undefined) {
     sanitized.angle = Math.max(0, Math.min(2 * Math.PI, input.angle));
   }
-  
+
   return sanitized;
 }
 ```
@@ -529,19 +524,19 @@ server:
   host: 0.0.0.0
   max_players: 10
   tick_rate: 30
-  
+
 game:
   round_time: 115
   freeze_time: 5
   buy_time: 15
   bomb_timer: 45
   max_rounds: 30
-  
+
 network:
   timeout: 30000
   max_packet_size: 1024
   compression: true
-  
+
 performance:
   max_bullets: 1000
   max_entities: 500
@@ -558,28 +553,28 @@ const CONFIG = {
     resolution: 'auto',
     shadows: true,
     particles: true,
-    antialiasing: true
+    antialiasing: true,
   },
-  
+
   controls: {
     sensitivity: 2.5,
     autoAim: false,
     invertY: false,
-    toggleCrouch: false
+    toggleCrouch: false,
   },
-  
+
   audio: {
     master: 1.0,
     effects: 0.8,
     music: 0.5,
-    voice: 1.0
+    voice: 1.0,
   },
-  
+
   network: {
     interpolation: 100,
     extrapolation: true,
-    prediction: true
-  }
+    prediction: true,
+  },
 };
 ```
 
@@ -599,28 +594,36 @@ GET  /api/stats/:id     # Player statistics
 
 ```javascript
 // Join game
-ws.send(JSON.stringify({
-  type: 'join',
-  data: { name: 'Player', team: 'auto' }
-}));
+ws.send(
+  JSON.stringify({
+    type: 'join',
+    data: { name: 'Player', team: 'auto' },
+  }),
+);
 
 // Leave game
-ws.send(JSON.stringify({
-  type: 'leave'
-}));
+ws.send(
+  JSON.stringify({
+    type: 'leave',
+  }),
+);
 
 // Team change
-ws.send(JSON.stringify({
-  type: 'change_team',
-  team: 'ct' | 't'
-}));
+ws.send(
+  JSON.stringify({
+    type: 'change_team',
+    team: 'ct' | 't',
+  }),
+);
 
 // Vote
-ws.send(JSON.stringify({
-  type: 'vote',
-  vote: 'kick' | 'map' | 'restart',
-  target: 'player_id' | 'map_name'
-}));
+ws.send(
+  JSON.stringify({
+    type: 'vote',
+    vote: 'kick' | 'map' | 'restart',
+    target: 'player_id' | 'map_name',
+  }),
+);
 ```
 
 ## Development

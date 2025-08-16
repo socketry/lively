@@ -1,0 +1,238 @@
+// CS2D Frontend Main Styles
+// Vue.js 3 + TypeScript + SCSS
+
+// Reset and base styles
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+// App container
+#app {
+  height: 100%;
+  width: 100%;
+}
+
+// CS2D Color Scheme
+:root {
+  --cs-primary: #ff6b35;
+  --cs-secondary: #004e89;
+  --cs-accent: #ffa400;
+  --cs-success: #2ecc71;
+  --cs-warning: #f39c12;
+  --cs-danger: #e74c3c;
+  --cs-dark: #1a1a1a;
+  --cs-light: #ffffff;
+  --cs-gray: #666666;
+  --cs-border: #333333;
+}
+
+// Typography
+h1, h2, h3, h4, h5, h6 {
+  color: var(--cs-light);
+  margin-bottom: 1rem;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+
+// Button styles
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+
+  &.btn-primary {
+    background: var(--cs-primary);
+    color: white;
+
+    &:hover {
+      background: var(--cs-primary);
+      filter: brightness(0.9);
+      transform: translateY(-2px);
+    }
+  }
+
+  &.btn-secondary {
+    background: var(--cs-secondary);
+    color: white;
+
+    &:hover {
+      background: var(--cs-secondary);
+      filter: brightness(0.9);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// Input styles
+.input {
+  padding: 0.75rem;
+  border: 2px solid var(--cs-border);
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: white;
+  font-size: 1rem;
+
+  &:focus {
+    outline: none;
+    border-color: var(--cs-primary);
+  }
+}
+
+// Card component
+.card {
+  background: #2a2a2a;
+  border: 1px solid var(--cs-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+
+  .card-header {
+    border-bottom: 1px solid var(--cs-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-title {
+    font-size: 1.25rem;
+    color: var(--cs-primary);
+    margin: 0;
+  }
+}
+
+// Loading spinner
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--cs-primary);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Flexbox utilities
+.flex {
+  display: flex;
+
+  &.flex-column {
+    flex-direction: column;
+  }
+
+  &.justify-center {
+    justify-content: center;
+  }
+
+  &.items-center {
+    align-items: center;
+  }
+
+  &.space-between {
+    justify-content: space-between;
+  }
+}
+
+// Spacing utilities
+.m-1 { margin: 0.25rem; }
+.m-2 { margin: 0.5rem; }
+.m-3 { margin: 1rem; }
+.m-4 { margin: 1.5rem; }
+
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 1rem; }
+.p-4 { padding: 1.5rem; }
+
+// Text utilities
+.text-center { text-align: center; }
+.text-primary { color: var(--cs-primary); }
+.text-success { color: var(--cs-success); }
+.text-warning { color: var(--cs-warning); }
+.text-danger { color: var(--cs-danger); }
+
+// Game specific styles
+.game-container {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.game-canvas {
+  display: block;
+  background: #000;
+  border: 2px solid var(--cs-border);
+}
+
+.lobby-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.room-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.player-list {
+  list-style: none;
+  
+  li {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--cs-border);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .lobby-container {
+    padding: 1rem;
+  }
+
+  .room-list {
+    grid-template-columns: 1fr;
+  }
+
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; }
+}
+
+// Animations
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}

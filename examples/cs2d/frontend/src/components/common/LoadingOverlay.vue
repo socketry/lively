@@ -1,0 +1,148 @@
+<template>
+  <div class="loading-overlay" :class="{ active: show }">
+    <div class="loading-content">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+      </div>
+      <div class="loading-text">
+        <h3>{{ title }}</h3>
+        <p v-if="message">{{ message }}</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+interface Props {
+  show?: boolean
+  title?: string
+  message?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  show: true,
+  title: 'Loading...',
+  message: ''
+})
+
+const show = computed(() => props.show)
+const title = computed(() => props.title)
+const message = computed(() => props.message)
+</script>
+
+<style scoped>
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.loading-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+  color: var(--cs-light);
+}
+
+.loading-spinner {
+  position: relative;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--cs-primary);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--cs-light);
+}
+
+.loading-text p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--cs-gray);
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+/* Additional spinner variations */
+.loading-spinner::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border: 2px solid rgba(255, 107, 53, 0.2);
+  border-radius: 50%;
+  border-top-color: var(--cs-primary);
+  animation: spin 1.5s linear infinite reverse;
+}
+
+/* Pulsing animation for the text */
+.loading-text {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .loading-content {
+    padding: 2rem;
+  }
+  
+  .spinner {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .loading-text h3 {
+    font-size: 1.1rem;
+  }
+  
+  .loading-text p {
+    font-size: 0.85rem;
+  }
+}
+</style>

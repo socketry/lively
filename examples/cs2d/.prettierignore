@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+coverage/
+*.min.js
+*.min.css
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Ruby files
+*.rb
+Gemfile*
+
+# Generated files
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+playwright-report/
+test-results/
+
+# Temporary
+*.tmp
+*.temp
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ruby/Rails specific
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep

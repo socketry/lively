@@ -28,7 +28,7 @@ body {
 
 /* HUD Styles */
 #hud {
-  background: linear-gradient(to right, rgba(0,0,0,0.8), transparent);
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.8), transparent);
   padding: 15px;
   border-radius: 5px;
   min-width: 200px;
@@ -37,7 +37,7 @@ body {
 #hud div {
   margin: 5px 0;
   font-size: 16px;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 #health {
@@ -60,7 +60,7 @@ body {
 
 /* Scoreboard */
 #scoreboard {
-  background: rgba(0,0,0,0.9);
+  background: rgba(0, 0, 0, 0.9);
   border: 2px solid #444;
   border-radius: 5px;
   min-width: 400px;
@@ -75,17 +75,18 @@ body {
   margin: 0;
 }
 
-#team-ct, #team-t {
+#team-ct,
+#team-t {
   padding: 10px;
 }
 
 #team-ct {
-  background: rgba(68,68,255,0.1);
+  background: rgba(68, 68, 255, 0.1);
   border-top: 3px solid #4444ff;
 }
 
 #team-t {
-  background: rgba(255,68,68,0.1);
+  background: rgba(255, 68, 68, 0.1);
   border-top: 3px solid #ff4444;
 }
 
@@ -94,12 +95,12 @@ body {
   justify-content: space-between;
   padding: 5px;
   margin: 2px 0;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* Buy Menu */
 #buy-menu {
-  background: rgba(0,0,0,0.95);
+  background: rgba(0, 0, 0, 0.95);
   border: 2px solid #666;
   border-radius: 10px;
   min-width: 500px;
@@ -122,7 +123,7 @@ body {
 
 .weapon-categories button {
   padding: 15px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border: 1px solid #444;
   color: white;
   cursor: pointer;
@@ -132,7 +133,7 @@ body {
 }
 
 .weapon-categories button:hover {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border-color: #ffaa00;
   transform: scale(1.05);
 }
@@ -167,7 +168,7 @@ body {
 }
 
 #chat-input {
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   border: 1px solid #444;
   color: white;
   padding: 5px;
@@ -189,7 +190,7 @@ body {
 }
 
 .kill-entry {
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   padding: 5px 10px;
   margin: 2px 0;
   border-left: 3px solid #ff4444;
@@ -215,7 +216,7 @@ body {
   transform: translateX(-50%);
   font-size: 24px;
   font-weight: bold;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   padding: 10px 20px;
   border-radius: 5px;
   border: 2px solid #444;
@@ -233,7 +234,8 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(-50%) scale(1);
   }
   50% {
@@ -248,7 +250,7 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   padding: 20px;
   border-radius: 10px;
 }
@@ -287,8 +289,12 @@ body {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeOut {

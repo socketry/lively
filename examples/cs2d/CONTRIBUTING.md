@@ -22,12 +22,14 @@ Thank you for your interest in contributing to CS2D! We welcome contributions fr
 ### Code Contributions
 
 1. **Fork the Repository**
+
    ```bash
    git clone https://github.com/yourusername/cs2d.git
    cd cs2d
    ```
 
 2. **Create a Feature Branch**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -38,22 +40,24 @@ Thank you for your interest in contributing to CS2D! We welcome contributions fr
    - Update documentation as needed
 
 4. **Test Your Changes**
+
    ```bash
    # Run Ruby tests
    bundle exec rspec
-   
+
    # Run linting
    bundle exec rubocop
-   
+
    # Test with Docker
    make test
    ```
 
 5. **Commit Your Changes**
+
    ```bash
    git commit -m "feat: add your feature description"
    ```
-   
+
    Follow conventional commits:
    - `feat:` New feature
    - `fix:` Bug fix
@@ -72,12 +76,14 @@ Thank you for your interest in contributing to CS2D! We welcome contributions fr
 ## Development Setup
 
 ### Prerequisites
+
 - Ruby 3.0+
 - Docker and Docker Compose
 - Redis
 - Node.js (for Playwright tests)
 
 ### Local Development
+
 ```bash
 # Install dependencies
 bundle install
@@ -131,6 +137,7 @@ All new features should include tests:
 ## Questions?
 
 Feel free to:
+
 - Open an issue for questions
 - Join discussions
 - Contact maintainers

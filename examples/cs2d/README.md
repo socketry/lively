@@ -19,6 +19,7 @@
 ## 🚀 Quick Start
 
 ### Docker Deployment (Recommended)
+
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/cs2d.git
@@ -29,11 +30,12 @@ make setup && make up
 
 # Access the game
 # Lobby:     http://localhost:9292
-# Game:      http://localhost:9293  
+# Game:      http://localhost:9293
 # Map Editor: http://localhost:9293/map_editor.html
 ```
 
 ### Manual Setup
+
 ```bash
 # Install dependencies
 bundle install
@@ -48,6 +50,7 @@ redis-server
 ## 🎮 Game Controls
 
 ### Movement & Combat
+
 - **WASD** - Move (hold Shift to run)
 - **Mouse** - Aim and shoot
 - **R** - Reload
@@ -56,6 +59,7 @@ redis-server
 - **T** - Chat
 
 ### Quick Buy
+
 - **1-5** - Quick buy weapons
   - 1: AK-47 ($2700)
   - 2: M4A1 ($3100)
@@ -110,6 +114,7 @@ Access at: `http://localhost:9293/map_editor.html`
 ## 🛠️ Development
 
 ### Project Structure
+
 ```
 cs2d/
 ├── Docker/              # Container configurations
@@ -125,6 +130,7 @@ cs2d/
 ```
 
 ### Running Tests
+
 ```bash
 # Ruby tests
 bundle exec rspec
