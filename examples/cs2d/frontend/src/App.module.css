@@ -1,0 +1,25 @@
+.container {
+  /* App styles */
+}
+
+@import '@/styles/variables';
+@import '@/styles/transitions';
+
+#app {
+  min-height: 100vh;
+  font-family: var(--font-family)-base;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

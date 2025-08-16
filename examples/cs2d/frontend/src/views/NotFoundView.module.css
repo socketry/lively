@@ -1,108 +1,7 @@
-<template>
-  <div class="not-found-view">
-    <div class="not-found-container">
-      <div class="error-content">
-        <div class="error-code">404</div>
-        <h1 class="error-title">Page Not Found</h1>
-        <p class="error-message">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        
-        <div class="suggested-actions">
-          <h3>What you can do:</h3>
-          <ul>
-            <li>Check the URL for typos</li>
-            <li>Go back to the previous page</li>
-            <li>Return to the lobby</li>
-            <li>Contact support if the problem persists</li>
-          </ul>
-        </div>
-
-        <div class="action-buttons">
-          <button @click="goBack" class="btn btn-secondary">
-            ← Go Back
-          </button>
-          <button @click="goToLobby" class="btn btn-primary">
-            🏠 Go to Lobby
-          </button>
-        </div>
-
-        <div class="fun-fact">
-          <h4>🎮 Did you know?</h4>
-          <p>{{ randomFact }}</p>
-        </div>
-      </div>
-
-      <div class="easter-egg">
-        <div class="ascii-art">
-          <pre>
-    ╔══════════════════════════════╗
-    ║           CS2D ERROR         ║
-    ║                              ║
-    ║    Bomb has been defused!    ║
-    ║      But page was not...     ║
-    ╚══════════════════════════════╝
-          </pre>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAppStore } from '@/stores/app'
-
-const router = useRouter()
-const appStore = useAppStore()
-
-const randomFact = ref('')
-
-const facts = [
-  "Counter-Strike was originally a mod for Half-Life released in 1999.",
-  "The original CS2D was created by DC in 2004 and became hugely popular.",
-  "The bomb timer in Counter-Strike is exactly 35 seconds.",
-  "The AWP (Arctic Warfare Police) is one of the most iconic sniper rifles in gaming.",
-  "dust2 is probably the most played map in Counter-Strike history.",
-  "The term 'rushing B' became a popular meme in the Counter-Strike community.",
-  "CS2D supports up to 32 players on a single server.",
-  "This Vue.js version of CS2D was built with modern web technologies.",
-  "WebSocket technology enables real-time multiplayer gaming in browsers.",
-  "The tile-based map system allows for custom map creation and editing."
-]
-
-function goBack() {
-  if (window.history.length > 1) {
-    router.go(-1)
-  } else {
-    goToLobby()
-  }
+.container {
+  /* NotFoundView styles */
 }
 
-function goToLobby() {
-  router.push('/lobby')
-}
-
-function getRandomFact() {
-  const randomIndex = Math.floor(Math.random() * facts.length)
-  randomFact.value = facts[randomIndex]
-}
-
-onMounted(() => {
-  getRandomFact()
-  
-  // Track 404 error
-  appStore.addNotification({
-    type: 'warning',
-    title: '404 Error',
-    message: 'Page not found - redirected to error page',
-    duration: 3000
-  })
-})
-</script>
-
-<style scoped>
 .not-found-view {
   height: 100vh;
   display: flex;
@@ -334,4 +233,3 @@ onMounted(() => {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
-</style>

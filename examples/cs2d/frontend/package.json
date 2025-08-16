@@ -15,8 +15,7 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "lint:style": "stylelint \"**/*.{css,scss,vue}\" --fix",
     "format": "prettier --write .",
-    "type-check": "vue-tsc --noEmit",
-    "prepare": "husky install",
+    "type-check": "tsc --noEmit",
     "pre-commit": "lint-staged",
     "commit": "cz"
   },
@@ -25,13 +24,13 @@
     "axios": "^1.6.2",
     "dayjs": "^1.11.10",
     "mitt": "^3.0.1",
-    "pinia": "^2.1.7",
     "pixi.js": "^7.3.2",
     "socket.io-client": "^4.5.4",
-    "vue": "^3.5.18",
     "vue-i18n": "^9.14.5",
-    "vue-router": "^4.2.5",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.4.3",
@@ -43,16 +42,11 @@
     "@typescript-eslint/parser": "^6.15.0",
     "@vitejs/plugin-vue": "^5.0.0",
     "@vitest/ui": "^1.1.0",
-    "@vue/eslint-config-prettier": "^8.0.0",
-    "@vue/eslint-config-typescript": "^12.0.0",
-    "@vue/test-utils": "^2.4.3",
-    "@vue/tsconfig": "^0.5.1",
     "commitizen": "^4.3.0",
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.2",
-    "eslint-plugin-vue": "^9.19.2",
     "husky": "^8.0.3",
     "jsdom": "^23.0.1",
     "lint-staged": "^15.2.0",
@@ -68,7 +62,11 @@
     "vite-plugin-checker": "^0.6.2",
     "vite-plugin-pwa": "^0.17.4",
     "vitest": "^1.1.0",
-    "vue-tsc": "^1.8.27"
+    "@types/react": "^18.0.26",
+    "@types/react-dom": "^18.0.9",
+    "@vitejs/plugin-react": "^4.2.0",
+    "eslint-plugin-react": "^7.32.0",
+    "eslint-plugin-react-hooks": "^4.6.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,vue}": [

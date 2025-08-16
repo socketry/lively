@@ -1,97 +1,7 @@
-<template>
-  <div
-    class="connection-status"
-    :class="{
-      [connectionStatus]: true,
-      minimized: isMinimized
-    }"
-    @click="toggleMinimized"
-  >
-    <div class="status-indicator">
-      <div class="status-dot"></div>
-    </div>
-    
-    <div v-if="!isMinimized" class="status-content">
-      <div class="status-text">
-        <span class="status-label">{{ statusText }}</span>
-        <span v-if="latency" class="latency">{{ latency }}ms</span>
-      </div>
-      
-      <div v-if="showDetails" class="status-details">
-        <div class="detail-item">
-          <span class="detail-label">Reconnect attempts:</span>
-          <span class="detail-value">{{ reconnectAttempts }}</span>
-        </div>
-        <div v-if="lastConnected" class="detail-item">
-          <span class="detail-label">Last connected:</span>
-          <span class="detail-value">{{ formatTime(lastConnected) }}</span>
-        </div>
-      </div>
-      
-      <div v-if="connectionStatus === 'disconnected'" class="status-actions">
-        <button @click.stop="reconnect" class="reconnect-btn">
-          Reconnect
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useWebSocketStore } from '@/stores/websocket'
-import { useWebSocket } from '@/services/websocket'
-
-const wsStore = useWebSocketStore()
-const ws = useWebSocket()
-
-const isMinimized = ref(false)
-const showDetails = ref(false)
-
-const connectionStatus = computed(() => wsStore.connectionStatus.status)
-const latency = computed(() => wsStore.latency)
-const reconnectAttempts = computed(() => wsStore.reconnectAttempts)
-const lastConnected = computed(() => wsStore.connectionStatus.lastConnected)
-
-const statusText = computed(() => {
-  switch (connectionStatus.value) {
-    case 'connected':
-      return 'Connected'
-    case 'connecting':
-      return 'Connecting...'
-    case 'disconnected':
-      return 'Disconnected'
-    case 'error':
-      return 'Connection Error'
-    case 'offline':
-      return 'Offline'
-    default:
-      return 'Unknown'
-  }
-})
-
-function toggleMinimized() {
-  isMinimized.value = !isMinimized.value
-  if (!isMinimized.value) {
-    showDetails.value = false
-  }
+.container {
+  /* ConnectionStatus styles */
 }
 
-function reconnect() {
-  ws.connect()
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
-</script>
-
-<style scoped>
 .connection-status {
   position: fixed;
   bottom: 1rem;
@@ -267,4 +177,3 @@ function formatTime(date: Date): string {
     padding: 0 0.75rem 0.75rem 0;
   }
 }
-</style>

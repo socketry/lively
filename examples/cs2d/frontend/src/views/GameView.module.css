@@ -1,0 +1,349 @@
+.container {
+  /* GameView styles */
+}
+
+.game-view {
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+  position: relative;
+}
+
+.game-container {
+  height: 100%;
+  position: relative;
+}
+
+.game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.game-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.game-hud > * {
+  pointer-events: auto;
+}
+
+.hud-top {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.round-info {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  display: flex;
+  gap: 1rem;
+  color: white;
+  font-weight: 600;
+}
+
+.score-board {
+  display: flex;
+  gap: 1rem;
+}
+
+.team-score {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-weight: 600;
+}
+
+.team-score.terrorists {
+  border-left: 3px solid var(--cs-danger);
+}
+
+.team-score.counter-terrorists {
+  border-left: 3px solid var(--cs-secondary);
+}
+
+.hud-bottom {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+}
+
+.player-stats {
+  display: flex;
+  gap: 2rem;
+  align-items: end;
+}
+
+.health-armor {
+  display: flex;
+  gap: 1rem;
+}
+
+.health, .armor {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+}
+
+.health {
+  border-bottom: 3px solid var(--cs-success);
+}
+
+.armor {
+  border-bottom: 3px solid var(--cs-secondary);
+}
+
+.weapon-info {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-align: center;
+  color: white;
+}
+
+.weapon-name {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.ammo {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.money {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--cs-success);
+  font-weight: 600;
+  border-bottom: 3px solid var(--cs-success);
+}
+
+.minimap {
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.minimap-canvas {
+  display: block;
+  border-radius: 2px;
+}
+
+.buy-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 8px;
+  padding: 2rem;
+  min-width: 400px;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.buy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.buy-categories {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.category-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--cs-border);
+  background: transparent;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.category-btn:hover,
+.category-btn.active {
+  background: var(--cs-primary);
+  border-color: var(--cs-primary);
+}
+
+.buy-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.buy-item {
+  padding: 1rem;
+  border: 1px solid var(--cs-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.buy-item:hover:not(.disabled) {
+  border-color: var(--cs-primary);
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.buy-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.weapon-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weapon-price {
+  color: var(--cs-success);
+  font-weight: 600;
+}
+
+.game-chat {
+  position: absolute;
+  bottom: 150px;
+  left: 1rem;
+  width: 300px;
+  max-height: 200px;
+  transition: all 0.3s ease;
+}
+
+.game-chat.expanded {
+  max-height: 400px;
+}
+
+.chat-messages {
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  padding: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+
+.chat-message {
+  margin-bottom: 0.25rem;
+  color: white;
+}
+
+.message-author {
+  color: var(--cs-primary);
+  font-weight: 600;
+}
+
+.chat-input {
+  margin-top: 0.5rem;
+}
+
+.chat-input input {
+  width: 100%;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 0.9rem;
+}
+
+.chat-input input:focus {
+  outline: 2px solid var(--cs-primary);
+}
+
+.death-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.9);
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  color: white;
+}
+
+.death-screen h2 {
+  color: var(--cs-danger);
+  margin-bottom: 1rem;
+}
+
+.game-menu-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.game-menu {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  color: white;
+}
+
+.game-menu h2 {
+  margin-bottom: 2rem;
+}
+
+.game-menu button {
+  display: block;
+  width: 200px;
+  margin: 0.5rem auto;
+}
