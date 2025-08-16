@@ -1,3 +1,4 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -5,7 +6,6 @@ import { useNavigate } from "react-router-dom"
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useWebSocketStore } from '@/stores/websocket'
-import styles from './SettingsView.module.css';
 
 interface SettingsViewProps {
   // TODO: Define props from Vue component
@@ -180,11 +180,11 @@ useEffect(() => {
 }, [])
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div className="settings-view">
     <div className="settings-container">
       <header className="settings-header">
-        <button onClick={goBack} className="btn btn-secondary">← Back</button>)}
+        <button onClick={goBack} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">← Back</button>)}
         <h1>Settings</h1>)}
       </header>
 
@@ -196,8 +196,7 @@ useEffect(() => {
             <input
               value={playerName} onChange={(e) => set${this.capitalize("playerName")}(e.target.value)}
               on${this.capitalize("blur")}={savePlayerName}
-              type="text"
-              className="input"
+              type="text" className="focus:ring-2 focus:ring-cs-primary focus:outline-none input"
               maxlength="16"
             />
           </div>)}
@@ -323,31 +322,31 @@ useEffect(() => {
           <div className="keybinds">
             <div className="keybind-item">
               <span className="action">Move Forward</span>)}
-              <button className="keybind-btn">W</button>)}
+              <button className="keybind-btn hover:scale-105 active:scale-95 transition-transform">W</button>)}
             </div>
             <div className="keybind-item">
               <span className="action">Move Backward</span>)}
-              <button className="keybind-btn">S</button>)}
+              <button className="keybind-btn hover:scale-105 active:scale-95 transition-transform">S</button>)}
             </div>
             <div className="keybind-item">
               <span className="action">Move Left</span>)}
-              <button className="keybind-btn">A</button>)}
+              <button className="keybind-btn hover:scale-105 active:scale-95 transition-transform">A</button>)}
             </div>
             <div className="keybind-item">
               <span className="action">Move Right</span>)}
-              <button className="keybind-btn">D</button>)}
+              <button className="keybind-btn hover:scale-105 active:scale-95 transition-transform">D</button>)}
             </div>
             <div className="keybind-item">
               <span className="action">Reload</span>)}
-              <button className="keybind-btn">R</button>)}
+              <button className="keybind-btn hover:scale-105 active:scale-95 transition-transform">R</button>)}
             </div>
             <div className="keybind-item">
               <span className="action">Buy Menu</span>)}
-              <button className="keybind-btn">B</button>)}
+              <button className="keybind-btn hover:scale-105 active:scale-95 transition-transform">B</button>)}
             </div>
             <div className="keybind-item">
               <span className="action">Chat</span>)}
-              <button className="keybind-btn">T</button>)}
+              <button className="keybind-btn hover:scale-105 active:scale-95 transition-transform">T</button>)}
             </div>
           </div>)}
         </div>
@@ -378,10 +377,10 @@ useEffect(() => {
         </div>)}
 
         <div className="settings-actions">
-          <button onClick={resetToDefaults} className="btn btn-warning">
+          <button onClick={resetToDefaults} className="btn btn-warning hover:scale-105 active:scale-95 transition-transform">
             Reset to Defaults
           </button>)}
-          <button onClick={saveAllSettings} className="btn btn-success">
+          <button onClick={saveAllSettings} className="btn btn-success hover:scale-105 active:scale-95 transition-transform">
             Save Settings
           </button>)}
         </div>

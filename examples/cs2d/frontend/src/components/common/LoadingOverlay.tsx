@@ -1,8 +1,8 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import styles from './LoadingOverlay.module.css';
 
 interface LoadingOverlayProps {
   // TODO: Define props from Vue component
@@ -30,7 +30,7 @@ const title = useMemo(() => props.title, [])
 const message = useMemo(() => props.message, [])
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div className="loading-overlay" className={{ active: show }}>
     <div className="loading-content">
       <div className="loading-spinner">

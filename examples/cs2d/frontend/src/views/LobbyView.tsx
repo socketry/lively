@@ -1,3 +1,4 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +8,6 @@ import { useWebSocketStore } from '@/stores/websocket'
 import { useAppStore } from '@/stores/app'
 import { useWebSocket } from '@/services/websocket'
 import type { Room } from '@/types/game'
-import styles from './LobbyView.module.css';
 
 interface LobbyViewProps {
   // TODO: Define props from Vue component
@@ -147,14 +147,14 @@ useEffect(async (, []) => {
 })
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div className="lobby-view">
     <div className="lobby-container">
       <header className="lobby-header">
         <h1>{$t('lobby.title') }</h1>)}
         <div className="player-info">
           <span className="player-name">{authStore.playerName }</span>)}
-          <button onClick={openSettings} className="btn btn-secondary">Settings</button>)}
+          <button onClick={openSettings} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">Settings</button>)}
         </div>
       </header>)}
 
@@ -163,7 +163,7 @@ useEffect(async (, []) => {
         <div className="room-section">
           <div className="section-header">
             <h2>Active Rooms</h2>)}
-            <button onClick={createRoom} className="btn btn-primary">
+            <button onClick={createRoom} className="btn btn-primary hover:scale-105 active:scale-95 transition-transform">
               {$t('lobby.createRoom') }
             </button>)}
           </div>
@@ -177,7 +177,7 @@ useEffect(async (, []) => {
             <div
               {rooms.map((room, index) => (
               key={room.id}
-              className="room-card"
+              className="room-card hover:shadow-lg transition-shadow"
               onClick={joinRoom(room.id)}
             >
               <div className="room-header">
@@ -225,7 +225,7 @@ useEffect(async (, []) => {
         <form onSubmit={(e) => { e.preventDefault(); submitCreateRoom(e); }}>
           <div className="form-group">
             <label>Room Name</label>)}
-            <input value={createForm.name} onChange={(e) => set${this.capitalize("createForm.name")}(e.target.value)} type="text" required className="input" />
+            <input value={createForm.name} onChange={(e) => set${this.capitalize("createForm.name")}(e.target.value)} type="text" className="focus:ring-2 focus:ring-cs-primary focus:outline-none" required className="input" />
           </div>)}
           <div className="form-group">
             <label>Map</label>)}
@@ -253,8 +253,8 @@ useEffect(async (, []) => {
             </select>
           </div>)}
           <div className="form-actions">
-            <button type="button" onClick={closeCreateModal} className="btn btn-secondary">Cancel</button>)}
-            <button type="submit" className="btn btn-primary">Create</button>)}
+            <button type="button" onClick={closeCreateModal} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">Cancel</button>)}
+            <button type="submit" className="btn btn-primary hover:scale-105 active:scale-95 transition-transform">Create</button>)}
           </div>
         </form>)}
       </div>

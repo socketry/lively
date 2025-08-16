@@ -1,8 +1,8 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/stores/app'
-import styles from './NotificationContainer.module.css';
 
 interface NotificationContainerProps {
   // TODO: Define props from Vue component
@@ -22,7 +22,7 @@ function removeNotification(id: string) {
 }
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div className="notification-container">
     <TransitionGroup name="notification" tag="div">
       <div

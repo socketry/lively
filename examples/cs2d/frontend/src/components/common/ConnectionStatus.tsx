@@ -1,9 +1,9 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocketStore } from '@/stores/websocket'
 import { useWebSocket } from '@/services/websocket'
-import styles from './ConnectionStatus.module.css';
 
 interface ConnectionStatusProps {
   // TODO: Define props from Vue component
@@ -63,7 +63,7 @@ function formatTime(date: Date): string {
 }
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div
     className="connection-status"
     className={{
@@ -94,7 +94,7 @@ function formatTime(date: Date): string {
       </div>)}
       
       <div {connectionStatus === 'disconnected' && ( className="status-actions">
-        <button @click.stop="reconnect" className="reconnect-btn">
+        <button @click.stop="reconnect" className="reconnect-btn hover:scale-105 active:scale-95 transition-transform">
           Reconnect
         </button>)}
       </div>

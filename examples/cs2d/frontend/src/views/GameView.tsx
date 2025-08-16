@@ -1,3 +1,4 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +7,6 @@ import { useGameStore } from '@/stores/game'
 import { useAuthStore } from '@/stores/auth'
 import { useWebSocket } from '@/services/websocket'
 import type { Weapon, WeaponCategory } from '@/types/game'
-import styles from './GameView.module.css';
 
 interface GameViewProps {
   // TODO: Define props from Vue component
@@ -275,7 +275,7 @@ useEffect(() => {
 })
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div className="game-view">
     <div className="game-container">
       <!-- Game Canvas -->
@@ -353,14 +353,14 @@ useEffect(() => {
         <div {showBuyMenu && ( className="buy-menu">
           <div className="buy-header">
             <h3>Buy Menu</h3>)}
-            <button onClick={closeBuyMenu} className="close-btn">×</button>)}
+            <button onClick={closeBuyMenu} className="close-btn hover:scale-105 active:scale-95 transition-transform">×</button>)}
           </div>
           <div className="buy-categories">
             <button
               {weaponCategories.map((category, index) => (
               key={category.id}
               onClick={selectCategory(category.id)}
-              className="category-btn"
+              className="category-btn hover:scale-105 active:scale-95 transition-transform"
               className={{ active: selectedCategory === category.id }}
             >
               {category.name }
@@ -401,7 +401,7 @@ useEffect(() => {
               value={chatInput} onChange={(e) => set${this.capitalize("chatInput")}(e.target.value)}
               @keyup.enter="sendChatMessage"
               @keyup.esc="hideChatInput"
-              type="text"
+              type="text" className="focus:ring-2 focus:ring-cs-primary focus:outline-none"
               placeholder="Type message... (Press Enter to send, Esc to cancel)"
               maxlength="200"
             />
@@ -412,7 +412,7 @@ useEffect(() => {
         <div {!localPlayer?.alive && ( className="death-screen">
           <h2>You are dead</h2>)}
           <p>Respawning in {respawnTime }s</p>)}
-          <button onClick={spectateNext} className="btn btn-primary">Spectate Next</button>)}
+          <button onClick={spectateNext} className="btn btn-primary hover:scale-105 active:scale-95 transition-transform">Spectate Next</button>)}
         </div>
       </div>)}
     </div>
@@ -421,9 +421,9 @@ useEffect(() => {
     <div {showGameMenu && ( className="game-menu-overlay" onClick={closeGameMenu}>
       <div className="game-menu" @click.stop>
         <h2>Game Menu</h2>)}
-        <button onClick={resumeGame} className="btn btn-primary">Resume</button>)}
-        <button onClick={openSettings} className="btn btn-secondary">Settings</button>)}
-        <button onClick={leaveGame} className="btn btn-danger">Leave Game</button>)}
+        <button onClick={resumeGame} className="btn btn-primary hover:scale-105 active:scale-95 transition-transform">Resume</button>)}
+        <button onClick={openSettings} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">Settings</button>)}
+        <button onClick={leaveGame} className="btn btn-danger hover:scale-105 active:scale-95 transition-transform">Leave Game</button>)}
       </div>
     </div>)}
   </div>

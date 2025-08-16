@@ -1,3 +1,4 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +8,6 @@ import { useWebSocketStore } from '@/stores/websocket'
 import { useAppStore } from '@/stores/app'
 import { useWebSocket } from '@/services/websocket'
 import type { Room, Player } from '@/types/game'
-import styles from './RoomView.module.css';
 
 interface RoomViewProps {
   // TODO: Define props from Vue component
@@ -180,11 +180,11 @@ useEffect(() => {
 })
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div className="room-view">
     <div className="room-container">
       <header className="room-header">
-        <button onClick={leaveRoom} className="btn btn-secondary">← Back to Lobby</button>)}
+        <button onClick={leaveRoom} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">← Back to Lobby</button>)}
         <h1>{room?.name || 'Room' }</h1>)}
         <div className="room-info">
           <span className="room-map">{room?.map }</span>)}
@@ -214,7 +214,7 @@ useEffect(() => {
             <button 
               {authStore.player?.team !== 'terrorist' && (
               onClick={joinTeam('terrorist')}
-              className="btn btn-primary team-join"
+              className="btn btn-primary team-join hover:scale-105 active:scale-95 transition-transform"
             >
               Join Terrorists
             </button>)}
@@ -239,7 +239,7 @@ useEffect(() => {
             <button 
               {authStore.player?.team !== 'counter_terrorist' && (
               onClick={joinTeam('counter_terrorist')}
-              className="btn btn-primary team-join"
+              className="btn btn-primary team-join hover:scale-105 active:scale-95 transition-transform"
             >
               Join Counter-Terrorists
             </button>)}
@@ -263,7 +263,7 @@ useEffect(() => {
             <button 
               {authStore.player?.team !== 'spectator' && (
               onClick={joinTeam('spectator')}
-              className="btn btn-secondary team-join"
+              className="btn btn-secondary team-join hover:scale-105 active:scale-95 transition-transform"
             >
               Spectate
             </button>)}
@@ -288,12 +288,12 @@ useEffect(() => {
           <form onSubmit={(e) => { e.preventDefault(); sendMessage(e); }} className="chat-input">
             <input
               value={chatInput} onChange={(e) => set${this.capitalize("chatInput")}(e.target.value)}
-              type="text"
+              type="text" className="focus:ring-2 focus:ring-cs-primary focus:outline-none"
               placeholder="Type a message..."
               className="input"
               maxlength="200"
             />
-            <button type="submit" className="btn btn-primary">Send</button>)}
+            <button type="submit" className="btn btn-primary hover:scale-105 active:scale-95 transition-transform">Send</button>)}
           </form>
         </div>)}
       </div>
@@ -303,7 +303,7 @@ useEffect(() => {
         <div className="control-group">
           <button
             onClick={toggleReady}
-            className="btn"
+            className="btn hover:scale-105 active:scale-95 transition-transform"
             className={authStore.player?.ready ? 'btn-warning' : 'btn-success'}
           >
             {authStore.player?.ready ? 'Not Ready' : 'Ready' }
@@ -313,12 +313,12 @@ useEffect(() => {
         <div className="control-group" {isHost && (>
           <button
             onClick={startGame}
-            className="btn btn-primary"
+            className="btn btn-primary hover:scale-105 active:scale-95 transition-transform"
             :disabled="!canStartGame"
           >
             Start Game
           </button>)}
-          <button onClick={openSettings} className="btn btn-secondary">
+          <button onClick={openSettings} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">
             Room Settings
           </button>)}
         </div>

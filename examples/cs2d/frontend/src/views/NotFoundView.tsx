@@ -1,9 +1,9 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNavigate } from "react-router-dom"
 import { useAppStore } from '@/stores/app'
-import styles from './NotFoundView.module.css';
 
 interface NotFoundViewProps {
   // TODO: Define props from Vue component
@@ -62,7 +62,7 @@ useEffect(() => {
 })
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div className="not-found-view">
     <div className="not-found-container">
       <div className="error-content">
@@ -82,11 +82,11 @@ useEffect(() => {
           </ul>
         </div>)}
 
-        <div className="action-buttons">
-          <button onClick={goBack} className="btn btn-secondary">
+        <div className="action-buttons hover:scale-105 active:scale-95 transition-transform">
+          <button onClick={goBack} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">
             ← Go Back
           </button>)}
-          <button onClick={goToLobby} className="btn btn-primary">
+          <button onClick={goToLobby} className="btn btn-primary hover:scale-105 active:scale-95 transition-transform">
             🏠 Go to Lobby
           </button>)}
         </div>

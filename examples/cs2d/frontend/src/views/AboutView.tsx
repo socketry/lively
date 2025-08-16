@@ -1,10 +1,10 @@
+import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNavigate } from "react-router-dom"
 import { useAppStore } from '@/stores/app'
 import { useWebSocketStore } from '@/stores/websocket'
-import styles from './AboutView.module.css';
 
 interface AboutViewProps {
   // TODO: Define props from Vue component
@@ -53,11 +53,11 @@ function openDiagnostics() {
 }
 
   return (
-    <div className={styles.container}>
+    <div className="container mx-auto px-4">
       <div className="about-view">
     <div className="about-container">
       <header className="about-header">
-        <button onClick={goBack} className="btn btn-secondary">← Back</button>)}
+        <button onClick={goBack} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">← Back</button>)}
         <h1>About CS2D</h1>)}
       </header>
 
@@ -251,10 +251,10 @@ function openDiagnostics() {
           </p>)}
         </div>
         <div className="footer-actions">
-          <button onClick={checkForUpdates} className="btn btn-primary">
+          <button onClick={checkForUpdates} className="btn btn-primary hover:scale-105 active:scale-95 transition-transform">
             Check for Updates
           </button>)}
-          <button onClick={openDiagnostics} className="btn btn-secondary">
+          <button onClick={openDiagnostics} className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform">
             System Diagnostics
           </button>)}
         </div>

@@ -30,7 +30,14 @@
     "ws": "^8.18.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0"
+    "react-router-dom": "^6.8.0",
+    "tailwindcss": "latest",
+    "postcss": "latest",
+    "autoprefixer": "latest",
+    "@tailwindcss/forms": "latest",
+    "@tailwindcss/typography": "latest",
+    "@tailwindcss/aspect-ratio": "latest",
+    "@tailwindcss/container-queries": "latest"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.4.3",
@@ -66,7 +73,11 @@
     "@types/react-dom": "^18.0.9",
     "@vitejs/plugin-react": "^4.2.0",
     "eslint-plugin-react": "^7.32.0",
-    "eslint-plugin-react-hooks": "^4.6.0"
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier-plugin-tailwindcss": "latest",
+    "tailwindcss-animate": "latest",
+    "tailwind-merge": "latest",
+    "clsx": "latest"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,vue}": [

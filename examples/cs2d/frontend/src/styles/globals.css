@@ -1,0 +1,73 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom global styles */
+@layer base {
+  html {
+    @apply bg-cs-background text-cs-text;
+  }
+  
+  body {
+    @apply font-sans antialiased;
+  }
+  
+  h1 {
+    @apply text-3xl font-bold text-cs-primary;
+  }
+  
+  h2 {
+    @apply text-2xl font-semibold text-cs-secondary;
+  }
+  
+  h3 {
+    @apply text-xl font-medium;
+  }
+  
+  a {
+    @apply text-cs-primary hover:text-cs-secondary transition-colors;
+  }
+  
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-cs-dark;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cs-border hover:bg-cs-primary rounded;
+  }
+}
+
+/* Custom utilities */
+@layer utilities {
+  .text-shadow-cs {
+    text-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
+  }
+  
+  .glow-cs {
+    filter: drop-shadow(0 0 10px rgba(255, 107, 0, 0.5));
+  }
+  
+  .crosshair {
+    cursor: crosshair;
+  }
+}
+
+/* Custom components */
+@layer components {
+  .btn-cs {
+    @apply px-4 py-2 bg-cs-primary text-white rounded hover:bg-opacity-80 transition-all duration-200 active:scale-95;
+  }
+  
+  .card-cs {
+    @apply bg-cs-dark border border-cs-border rounded-lg p-4 hover:border-cs-primary transition-colors;
+  }
+  
+  .status-indicator {
+    @apply w-2 h-2 rounded-full animate-pulse;
+  }
+}
