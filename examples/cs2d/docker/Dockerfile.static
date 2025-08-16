@@ -12,8 +12,9 @@ WORKDIR /app
 # Install webrick gem
 RUN gem install webrick
 
-# Copy static server script
-COPY static_server.rb ./
+# Copy static server script and src directory
+COPY src/servers/static_server.rb ./src/servers/
+COPY src/ ./src/
 
 # Copy static files
 COPY public/ ./public/
@@ -30,4 +31,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:9293/map_editor.html || exit 1
 
 # Run the static server
-CMD ["ruby", "static_server.rb", "9293"]
+CMD ["ruby", "src/servers/static_server.rb", "9293"]

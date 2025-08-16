@@ -43,11 +43,11 @@ help:
 # Development Commands
 build:
 	@echo "🔨 Building Docker images..."
-	docker-compose build
+	docker-compose -f docker/docker-compose.yml build
 
 up:
 	@echo "🚀 Starting CS2D in development mode..."
-	docker-compose up -d
+	docker-compose -f docker/docker-compose.yml up -d
 	@echo "✅ CS2D is running!"
 	@echo "   Lobby: http://localhost:9292"
 	@echo "   Game: http://localhost:9293"
@@ -56,39 +56,39 @@ up:
 
 down:
 	@echo "🛑 Stopping CS2D..."
-	docker-compose down
+	docker-compose -f docker/docker-compose.yml down
 
 restart:
 	@echo "🔄 Restarting CS2D..."
-	docker-compose restart
+	docker-compose -f docker/docker-compose.yml restart
 
 logs:
-	docker-compose logs -f --tail=100
+	docker-compose -f docker/docker-compose.yml logs -f --tail=100
 
 shell:
 	@echo "📟 Opening shell in development container..."
-	docker-compose run --rm dev-tools bash
+	docker-compose -f docker/docker-compose.yml run --rm dev-tools bash
 
 # Production Commands
 prod-build:
 	@echo "🏭 Building production images..."
-	docker-compose -f docker-compose.yml build
+	docker-compose -f docker/docker-compose.yml -f docker/docker-compose.optimized.yml build
 
 prod-up:
 	@echo "🚀 Starting CS2D in production mode..."
-	docker-compose -f docker-compose.yml --profile production up -d
+	docker-compose -f docker/docker-compose.yml -f docker/docker-compose.optimized.yml --profile production up -d
 	@echo "✅ CS2D Production is running!"
 	@echo "   URL: http://localhost"
 
 prod-down:
-	docker-compose -f docker-compose.yml --profile production down
+	docker-compose -f docker/docker-compose.yml -f docker/docker-compose.optimized.yml --profile production down
 
 prod-deploy:
 	@echo "📦 Deploying to production..."
 	@echo "1. Building images..."
 	@make prod-build
 	@echo "2. Pushing to registry..."
-	# docker-compose push
+	# docker-compose -f docker/docker-compose.yml push
 	@echo "3. Deploying to server..."
 	# Add deployment commands here (kubectl, docker swarm, etc.)
 	@echo "✅ Deployment complete!"
@@ -96,53 +96,53 @@ prod-deploy:
 # Service-specific Commands
 redis-cli:
 	@echo "🔗 Connecting to Redis..."
-	docker-compose exec redis redis-cli
+	docker-compose -f docker/docker-compose.yml exec redis redis-cli
 
 lively-logs:
-	docker-compose logs -f lively-app
+	docker-compose -f docker/docker-compose.yml logs -f lively-app
 
 api-logs:
-	docker-compose logs -f api-bridge
+	docker-compose -f docker/docker-compose.yml logs -f api-bridge
 
 static-logs:
-	docker-compose logs -f static-server
+	docker-compose -f docker/docker-compose.yml logs -f static-server
 
 nginx-logs:
-	docker-compose logs -f nginx
+	docker-compose -f docker/docker-compose.yml logs -f nginx
 
 # Testing Commands
 test:
 	@echo "🧪 Running tests..."
-	docker-compose run --rm dev-tools bash -c "bundle exec rspec && npm test"
+	docker-compose -f docker/docker-compose.yml run --rm dev-tools bash -c "bundle exec rspec && npm test"
 
 rubocop:
 	@echo "🔍 Running RuboCop..."
-	docker-compose run --rm dev-tools bundle exec rubocop
+	docker-compose -f docker/docker-compose.yml run --rm dev-tools bundle exec rubocop
 
 playwright:
 	@echo "🎭 Running Playwright tests..."
-	docker-compose run --rm dev-tools npx playwright test
+	docker-compose -f docker/docker-compose.yml run --rm dev-tools npx playwright test
 
 test-integration:
 	@echo "🔗 Running integration tests..."
-	docker-compose run --rm dev-tools node test_map_integration.js
+	docker-compose -f docker/docker-compose.yml run --rm dev-tools node test_map_integration.js
 
 # Database Commands
 db-up:
 	@echo "🗄️ Starting with database..."
-	docker-compose --profile with-db up -d
+	docker-compose -f docker/docker-compose.yml --profile with-db up -d
 
 db-migrate:
 	@echo "🔄 Running database migrations..."
-	docker-compose run --rm lively-app bundle exec rake db:migrate
+	docker-compose -f docker/docker-compose.yml run --rm lively-app bundle exec rake db:migrate
 
 db-console:
 	@echo "💾 Opening database console..."
-	docker-compose exec postgres psql -U cs2d cs2d_development
+	docker-compose -f docker/docker-compose.yml exec postgres psql -U cs2d cs2d_development
 
 db-backup:
 	@echo "💾 Backing up database..."
-	docker-compose exec postgres pg_dump -U cs2d cs2d_development > backup_$(shell date +%Y%m%d_%H%M%S).sql
+	docker-compose -f docker/docker-compose.yml exec postgres pg_dump -U cs2d cs2d_development > backup_$(shell date +%Y%m%d_%H%M%S).sql
 
 # Monitoring Commands
 stats:
@@ -155,17 +155,17 @@ ports:
 
 health:
 	@echo "💚 Health Check Status:"
-	@docker-compose ps
+	@docker-compose -f docker/docker-compose.yml ps
 
 # Utility Commands
 clean:
 	@echo "🧹 Cleaning up..."
-	docker-compose down -v
+	docker-compose -f docker/docker-compose.yml down -v
 	docker system prune -f
 
 clean-all:
 	@echo "🧹 Deep cleaning..."
-	docker-compose down -v
+	docker-compose -f docker/docker-compose.yml down -v
 	docker system prune -af
 	rm -rf tmp/* logs/*
 
@@ -178,12 +178,12 @@ reset:
 # Debug Commands
 debug-redis:
 	@echo "🔍 Starting with Redis Commander..."
-	docker-compose --profile debug up -d redis-commander
+	docker-compose -f docker/docker-compose.yml --profile debug up -d redis-commander
 	@echo "Redis Commander: http://localhost:8081"
 
 debug-db:
 	@echo "🔍 Starting with Adminer..."
-	docker-compose --profile with-db --profile debug up -d adminer
+	docker-compose -f docker/docker-compose.yml --profile with-db --profile debug up -d adminer
 	@echo "Adminer: http://localhost:8080"
 
 # Development Shortcuts
@@ -217,7 +217,7 @@ setup:
 # Version information
 version:
 	@echo "CS2D Docker Version Information:"
-	@docker-compose version
+	@docker-compose -f docker/docker-compose.yml version
 	@docker version --format 'Docker {{.Server.Version}}'
 	@echo "Ruby: $(shell docker run --rm ruby:3.3.6-slim ruby -v)"
 	@echo "Redis: $(shell docker run --rm redis:7-alpine redis-server -v)"

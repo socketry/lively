@@ -8,7 +8,7 @@ ENV['RACK_ENV'] = 'production'
 ENV['LIVELY_ENVIRONMENT'] = 'production'
 
 require "lively/application"
-require_relative "async_redis_lobby_i18n"
+require_relative "src/lobby/async_redis_lobby_i18n"
 
 # CS2D Application - Main Server Entrypoint
 # Using the stable async_redis_lobby_i18n implementation as the main application

@@ -54,7 +54,7 @@ trap cleanup SIGINT SIGTERM
 
 echo ""
 echo "🚀 啟動 API Bridge 伺服器 (端口 9294)..."
-ruby api_bridge_server.rb 9294 > api_server.log 2>&1 &
+ruby ../src/servers/api_bridge_server.rb 9294 > ../api_server.log 2>&1 &
 API_PID=$!
 
 # Wait a moment for API server to start
@@ -71,7 +71,7 @@ fi
 
 echo ""
 echo "🚀 啟動靜態文件伺服器 (端口 9293)..."
-ruby static_server.rb 9293 > static_server.log 2>&1 &
+ruby ../src/servers/static_server.rb 9293 > ../static_server.log 2>&1 &
 STATIC_PID=$!
 
 # Wait a moment for static server to start
@@ -89,7 +89,7 @@ fi
 
 echo ""
 echo "🚀 啟動 Lively 大廳伺服器 (端口 9292)..."
-bundle exec lively ./application > lively_server.log 2>&1 &
+cd .. && bundle exec lively ./application > lively_server.log 2>&1 &
 LIVELY_PID=$!
 
 # Wait a moment for lively server to start
