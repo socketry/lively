@@ -1,4 +1,4 @@
-import { render, screen } from './test-utils';
+import { render } from './test-utils';
 import { ConnectionStatus } from '@/components/common/ConnectionStatus';
 
 describe('ConnectionStatus Tailwind Styling', () => {

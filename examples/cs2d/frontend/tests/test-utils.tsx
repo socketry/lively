@@ -1,5 +1,5 @@
-import React, { ReactElement } from 'react';
-import { render, RenderOptions, act } from '@testing-library/react';
+import React, { type ReactElement } from 'react';
+import { render, type RenderOptions, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
 import { AppProvider } from '@/contexts/AppContext';

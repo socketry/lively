@@ -1,4 +1,4 @@
-import { render, screen } from './test-utils';
+import { render } from './test-utils';
 import LobbyView from '@/views/LobbyView';
 
 describe('LobbyView Tailwind Styling', () => {

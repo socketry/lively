@@ -98,7 +98,7 @@ export default {
     require('@tailwindcss/container-queries'),
     require('tailwindcss-animate'),
     // Custom plugin for game-specific utilities
-    function({ addUtilities, addComponents, theme }) {
+    function({ addUtilities, addComponents, theme: _theme }) {
       addUtilities({
         '.text-shadow-cs': {
           textShadow: '0 0 10px rgba(255, 107, 0, 0.5)'

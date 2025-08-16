@@ -1,4 +1,4 @@
-import { render, screen } from './test-utils';
+import { render } from './test-utils';
 import NotFoundView from '@/views/NotFoundView';
 
 describe('NotFoundView Tailwind Styling', () => {

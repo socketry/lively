@@ -22,7 +22,7 @@ test.describe('Tailwind CSS Integration', () => {
     
     // Desktop view
     await page.setViewportSize({ width: 1920, height: 1080 });
-    const desktopLayout = await page.locator('.lg\:grid-cols-3');
+    const desktopLayout = await page.locator('.lg\\:grid-cols-3');
     if (await desktopLayout.isVisible()) {
       expect(await desktopLayout.evaluate(el => 
         window.getComputedStyle(el).gridTemplateColumns
