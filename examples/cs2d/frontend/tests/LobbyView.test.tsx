@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { LobbyView } from '@/components/LobbyView';
+import { render, screen } from './test-utils';
+import LobbyView from '@/views/LobbyView';
 
 describe('LobbyView Tailwind Styling', () => {
   it('renders with proper Tailwind classes', () => {

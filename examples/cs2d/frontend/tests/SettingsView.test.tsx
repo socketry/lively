@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { SettingsView } from '@/components/SettingsView';
+import { render, screen } from './test-utils';
+import SettingsView from '@/views/SettingsView';
 
 describe('SettingsView Tailwind Styling', () => {
   it('renders with proper Tailwind classes', () => {

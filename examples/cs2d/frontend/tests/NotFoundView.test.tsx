@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { NotFoundView } from '@/components/NotFoundView';
+import { render, screen } from './test-utils';
+import NotFoundView from '@/views/NotFoundView';
 
 describe('NotFoundView Tailwind Styling', () => {
   it('renders with proper Tailwind classes', () => {

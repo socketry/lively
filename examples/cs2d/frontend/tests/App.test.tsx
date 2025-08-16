@@ -1,36 +1,50 @@
-import { render, screen } from '@testing-library/react';
-import { App } from '@/components/App';
+import { render, screen } from './test-utils';
+import App from '@/App';
 
 describe('App Tailwind Styling', () => {
   it('renders with proper Tailwind classes', () => {
     const { container } = render(<App />);
     
-    // Check for Tailwind classes
-    const element = container.firstChild;
-    expect(element).toHaveClass(/^[a-z-]+/);
+    // Check for the main app container
+    const appElement = container.firstChild as HTMLElement;
+    
+    // Verify main Tailwind classes are applied
+    expect(appElement).toHaveClass('min-h-screen');
+    expect(appElement).toHaveClass('bg-gradient-to-br');
+    expect(appElement).toHaveClass('transition-all');
+    expect(appElement).toHaveClass('duration-300');
     
     // Verify no CSS modules
-    expect(element.className).not.toContain('module');
+    expect(appElement.className).not.toContain('module');
   });
   
   it('applies responsive classes correctly', () => {
     const { container } = render(<App />);
-    const element = container.querySelector('[class*="md:"]');
+    const appElement = container.firstChild as HTMLElement;
     
-    if (element) {
-      expect(element).toBeInTheDocument();
-    }
+    // Check for responsive classes
+    expect(appElement).toHaveClass('md:overflow-hidden');
+    expect(appElement).toHaveClass('lg:bg-opacity-95');
   });
   
   it('handles dark mode classes', () => {
-    document.documentElement.classList.add('dark');
+    const { container } = render(<App />);
+    const appElement = container.firstChild as HTMLElement;
+    
+    // Check for dark mode classes
+    expect(appElement.className).toContain('dark:from-cs-black');
+    expect(appElement.className).toContain('dark:to-cs-gray-800');
+  });
+  
+  it('renders loading fallback with proper Tailwind classes', () => {
     const { container } = render(<App />);
     
-    const darkElement = container.querySelector('[class*="dark:"]');
-    if (darkElement) {
-      expect(darkElement).toBeInTheDocument();
+    // Check if loading fallback is rendered (it should be since views are lazy loaded)
+    const loadingElement = container.querySelector('.animate-pulse');
+    if (loadingElement) {
+      expect(loadingElement).toHaveClass('text-lg');
+      expect(loadingElement).toHaveClass('text-cs-text-muted');
+      expect(loadingElement).toHaveClass('animate-pulse');
     }
-    
-    document.documentElement.classList.remove('dark');
   });
 });

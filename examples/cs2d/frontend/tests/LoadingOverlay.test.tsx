@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
-import { LoadingOverlay } from '@/components/LoadingOverlay';
+import { render, screen } from './test-utils';
+import LoadingOverlay from '@/components/common/LoadingOverlay';
 
 describe('LoadingOverlay Tailwind Styling', () => {
   it('renders with proper Tailwind classes', () => {
-    const { container } = render(<LoadingOverlay />);
+    const { container } = render(<LoadingOverlay isLoading={true} />);
     
     // Check for Tailwind classes
     const element = container.firstChild;

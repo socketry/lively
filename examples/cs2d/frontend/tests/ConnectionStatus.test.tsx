@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { render, screen } from './test-utils';
+import { ConnectionStatus } from '@/components/common/ConnectionStatus';
 
 describe('ConnectionStatus Tailwind Styling', () => {
   it('renders with proper Tailwind classes', () => {

@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { AboutView } from '@/components/AboutView';
+import { render, screen } from './test-utils';
+import AboutView from '@/views/AboutView';
 
 describe('AboutView Tailwind Styling', () => {
   it('renders with proper Tailwind classes', () => {

@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { RoomView } from '@/components/RoomView';
+import { render, screen } from './test-utils';
+import RoomView from '@/views/RoomView';
 
 describe('RoomView Tailwind Styling', () => {
   it('renders with proper Tailwind classes', () => {

@@ -1,36 +1,103 @@
-import { render, screen } from '@testing-library/react';
-import { NotificationContainer } from '@/components/NotificationContainer';
+import { render } from './test-utils';
+import NotificationContainer from '@/components/common/NotificationContainer';
+import { useApp } from '@/contexts/AppContext';
+import { vi, beforeEach, describe, it, expect } from 'vitest';
+
+// Mock the useApp hook while still using real context providers in test-utils
+vi.mock('@/contexts/AppContext', async () => {
+  const actual = await vi.importActual('@/contexts/AppContext');
+  return {
+    ...actual,
+    useApp: vi.fn()
+  };
+});
+
+const mockUseApp = vi.mocked(useApp);
 
 describe('NotificationContainer Tailwind Styling', () => {
-  it('renders with proper Tailwind classes', () => {
+  beforeEach(() => {
+    mockUseApp.mockReset();
+  });
+
+  it('handles empty state correctly (returns null when no notifications)', () => {
+    // Mock empty notifications state
+    mockUseApp.mockReturnValue({
+      state: {
+        notifications: []
+      },
+      actions: {
+        removeNotification: vi.fn()
+      }
+    } as any);
+
     const { container } = render(<NotificationContainer />);
     
-    // Check for Tailwind classes
-    const element = container.firstChild;
-    expect(element).toHaveClass(/^[a-z-]+/);
+    // When there are no notifications, component should return null
+    expect(container.firstChild).toBeNull();
+    
+    // Verify no notification-container element exists
+    const notificationContainer = container.querySelector('.notification-container');
+    expect(notificationContainer).toBeNull();
+  });
+
+  it('renders with proper Tailwind classes when notifications exist', () => {
+    // Mock the useApp hook to return notifications
+    mockUseApp.mockReturnValue({
+      state: {
+        notifications: [
+          {
+            id: '1',
+            type: 'info' as const,
+            title: 'Test Notification',
+            message: 'Test message'
+          }
+        ]
+      },
+      actions: {
+        removeNotification: vi.fn()
+      }
+    } as any);
+
+    const { container } = render(<NotificationContainer />);
+    
+    // Check for Tailwind classes when notifications exist
+    const element = container.firstChild as HTMLElement;
+    expect(element).toBeTruthy();
+    expect(element).toHaveClass('notification-container');
     
     // Verify no CSS modules
     expect(element.className).not.toContain('module');
   });
   
-  it('applies responsive classes correctly', () => {
+  it('applies notification item classes correctly', () => {
+    // Mock the useApp hook to return notifications  
+    mockUseApp.mockReturnValue({
+      state: {
+        notifications: [
+          {
+            id: '1',
+            type: 'info' as const,
+            title: 'Test Notification',
+            message: 'Test message'
+          }
+        ]
+      },
+      actions: {
+        removeNotification: vi.fn()
+      }
+    } as any);
+
     const { container } = render(<NotificationContainer />);
-    const element = container.querySelector('[class*="md:"]');
     
-    if (element) {
-      expect(element).toBeInTheDocument();
-    }
-  });
-  
-  it('handles dark mode classes', () => {
-    document.documentElement.classList.add('dark');
-    const { container } = render(<NotificationContainer />);
+    // Check for notification item classes
+    const notificationItem = container.querySelector('.notification');
+    expect(notificationItem).toBeInTheDocument();
+    expect(notificationItem).toHaveClass('notification', 'info');
     
-    const darkElement = container.querySelector('[class*="dark:"]');
-    if (darkElement) {
-      expect(darkElement).toBeInTheDocument();
-    }
-    
-    document.documentElement.classList.remove('dark');
+    // Check for notification content and close button
+    const notificationContent = container.querySelector('.notification-content');
+    const notificationClose = container.querySelector('.notification-close');
+    expect(notificationContent).toBeInTheDocument();
+    expect(notificationClose).toBeInTheDocument();
   });
 });
