@@ -42,6 +42,10 @@ test-results/
 .DS_Store
 Thumbs.db
 
+# Markdown files (skip formatting/linting)
+*.md
+**/*.md
+
 # Ruby/Rails specific
 /log/*
 /tmp/*

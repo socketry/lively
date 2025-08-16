@@ -19,7 +19,16 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md,css,html}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md,css,html}\"",
     "typecheck": "tsc --noEmit",
-    "pre-commit": "pnpm run typecheck && pnpm run lint:check && pnpm run format:check && pnpm run test --run"
+    "pre-commit": "pnpm run typecheck && pnpm run lint:check && pnpm run format:check && pnpm run test --run",
+    "multi-agent:weapon": "node scripts/multi-agent-tasks.js generateWeaponSystem",
+    "multi-agent:map": "node scripts/multi-agent-tasks.js generateMapSystem",
+    "multi-agent:fix": "node scripts/multi-agent-tasks.js fixRenderIssues",
+    "multi-agent:test": "node scripts/multi-agent-tasks.js generateTestSuite",
+    "multi-agent:docker": "node scripts/multi-agent-tasks.js setupDocker",
+    "multi-agent:spa": "node scripts/multi-agent-tasks.js migrateSPA",
+    "multi-agent:docs": "node scripts/multi-agent-tasks.js generateAPIDocs",
+    "multi-agent:sprint": "node scripts/multi-agent-tasks.js quickSprint",
+    "multi-agent": "node scripts/multi-agent-tasks.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
@@ -39,7 +48,9 @@
     "vite": "^5.0.0",
     "vitest": "^1.0.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@jimmy2822/multi-agent-dev": "^1.0.0"
+  },
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --fix",

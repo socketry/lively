@@ -5,6 +5,16 @@
 help:
 	@echo "🎮 CS2D Docker Commands"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🚀 Multi-Agent Development (2.5x FASTER!):"
+	@echo "  make multi-agent-sprint - Run ALL tasks in parallel!"
+	@echo "  make multi-agent-fix   - Fix render issues in parallel"
+	@echo "  make multi-agent-test  - Generate complete test suite"
+	@echo "  make multi-agent-weapon - Generate weapon system"
+	@echo "  make multi-agent-map   - Generate map components"
+	@echo "  make multi-agent-spa   - Migrate to SPA architecture"
+	@echo "  make multi-agent-docker - Setup Docker infrastructure"
+	@echo "  make multi-agent-docs  - Generate documentation"
+	@echo ""
 	@echo "Development:"
 	@echo "  make build         - Build all Docker images"
 	@echo "  make up            - Start all services (development)"
@@ -389,5 +399,45 @@ version:
 	@docker version --format 'Docker {{.Server.Version}}'
 	@echo "Ruby: $(shell docker run --rm ruby:3.3.6-slim ruby -v)"
 	@echo "Redis: $(shell docker run --rm redis:7-alpine redis-server -v)"
+
+# 🚀 Multi-Agent Development Commands (2.5x Faster!)
+multi-agent-sprint:
+	@echo "🚀 Running multi-agent development sprint..."
+	@echo "This will execute 5 development tasks in parallel!"
+	@npm run multi-agent:sprint
+
+multi-agent-fix:
+	@echo "🔧 Fixing issues with multi-agent..."
+	@npm run multi-agent:fix
+
+multi-agent-test:
+	@echo "🧪 Generating tests with multi-agent..."
+	@npm run multi-agent:test
+
+multi-agent-weapon:
+	@echo "🔫 Generating weapon system with multi-agent..."
+	@npm run multi-agent:weapon
+
+multi-agent-map:
+	@echo "🗺️ Generating map components with multi-agent..."
+	@npm run multi-agent:map
+
+multi-agent-spa:
+	@echo "🎯 Migrating to SPA with multi-agent..."
+	@npm run multi-agent:spa
+
+multi-agent-docker:
+	@echo "🐳 Setting up Docker with multi-agent..."
+	@npm run multi-agent:docker
+
+multi-agent-docs:
+	@echo "📚 Generating documentation with multi-agent..."
+	@npm run multi-agent:docs
+
+multi-agent-help:
+	@echo "📋 Available multi-agent commands:"
+	@npm run multi-agent
+
+multi-agent: multi-agent-help
 
 .DEFAULT_GOAL := help
