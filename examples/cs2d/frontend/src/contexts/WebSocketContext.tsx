@@ -1,11 +1,17 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import type { ConnectionStatus } from '@/types/websocket';
+import React, { createContext, useContext, useReducer, type ReactNode } from 'react';
+import type { ConnectionStatus, WebSocketMessage } from '@/types/websocket';
+
+interface ConnectionInfo extends ConnectionStatus {
+  connected: boolean;
+  messageCount: number;
+  queuedCount: number;
+}
 
 interface WebSocketState {
   connectionStatus: ConnectionStatus;
-  messageHistory: any[];
-  lastMessage: any;
-  queuedMessages: any[];
+  messageHistory: WebSocketMessage[];
+  lastMessage: WebSocketMessage | null;
+  queuedMessages: WebSocketMessage[];
 }
 
 type WebSocketAction =
@@ -13,8 +19,8 @@ type WebSocketAction =
   | { type: 'SET_LATENCY'; payload: number }
   | { type: 'INCREMENT_RECONNECT_ATTEMPTS' }
   | { type: 'RESET_RECONNECT_ATTEMPTS' }
-  | { type: 'ADD_MESSAGE'; payload: any }
-  | { type: 'QUEUE_MESSAGE'; payload: any }
+  | { type: 'ADD_MESSAGE'; payload: WebSocketMessage }
+  | { type: 'QUEUE_MESSAGE'; payload: WebSocketMessage }
   | { type: 'CLEAR_QUEUED_MESSAGES' }
   | { type: 'CLEAR_MESSAGE_HISTORY' }
   | { type: 'RESET' };
@@ -33,7 +39,7 @@ const initialState: WebSocketState = {
 
 function webSocketReducer(state: WebSocketState, action: WebSocketAction): WebSocketState {
   switch (action.type) {
-    case 'SET_CONNECTION_STATUS':
+    case 'SET_CONNECTION_STATUS': {
       const newConnectionStatus = { ...state.connectionStatus };
       newConnectionStatus.status = action.payload;
 
@@ -45,6 +51,7 @@ function webSocketReducer(state: WebSocketState, action: WebSocketAction): WebSo
       }
 
       return { ...state, connectionStatus: newConnectionStatus };
+    }
 
     case 'SET_LATENCY':
       return {
@@ -67,7 +74,7 @@ function webSocketReducer(state: WebSocketState, action: WebSocketAction): WebSo
         connectionStatus: { ...state.connectionStatus, reconnectAttempts: 0 }
       };
 
-    case 'ADD_MESSAGE':
+    case 'ADD_MESSAGE': {
       const messageWithTimestamp = { ...action.payload, timestamp: Date.now() };
       const newMessageHistory = [...state.messageHistory, messageWithTimestamp];
       
@@ -81,6 +88,7 @@ function webSocketReducer(state: WebSocketState, action: WebSocketAction): WebSo
         messageHistory: trimmedHistory,
         lastMessage: action.payload
       };
+    }
 
     case 'QUEUE_MESSAGE':
       return {
@@ -109,11 +117,11 @@ interface WebSocketContextType {
     setLatency: (latency: number) => void;
     incrementReconnectAttempts: () => void;
     resetReconnectAttempts: () => void;
-    addMessage: (message: any) => void;
-    queueMessage: (message: any) => void;
-    getQueuedMessages: () => any[];
+    addMessage: (message: WebSocketMessage) => void;
+    queueMessage: (message: WebSocketMessage) => void;
+    getQueuedMessages: () => WebSocketMessage[];
     clearMessageHistory: () => void;
-    getConnectionInfo: () => any;
+    getConnectionInfo: () => ConnectionInfo;
     reset: () => void;
   };
   computed: {
@@ -144,10 +152,10 @@ export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({ children 
     resetReconnectAttempts: () =>
       dispatch({ type: 'RESET_RECONNECT_ATTEMPTS' }),
 
-    addMessage: (message: any) =>
+    addMessage: (message: WebSocketMessage) =>
       dispatch({ type: 'ADD_MESSAGE', payload: message }),
 
-    queueMessage: (message: any) =>
+    queueMessage: (message: WebSocketMessage) =>
       dispatch({ type: 'QUEUE_MESSAGE', payload: message }),
 
     getQueuedMessages: () => {
@@ -202,7 +210,7 @@ export const useWebSocket = () => {
   const { state, actions, computed } = useWebSocketStore();
   
   // Mock sendMessage function for development
-  const sendMessage = (type: string, data: any) => {
+  const sendMessage = (type: string, data?: unknown) => {
     console.log('WebSocket mock send:', type, data);
     // Add to message history for testing
     actions.addMessage({ type, data, timestamp: Date.now() });

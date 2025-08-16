@@ -1,14 +1,22 @@
-import { cn } from '@/utils/tailwind';
+// Remove unused import
+// import { cn } from '@/utils/tailwind';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
+
+interface GameSettings {
+  volume: number;
+  sensitivity: number;
+  graphics: string;
+  language: string;
+}
 
 const SettingsView: React.FC = () => {
   const navigate = useNavigate();
   const { state, actions } = useApp();
   const { addNotification } = actions;
   const settings = { volume: state.volume * 100, sensitivity: 50, graphics: 'medium', language: state.language };
-  const updateSettings = (newSettings: any) => { actions.setVolume(newSettings.volume / 100); actions.setLanguage(newSettings.language); };
+  const updateSettings = (newSettings: GameSettings) => { actions.setVolume(newSettings.volume / 100); actions.setLanguage(newSettings.language as 'en' | 'zh-TW'); };
   const [localSettings, setLocalSettings] = useState(settings || {
     volume: 50,
     sensitivity: 50,

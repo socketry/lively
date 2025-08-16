@@ -45,21 +45,26 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ className })
     connect();
   };
 
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
+  // Remove unused formatTime function
 
   return (
-    <div className={cn('connection-status', connectionStatus, className, {
-      'minimized': isMinimized
-    })} onClick={toggleMinimized}>
+    <div 
+      className={cn('connection-status', connectionStatus, className, {
+        'minimized': isMinimized
+      })} 
+      onClick={toggleMinimized}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleMinimized();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Connection status: ${statusText}. Click to ${isMinimized ? 'expand' : 'collapse'} details.`}
+    >
       <div className="status-indicator">
-        <div className="status-dot"></div>
+        <div className="status-dot" />
       </div>
       
       {!isMinimized && (

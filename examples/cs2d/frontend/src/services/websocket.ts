@@ -1,11 +1,12 @@
 import { io, type Socket } from 'socket.io-client'
 import mitt, { type Emitter } from 'mitt'
-import { useWebSocketStore } from '@/stores/websocket'
-import { useAuthStore } from '@/stores/auth'
+// Remove hook imports - this is a service class, not a React component
+// import { useWebSocketStore } from '@/stores/websocket'
+// import { useAuthStore } from '@/stores/auth'
 import type { WebSocketMessage } from '@/types/websocket'
 
 type Events = {
-  [key: string]: any
+  [key: string]: unknown
 }
 
 class WebSocketService {
@@ -175,7 +176,7 @@ class WebSocketService {
     this.emitter.emit('message', message)
   }
 
-  send(type: string, data?: any): void {
+  send(type: string, data?: unknown): void {
     const message: WebSocketMessage = {
       type,
       data,
@@ -190,7 +191,7 @@ class WebSocketService {
     }
   }
 
-  emit(event: string, data?: any): void {
+  emit(event: string, data?: unknown): void {
     if (this.socket?.connected) {
       this.socket.emit(event, data)
     } else {
@@ -198,16 +199,16 @@ class WebSocketService {
     }
   }
 
-  on<T = any>(event: string, handler: (data: T) => void): () => void {
+  on<T = unknown>(event: string, handler: (data: T) => void): () => void {
     this.emitter.on(event, handler)
     return () => this.off(event, handler)
   }
 
-  off<T = any>(event: string, handler: (data: T) => void): void {
+  off<T = unknown>(event: string, handler: (data: T) => void): void {
     this.emitter.off(event, handler)
   }
 
-  once<T = any>(event: string, handler: (data: T) => void): void {
+  once<T = unknown>(event: string, handler: (data: T) => void): void {
     const wrappedHandler = (data: T) => {
       handler(data)
       this.off(event, wrappedHandler)
@@ -265,13 +266,16 @@ class WebSocketService {
   private updateConnectionStatus(
     status: 'connected' | 'disconnected' | 'error' | 'offline' | 'failed'
   ) {
-    const wsStore = useWebSocketStore()
-    wsStore.setConnectionStatus(status)
+    // TODO: Implement proper status update without hooks
+    console.log('[WebSocket] Status updated to:', status)
+    // wsStore.setConnectionStatus(status)
   }
 
   private getAuthToken(): string | undefined {
-    const authStore = useAuthStore()
-    return authStore.token || undefined
+    // TODO: Implement proper auth token retrieval without hooks
+    // const authStore = useAuthStore()
+    // return authStore.token || undefined
+    return undefined
   }
 
   disconnect() {

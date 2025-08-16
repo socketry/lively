@@ -17,7 +17,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   return (
     <div className={cn('loading-overlay', className)}>
       <div className="loading-content">
-        <div className="loading-spinner"></div>
+        <div className="loading-spinner" />
         <p className="loading-message">{message}</p>
       </div>
     </div>

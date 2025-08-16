@@ -1,15 +1,17 @@
-import { cn } from '@/utils/tailwind';
+// Remove unused import
+// import { cn } from '@/utils/tailwind';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useApp } from '@/contexts/AppContext';
+import type { Room } from '@/types/game';
 
 const LobbyView: React.FC = () => {
   const navigate = useNavigate();
   const { sendMessage, connectionStatus } = useWebSocket();
   const { actions } = useApp();
   const { addNotification } = actions;
-  const [rooms, setRooms] = useState([]);
+  const [rooms, _setRooms] = useState<Room[]>([]);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
 
   useEffect(() => {
@@ -66,10 +68,10 @@ const LobbyView: React.FC = () => {
               <p className="no-rooms">No rooms available. Create one!</p>
             ) : (
               <ul>
-                {rooms.map((room: any) => (
+                {rooms.map((room: Room) => (
                   <li key={room.id} className="room-item">
                     <span className="room-name">{room.name}</span>
-                    <span className="room-players">{room.players}/10</span>
+                    <span className="room-players">{room.players.length}/{room.maxPlayers}</span>
                     <button 
                       onClick={() => joinRoom(room.id)}
                       className="btn btn-sm btn-primary"

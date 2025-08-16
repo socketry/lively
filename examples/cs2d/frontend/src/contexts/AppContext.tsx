@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, type ReactNode } from 'react';
 import type { GameNotification } from '@/types/game';
 
 export interface AppState {
@@ -128,6 +128,42 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
+  // Define saveSettings function first
+  const saveSettings = useCallback(() => {
+    const settings = {
+      theme: state.theme,
+      language: state.language,
+      soundEnabled: state.soundEnabled,
+      musicEnabled: state.musicEnabled,
+      volume: state.volume
+    };
+
+    try {
+      localStorage.setItem('cs2d_app_settings', JSON.stringify(settings));
+    } catch (error) {
+      console.error('Failed to save app settings:', error);
+    }
+  }, [state.theme, state.language, state.soundEnabled, state.musicEnabled, state.volume]);
+
+  // Define addNotification function  
+  const addNotification = useCallback((notification: Omit<GameNotification, 'id' | 'timestamp'>) => {
+    const newNotification: GameNotification = {
+      id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: Date.now(),
+      duration: notification.duration || 5000,
+      ...notification
+    };
+
+    dispatch({ type: 'ADD_NOTIFICATION', payload: newNotification });
+
+    // Auto-remove notification after duration
+    if (newNotification.duration && newNotification.duration > 0) {
+      setTimeout(() => {
+        dispatch({ type: 'REMOVE_NOTIFICATION', payload: newNotification.id });
+      }, newNotification.duration);
+    }
+  }, []);
+
   // Initialize app on mount
   useEffect(() => {
     // Load settings from localStorage
@@ -175,12 +211,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [addNotification]);
 
   // Save settings whenever they change
   useEffect(() => {
     saveSettings();
-  }, [state.theme, state.language, state.soundEnabled, state.musicEnabled, state.volume]);
+  }, [saveSettings]);
 
   // Apply theme changes
   useEffect(() => {
@@ -210,40 +246,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     } catch (error) {
       console.error('Failed to load app settings:', error);
-    }
-  };
-
-  const saveSettings = () => {
-    const settings = {
-      theme: state.theme,
-      language: state.language,
-      soundEnabled: state.soundEnabled,
-      musicEnabled: state.musicEnabled,
-      volume: state.volume
-    };
-
-    try {
-      localStorage.setItem('cs2d_app_settings', JSON.stringify(settings));
-    } catch (error) {
-      console.error('Failed to save app settings:', error);
-    }
-  };
-
-  const addNotification = (notification: Omit<GameNotification, 'id' | 'timestamp'>) => {
-    const newNotification: GameNotification = {
-      id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now(),
-      duration: notification.duration || 5000,
-      ...notification
-    };
-
-    dispatch({ type: 'ADD_NOTIFICATION', payload: newNotification });
-
-    // Auto-remove notification after duration
-    if (newNotification.duration && newNotification.duration > 0) {
-      setTimeout(() => {
-        dispatch({ type: 'REMOVE_NOTIFICATION', payload: newNotification.id });
-      }, newNotification.duration);
     }
   };
 

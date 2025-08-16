@@ -1,4 +1,5 @@
-import type { App } from 'vue'
+// TODO: Update for React instead of Vue
+// import type { App } from 'vue'
 
 export interface ErrorInfo {
   message: string
@@ -33,11 +34,11 @@ function logError(error: Error | string, context?: string) {
 }
 
 // Setup global error handlers
-export function setupErrorHandler(app: App) {
-  // Vue error handler
-  app.config.errorHandler = (err: Error, _instance: any, info: string) => {
-    logError(err as Error, `Vue Error - ${info}`)
-  }
+export function setupErrorHandler(_app?: unknown) {
+  // TODO: Replace Vue error handler with React error boundary pattern
+  // app.config.errorHandler = (err: Error, _instance: unknown, info: string) => {
+  //   logError(err as Error, `Vue Error - ${info}`)
+  // }
 
   // Global unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
@@ -51,7 +52,7 @@ export function setupErrorHandler(app: App) {
   })
 
   // WebSocket error handler
-  window.addEventListener('ws-error', (event: any) => {
+  window.addEventListener('ws-error', (event: CustomEvent) => {
     logError(event.detail, 'WebSocket Error')
   })
 }

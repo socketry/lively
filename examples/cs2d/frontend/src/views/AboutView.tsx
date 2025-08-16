@@ -1,4 +1,5 @@
-import { cn } from '@/utils/tailwind';
+// Remove unused import
+// import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
@@ -27,8 +28,8 @@ const AboutView: React.FC = () => {
       userAgent: navigator.userAgent,
       language: navigator.language,
       platform: navigator.platform,
-      connectionStatus: connectionStatus,
-      latency: latency,
+      connectionStatus,
+      latency,
       onlineStatus: navigator.onLine,
       cookieEnabled: navigator.cookieEnabled,
       localStorageSupported: typeof Storage !== 'undefined',

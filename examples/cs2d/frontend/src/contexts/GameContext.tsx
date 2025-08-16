@@ -1,5 +1,66 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import type { Player, GameState, GameStatus, Weapon, Position } from '@/types/game';
+import React, { createContext, useContext, useReducer, type ReactNode } from 'react';
+import type { Player, GameState, GameStatus, Weapon, Position, PlayerInput } from '@/types/game';
+
+// Event data types for game events
+interface GameStateUpdateData {
+  players?: Player[];
+  localPlayer?: Player;
+  gameState?: GameState;
+  scores?: { ct: number; t: number };
+  lastProcessedInput?: number;
+}
+
+interface PlayerSpawnData {
+  playerId: string;
+  position: Position;
+  armor?: number;
+  weapons?: Weapon[];
+  weapon: Weapon;
+}
+
+interface PlayerMoveData {
+  playerId: string;
+  position: Position;
+  velocity?: { x: number; y: number };
+}
+
+interface PlayerShootData {
+  playerId: string;
+  weapon: Weapon;
+  angle: number;
+  position: Position;
+}
+
+interface PlayerHitData {
+  playerId: string;
+  damage: number;
+  health: number;
+  armor?: number;
+}
+
+interface PlayerDeathData {
+  playerId: string;
+  killerId?: string;
+  weapon?: Weapon;
+}
+
+interface RoundStartData {
+  roundNumber: number;
+  roundTime: number;
+  freezeTime?: number;
+}
+
+interface RoundEndData {
+  winner: 'ct' | 't';
+  reason: string;
+  scores: { ct: number; t: number };
+}
+
+interface BombPlantedData {
+  position: Position;
+  timer: number;
+  planterId: string;
+}
 
 interface GameContextState {
   gameStatus: GameStatus;
@@ -14,7 +75,7 @@ interface GameContextState {
   bombPlanted: boolean;
   bombPosition: Position | null;
   bombTimer: number;
-  pendingInputs: any[];
+  pendingInputs: PlayerInput[];
   inputSequence: number;
   fps: number;
   ping: number;
@@ -35,7 +96,7 @@ type GameAction =
   | { type: 'SET_BOMB_PLANTED'; payload: boolean }
   | { type: 'SET_BOMB_POSITION'; payload: Position | null }
   | { type: 'SET_BOMB_TIMER'; payload: number }
-  | { type: 'ADD_PENDING_INPUT'; payload: any }
+  | { type: 'ADD_PENDING_INPUT'; payload: PlayerInput }
   | { type: 'REMOVE_PENDING_INPUTS'; payload: number }
   | { type: 'INCREMENT_INPUT_SEQUENCE' }
   | { type: 'UPDATE_PERFORMANCE_METRICS'; payload: { fps: number; ping: number; packetLoss: number } }
@@ -69,17 +130,19 @@ function gameReducer(state: GameContextState, action: GameAction): GameContextSt
       return { ...state, gameState: action.payload };
     case 'SET_CURRENT_ROOM_ID':
       return { ...state, currentRoomId: action.payload };
-    case 'SET_PLAYERS':
+    case 'SET_PLAYERS': {
       const newPlayersMap = new Map();
       action.payload.forEach(player => newPlayersMap.set(player.id, player));
       return { ...state, players: newPlayersMap };
-    case 'UPDATE_PLAYER':
+    }
+    case 'UPDATE_PLAYER': {
       const updatedPlayers = new Map(state.players);
       const existingPlayer = updatedPlayers.get(action.payload.id);
       if (existingPlayer) {
         updatedPlayers.set(action.payload.id, { ...existingPlayer, ...action.payload.updates });
       }
       return { ...state, players: updatedPlayers };
+    }
     case 'SET_LOCAL_PLAYER':
       return { ...state, localPlayer: action.payload };
     case 'SET_SPECTATING_PLAYER_ID':
@@ -127,15 +190,15 @@ interface GameContextType {
     shoot: (weapon: Weapon) => void;
     leaveGame: () => void;
     updatePerformanceMetrics: (metrics: { fps: number; ping: number; packetLoss: number }) => void;
-    handleGameStateUpdate: (data: any) => void;
-    handlePlayerSpawn: (data: any) => void;
-    handlePlayerMove: (data: any) => void;
-    handlePlayerShoot: (data: any) => void;
-    handlePlayerHit: (data: any) => void;
-    handlePlayerDeath: (data: any) => void;
-    handleRoundStart: (data: any) => void;
-    handleRoundEnd: (data: any) => void;
-    handleBombPlanted: (data: any) => void;
+    handleGameStateUpdate: (data: GameStateUpdateData) => void;
+    handlePlayerSpawn: (data: PlayerSpawnData) => void;
+    handlePlayerMove: (data: PlayerMoveData) => void;
+    handlePlayerShoot: (data: PlayerShootData) => void;
+    handlePlayerHit: (data: PlayerHitData) => void;
+    handlePlayerDeath: (data: PlayerDeathData) => void;
+    handleRoundStart: (data: RoundStartData) => void;
+    handleRoundEnd: (data: RoundEndData) => void;
+    handleBombPlanted: (data: BombPlantedData) => void;
     handleBombDefused: () => void;
     handleBombExploded: () => void;
   };
@@ -215,7 +278,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const input = {
         sequence: state.inputSequence + 1,
         weapon: weapon.id,
-        angle: (state.localPlayer as any).angle || 0,
+        angle: state.localPlayer.angle || 0,
         timestamp: Date.now()
       };
 
@@ -232,7 +295,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       dispatch({ type: 'UPDATE_PERFORMANCE_METRICS', payload: metrics });
     },
 
-    handleGameStateUpdate: (data: any) => {
+    handleGameStateUpdate: (data: GameStateUpdateData) => {
       if (data.players) {
         dispatch({ type: 'SET_PLAYERS', payload: data.players });
       }
@@ -254,7 +317,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     },
 
-    handlePlayerSpawn: (data: any) => {
+    handlePlayerSpawn: (data: PlayerSpawnData) => {
       dispatch({
         type: 'UPDATE_PLAYER',
         payload: {
@@ -270,7 +333,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     },
 
-    handlePlayerMove: (data: any) => {
+    handlePlayerMove: (data: PlayerMoveData) => {
       if (data.playerId !== state.localPlayer?.id) {
         dispatch({
           type: 'UPDATE_PLAYER',
@@ -282,29 +345,29 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     },
 
-    handlePlayerShoot: (data: any) => {
+    handlePlayerShoot: (data: PlayerShootData) => {
       // Handle shooting animation/sound and ammo updates
       console.log('Player shoot:', data);
     },
 
-    handlePlayerHit: (data: any) => {
+    handlePlayerHit: (data: PlayerHitData) => {
       dispatch({
         type: 'UPDATE_PLAYER',
         payload: {
           id: data.playerId,
-          updates: { health: Math.max(0, data.newHealth) }
+          updates: { health: Math.max(0, data.health) }
         }
       });
 
       if (data.playerId === state.localPlayer?.id) {
         // Show damage indicator
         window.dispatchEvent(new CustomEvent('damage-indicator', { 
-          detail: { direction: data.fromDirection } 
+          detail: { damage: data.damage } 
         }));
       }
     },
 
-    handlePlayerDeath: (data: any) => {
+    handlePlayerDeath: (data: PlayerDeathData) => {
       dispatch({
         type: 'UPDATE_PLAYER',
         payload: {
@@ -319,7 +382,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     },
 
-    handleRoundStart: (data: any) => {
+    handleRoundStart: (data: RoundStartData) => {
       dispatch({ type: 'SET_ROUND_NUMBER', payload: data.roundNumber });
       dispatch({ type: 'SET_ROUND_TIME', payload: data.roundTime });
       dispatch({ type: 'SET_BOMB_PLANTED', payload: false });
@@ -335,12 +398,12 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       dispatch({ type: 'SET_PLAYERS', payload: resetPlayers });
     },
 
-    handleRoundEnd: (data: any) => {
+    handleRoundEnd: (data: RoundEndData) => {
       dispatch({ type: 'SET_TEAM_SCORES', payload: data.scores });
       dispatch({ type: 'SET_GAME_STATUS', payload: 'round-end' });
     },
 
-    handleBombPlanted: (data: any) => {
+    handleBombPlanted: (data: BombPlantedData) => {
       dispatch({ type: 'SET_BOMB_PLANTED', payload: true });
       dispatch({ type: 'SET_BOMB_POSITION', payload: data.position });
       dispatch({ type: 'SET_BOMB_TIMER', payload: 40 });
@@ -358,8 +421,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Damage nearby players
       if (state.bombPosition) {
         const explosionRadius = 500;
+        const bombPos = state.bombPosition;
         const damagedPlayers = Array.from(state.players.values()).map(player => {
-          const distance = calculateDistance(player.position, state.bombPosition!);
+          const distance = calculateDistance(player.position, bombPos);
           if (distance < explosionRadius) {
             const damage = Math.floor((1 - distance / explosionRadius) * 200);
             return { ...player, health: Math.max(0, player.health - damage) };
@@ -377,7 +441,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAlive: (state.localPlayer?.health ?? 0) > 0,
     currentTeam: state.localPlayer?.team,
     alivePlayersCount: (() => {
-      let count = { ct: 0, t: 0 };
+      const count = { ct: 0, t: 0 };
       state.players.forEach((player: Player) => {
         if (player.health > 0) {
           if (player.team === 'terrorist') {

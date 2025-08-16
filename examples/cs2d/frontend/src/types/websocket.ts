@@ -2,14 +2,14 @@
 
 export interface WebSocketMessage {
   type: string
-  data?: any
+  data?: unknown
   timestamp?: number
   id?: string
 }
 
 export interface WebSocketEvent {
   event: string
-  data?: any
+  data?: unknown
   timestamp: number
 }
 

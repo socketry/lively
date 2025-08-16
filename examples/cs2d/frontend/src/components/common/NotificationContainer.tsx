@@ -1,6 +1,7 @@
 import { cn } from '@/utils/tailwind';
 import React, { useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import type { GameNotification } from '@/types/game';
 
 const NotificationContainer: React.FC = () => {
   const { state, actions } = useApp();
@@ -11,7 +12,7 @@ const NotificationContainer: React.FC = () => {
     if (!notifications || notifications.length === 0) return;
     
     // Auto-remove notifications after 5 seconds
-    const timers = notifications.map((notification: any) => {
+    const timers = notifications.map((notification: GameNotification) => {
       return setTimeout(() => {
         removeNotification(notification.id);
       }, 5000);
@@ -26,7 +27,7 @@ const NotificationContainer: React.FC = () => {
 
   return (
     <div className="notification-container">
-      {notifications.map((notification: any) => (
+      {notifications.map((notification: GameNotification) => (
         <div 
           key={notification.id} 
           className={cn('notification', notification.type)}

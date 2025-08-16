@@ -1,5 +1,5 @@
 import { cn } from '@/utils/tailwind';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useGame } from '@/contexts/GameContext';
 import { useWebSocketStore } from '@/contexts/WebSocketContext';
@@ -8,14 +8,14 @@ const GameView: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams();
   const { state, actions } = useGame();
-  const { actions: wsActions } = useWebSocketStore();
+  const { actions: _wsActions } = useWebSocketStore();
   const [isLoading, setIsLoading] = useState(true);
 
   // Create a mock sendMessage function since WebSocket context doesn't have one
-  const sendMessage = (type: string, data: any) => {
+  const sendMessage = useCallback((type: string, data?: unknown) => {
     console.log('Sending message:', type, data);
     // In a real implementation, this would use a WebSocket connection
-  };
+  }, []);
 
   useEffect(() => {
     // Initialize game when component mounts
@@ -58,7 +58,7 @@ const GameView: React.FC = () => {
           "flex flex-col items-center space-y-4",
           "p-8 rounded-lg bg-gray-800 shadow-xl"
         )}>
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
           <div className="text-lg font-medium">Loading game...</div>
         </div>
       </div>

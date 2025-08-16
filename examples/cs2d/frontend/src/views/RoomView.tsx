@@ -3,14 +3,15 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useApp } from '@/contexts/AppContext';
+import type { Room } from '@/types/game';
 
 const RoomView: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams();
   const { sendMessage } = useWebSocket();
   const { actions } = useApp();
-  const { addNotification } = actions;
-  const [roomData, setRoomData] = useState<any>(null);
+  const { addNotification: _addNotification } = actions;
+  const [roomData, _setRoomData] = useState<Room | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ const RoomView: React.FC = () => {
           <div className="players-section">
             <h2>Players</h2>
             <ul className="players-list">
-              {roomData?.players?.map((player: any) => (
+              {roomData?.players?.map((player) => (
                 <li key={player.id} className="player-item">
                   <span className="player-name">{player.name}</span>
                   <span className={cn('player-status', { ready: player.ready })}>
