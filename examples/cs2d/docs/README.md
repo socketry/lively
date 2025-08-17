@@ -1,211 +1,189 @@
-# CS2D Documentation
+# 🎮 CS2D - Counter-Strike 2D Web Platform
 
-Welcome to the CS2D documentation! This directory contains comprehensive guides and references for playing and developing CS2D.
+[![Ruby](https://img.shields.io/badge/Ruby-3.0+-red.svg)](https://www.ruby-lang.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## 📚 Documentation Structure
+**CS2D** is a production-ready, browser-based 2D implementation of Counter-Strike 1.6, featuring authentic gameplay mechanics, Docker containerization, and a comprehensive tile-based mapping system.
 
-### For Players
+## ✨ Features
 
-1. **[Quick Start Guide](./QUICK_START.md)** ⭐
-   - Get playing in under 5 minutes
-   - Essential controls and tips
-   - Perfect for beginners
+- 🎯 **Authentic CS 1.6 Gameplay** - All weapons, mechanics, and economics faithfully recreated
+- 🗺️ **Tile-Based Map System** - Visual map editor with 4 classic CS maps
+- 🐳 **Docker Containerized** - Production-ready deployment with one command
+- 🌍 **Internationalization** - English and Traditional Chinese support
+- 🤖 **AI Bot System** - Multiple difficulty levels for single-player practice
+- ⚡ **High Performance** - 60 FPS rendering, <10% CPU usage
+- 🔄 **Real-time Multiplayer** - WebSocket-based gameplay with Redis backend
 
-2. **[Complete Gameplay Guide](./GAMEPLAY_GUIDE.md)** 📖
-   - Detailed mechanics explanation
-   - Advanced strategies
-   - Full control reference
+## 🚀 Quick Start
 
-3. **[Mac Optimization Guide](./GAMEPLAY_GUIDE.md#mac-optimization)** 🍎
-   - Touchpad gesture controls
-   - Performance settings
-   - Mac-specific tips
+### Docker Deployment (Recommended)
 
-### For Developers
+```bash
+# Clone repository
+git clone https://github.com/yourusername/cs2d.git
+cd cs2d
 
-4. **[Technical Architecture](./TECHNICAL.md)** 🔧
-   - System design overview
-   - Network protocol
-   - Game state management
+# Start with Docker
+make setup && make up
 
-5. **[API Reference](./API.md)** 💻
-   - Server endpoints
-   - WebSocket events
-   - Data structures
-
-## 🎮 Quick Links
-
-### Start Playing
-
-- **Local Server**: `http://localhost:9292`
-- **Required**: Ruby 3.2+, Modern browser
-- **Recommended**: Chrome/Safari, Mac with touchpad
-
-### Essential Controls
-
-```
-Move:    WASD
-Aim:     Arrow Keys
-Shoot:   Spacebar
-Reload:  R
-Use:     E
-Buy:     B
+# Access the game
+# Lobby:     http://localhost:9292
+# Game:      http://localhost:9293
+# Map Editor: http://localhost:9293/map_editor.html
 ```
 
-### First-Time Setup
+### Manual Setup
 
-1. Install dependencies: `bundle install`
-2. Start server: `ruby cs16_server.rb`
-3. Open browser: `http://localhost:9292`
-4. Press `B` to buy weapons
-5. Complete objectives to win!
+```bash
+# Install dependencies
+bundle install
 
-## 🗺️ Game Modes
+# Start Redis
+redis-server
 
-| Mode           | Players | Description                   |
-| -------------- | ------- | ----------------------------- |
-| **Classic**    | 5v5     | Full competitive rules        |
-| **Casual**     | 2v2     | Simplified, faster rounds     |
-| **Deathmatch** | FFA     | Practice aim, instant respawn |
-| **Retake**     | 3v3     | CT retakes planted bomb sites |
+# Run servers
+./start_hybrid_servers.sh
+```
 
-## 🏆 Competitive Rules
+## 🎮 Game Controls
 
-- **Round Format**: First to 16 rounds wins
-- **Round Time**: 1:55 per round
-- **Bomb Timer**: 45 seconds
-- **Buy Time**: 15 seconds
-- **Freeze Time**: 5 seconds
-- **Side Swap**: After round 15
+### Movement & Combat
 
-## 💰 Economy Quick Reference
+- **WASD** - Move (hold Shift to run)
+- **Mouse** - Aim and shoot
+- **R** - Reload
+- **B** - Open buy menu
+- **Tab** - Scoreboard
+- **T** - Chat
 
-| Action       | Reward             |
-| ------------ | ------------------ |
-| Round Win    | $3250              |
-| Round Loss   | $1400 (+$500/loss) |
-| Kill (Rifle) | $300               |
-| Kill (AWP)   | $100               |
-| Kill (Knife) | $1500              |
-| Bomb Plant   | $800               |
-| Bomb Defuse  | $3500              |
+### Quick Buy
 
-## 🔧 Troubleshooting
+- **1-5** - Quick buy weapons
+  - 1: AK-47 ($2700)
+  - 2: M4A1 ($3100)
+  - 3: AWP ($4750)
+  - 4: Desert Eagle ($700)
+  - 5: Armor ($650)
 
-### Common Issues
+## 🏗️ Architecture
 
-**Game Won't Load**
+CS2D uses a microservices architecture with Docker containers:
 
-- Check Ruby version: `ruby --version` (need 3.2+)
-- Install WEBrick: `gem install webrick`
-- Check port 9292 is free
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Nginx     │────▶│    Lobby    │────▶│    Redis    │
+│  (Proxy)    │     │  (Port 9292)│     │  (Storage)  │
+└─────────────┘     └─────────────┘     └─────────────┘
+       │                   │                    ▲
+       ▼                   ▼                    │
+┌─────────────┐     ┌─────────────┐            │
+│    Game     │     │     API     │────────────┘
+│ (Port 9293) │     │ (Port 9294) │
+└─────────────┘     └─────────────┘
+```
 
-**Performance Issues**
+## 🗺️ Map Editor
 
-- Close other browser tabs
-- Enable hardware acceleration
-- Use Chrome or Safari
-- Reduce visual quality in settings
+Create custom maps with the built-in visual editor:
 
-**Control Problems**
+- 18 different tile types with unique properties
+- Drawing tools: brush, line, rectangle, fill
+- 50-state undo/redo system
+- Import/export JSON map format
+- Real-time collision preview
 
-- Click game window to focus
-- Check keyboard layout (US recommended)
-- Disable browser extensions
-- Try different browser
+Access at: `http://localhost:9293/map_editor.html`
 
-## 📊 System Requirements
+## 🎯 Game Modes
 
-### Minimum
+- **Deathmatch** - Free-for-all combat
+- **Team Deathmatch** - Team-based warfare
+- **Defuse** - Classic bomb defusal mode
+- **Practice** - Train with bots
 
-- **OS**: Windows 10, macOS 10.15, Linux
-- **Browser**: Chrome 90+, Safari 14+, Firefox 88+
-- **RAM**: 2GB
-- **Network**: Stable connection for multiplayer
+## 📚 Documentation
 
-### Recommended
+- [Quick Start Guide](docs/QUICK_START.md) - Get playing in 5 minutes
+- [Gameplay Guide](docs/GAMEPLAY_GUIDE.md) - Complete controls and strategies
+- [Technical Documentation](docs/TECHNICAL.md) - Architecture and development
+- [Docker Deployment](DOCKER_DEPLOYMENT.md) - Container orchestration details
+- [Tile Map System](TILE_MAP_SYSTEM_COMPLETION.md) - Mapping system documentation
 
-- **OS**: macOS 12+ with touchpad
-- **Browser**: Latest Chrome/Safari
-- **RAM**: 4GB+
-- **Display**: 1920x1080
-- **Input**: Mechanical keyboard + gaming mouse
+## 🛠️ Development
 
-## 🚀 Advanced Features
+### Project Structure
 
-### Mac Touchpad Gestures
+```
+cs2d/
+├── Docker/              # Container configurations
+├── application.rb       # Main entry point
+├── game/               # Game logic modules
+│   ├── tile_map_system.rb
+│   ├── player.rb
+│   ├── game_room.rb
+│   └── ...
+├── public/_static/     # Client-side code
+├── cstrike/           # Game assets
+└── docs/              # Documentation
+```
 
-- **Two-finger swipe**: Precise aiming
-- **Two-finger tap**: Alternative fire
-- **Pinch**: Zoom tactical view
-- **Three-finger swipe**: Quick weapon switch
+### Running Tests
 
-### Keyboard Shortcuts
+```bash
+# Ruby tests
+bundle exec rspec
 
-- **F11**: Fullscreen toggle
-- **H**: Show/hide help
-- **M**: Toggle map overview
-- **Tab**: Scoreboard
-- **~**: Console (dev mode)
+# Browser tests (in docs/testing/)
+npx playwright test
 
-## 📈 Performance Metrics
+# Linting
+bundle exec rubocop
+```
 
-Monitor your gameplay stats:
+## 🤝 Contributing
 
-- **K/D Ratio**: Kills/Deaths
-- **ADR**: Average Damage per Round
-- **HS%**: Headshot percentage
-- **KAST**: Rounds with Kill/Assist/Survived/Traded
-- **Rating 2.0**: Overall performance score
+Contributions are welcome! Please read our contributing guidelines before submitting PRs.
 
-## 🎯 Training Recommendations
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### Daily Practice (20 min)
+## 📊 Performance
 
-1. **Aim Training** (5 min)
-   - 100 kills on aim map
-   - Focus on headshot placement
+- **Startup Time**: <30 seconds (full Docker stack)
+- **Memory Usage**: ~200MB (all containers)
+- **CPU Usage**: <10% during active gameplay
+- **Frame Rate**: 60 FPS canvas rendering
+- **Player Capacity**: 50+ concurrent per instance
 
-2. **Movement** (5 min)
-   - Practice strafing
-   - Learn jump spots
+## 🚧 Roadmap
 
-3. **Utility** (5 min)
-   - Smoke lineups
-   - Flash timings
+- [ ] Additional classic CS maps
+- [ ] Competitive matchmaking system
+- [ ] Replay system
+- [ ] Advanced bot AI
+- [ ] Steam workshop integration
+- [ ] Mobile touch controls
 
-4. **Deathmatch** (5 min)
-   - Real combat practice
-   - Work on positioning
+## 📄 License
 
-## 🌐 Community
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Join Us
+## 🙏 Acknowledgments
 
-- **Discord**: [CS2D Community](#)
-- **Reddit**: [r/CS2D](#)
-- **Twitter**: [@CS2DGame](#)
+- Original Counter-Strike by Valve Corporation
+- [Lively framework](https://github.com/socketry/lively) for Ruby WebSocket support
+- All contributors and testers
 
-### Contribute
+## 📞 Support
 
-- Report bugs on [GitHub Issues](#)
-- Submit pull requests
-- Share strategies and guides
-- Create custom maps
-
-## 📝 License
-
-CS2D is open source under the MIT License. See [LICENSE](../../../LICENSE.md) for details.
-
-## 🙏 Credits
-
-- **Framework**: Lively (Ruby)
-- **Inspiration**: Counter-Strike 1.6
-- **Optimization**: Mac touchpad support
-- **Community**: All our players and contributors
+- **Issues**: [GitHub Issues](https://github.com/yourusername/cs2d/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/cs2d/discussions)
 
 ---
 
-**Need Help?** Start with the [Quick Start Guide](./QUICK_START.md) or dive into the [Complete Gameplay Guide](./GAMEPLAY_GUIDE.md).
-
-**Ready to Play?** Launch your server and visit `http://localhost:9292` 🎮
+**Built with ❤️ using Ruby, Docker, and WebSockets**
