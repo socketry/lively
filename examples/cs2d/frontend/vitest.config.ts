@@ -21,6 +21,7 @@ export default defineConfig({
       'tests/**/*.e2e.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
       'tests/**/*.perf.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
       'tests/**/playwright.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
+      'tests/e2e/**',
       'e2e/**'
     ],
     coverage: {
