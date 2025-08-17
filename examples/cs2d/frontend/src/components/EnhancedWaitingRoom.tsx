@@ -43,10 +43,13 @@ interface ChatMessage {
 export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) => {
   const { t } = useI18n();
   const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: 'Player1', team: 'ct', ready: true, isBot: false, kills: 0, deaths: 0, ping: 45, avatar: '👤' },
+    { id: '1', name: 'Player1', team: 'ct', ready: false, isBot: false, kills: 0, deaths: 0, ping: 45, avatar: '👤' },
     { id: 'bot1', name: '[BOT] Alpha', team: 'ct', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
-    { id: 'bot2', name: '[BOT] Bravo', team: 't', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
-    { id: '2', name: 'Player2', team: 't', ready: false, isBot: false, kills: 0, deaths: 0, ping: 67, avatar: '👤' },
+    { id: 'bot2', name: '[BOT] Charlie', team: 'ct', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
+    { id: 'bot3', name: '[BOT] Delta', team: 'ct', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
+    { id: 'bot4', name: '[BOT] Echo', team: 't', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
+    { id: 'bot5', name: '[BOT] Foxtrot', team: 't', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
+    { id: 'bot6', name: '[BOT] Bravo', team: 't', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
   ]);
 
   const [roomSettings, setRoomSettings] = useState<RoomSettings>({
@@ -176,6 +179,20 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
   const tPlayers = players.filter(p => p.team === 't');
   const spectators = players.filter(p => p.team === 'spectator');
   const allReady = players.filter(p => !p.isBot).every(p => p.ready);
+  const humanPlayers = players.filter(p => !p.isBot);
+  const readyHumanPlayers = humanPlayers.filter(p => p.ready);
+  
+  // Debug info for development
+  useEffect(() => {
+    console.log('🎮 Room Status:', {
+      isHost,
+      allReady,
+      humanPlayers: humanPlayers.length,
+      readyHumanPlayers: readyHumanPlayers.length,
+      totalPlayers: players.length,
+      canStartGame: isHost && allReady && humanPlayers.length >= 1
+    });
+  }, [isHost, allReady, humanPlayers.length, readyHumanPlayers.length, players.length]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden relative">
@@ -197,6 +214,11 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
               <p className="text-white/70">
                 {roomSettings.mode} • {roomSettings.map} • {players.length}/{roomSettings.maxPlayers} players
               </p>
+              
+              {/* Status Debug Panel */}
+              <div className="mt-2 p-2 bg-black/30 rounded text-xs text-green-400 font-mono">
+                🎮 Host: {isHost ? 'YES' : 'NO'} | Ready: {readyHumanPlayers.length}/{humanPlayers.length} | Can Start: {(isHost && allReady && humanPlayers.length >= 1) ? 'YES' : 'NO'}
+              </div>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -216,14 +238,15 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
                   </button>
                   <button 
                     onClick={startGame}
-                    disabled={!allReady || players.length < 2}
+                    disabled={!allReady || players.filter(p => !p.isBot).length < 1}
                     className={`px-6 py-2 rounded-lg font-bold transition-all ${
-                      allReady && players.length >= 2
+                      allReady && players.filter(p => !p.isBot).length >= 1
                         ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-green-500/25'
                         : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     }`}
+                    title={`Start Game (Ready: ${players.filter(p => !p.isBot && p.ready).length}/${players.filter(p => !p.isBot).length})`}
                   >
-                    ▶️ Start Game
+                    ▶️ Start Game {!allReady && players.filter(p => !p.isBot).length > 0 && '(Waiting for players)'}
                   </button>
                 </>
               )}
