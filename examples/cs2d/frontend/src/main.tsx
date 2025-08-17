@@ -10,7 +10,10 @@ import './styles/main.scss';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter future={{
+      v7_startTransition: true,
+      v7_relativeSplatPath: true
+    }}>
       <AppProvider>
         <AuthProvider>
           <WebSocketProvider>

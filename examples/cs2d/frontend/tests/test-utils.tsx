@@ -19,7 +19,14 @@ const AllProviders: React.FC<AllProvidersProps> = ({
   initialIndex = 0 
 }) => {
   return (
-    <MemoryRouter initialEntries={initialEntries} initialIndex={initialIndex}>
+    <MemoryRouter 
+      initialEntries={initialEntries} 
+      initialIndex={initialIndex}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <AppProvider>
         <AuthProvider>
           <WebSocketProvider>

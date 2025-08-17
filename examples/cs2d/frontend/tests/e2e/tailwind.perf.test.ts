@@ -2,15 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Tailwind Performance', () => {
   test('CSS bundle size is optimized', async ({ page }) => {
-    const _response = await page.goto('http://localhost:3000');
+    await page.goto('http://localhost:3000');
     const resources = await page.evaluate(() => 
-      performance.getEntriesByType('resource')
+      performance.getEntriesByType('resource') as PerformanceResourceTiming[]
     );
     
     const cssFiles = resources.filter(r => r.name.includes('.css'));
     cssFiles.forEach(css => {
       // Tailwind purged CSS should be under 50kb
-      expect(css.transferSize).toBeLessThan(50000);
+      expect(css.transferSize || 0).toBeLessThan(50000);
     });
   });
   

@@ -1,10 +1,9 @@
 import { defineConfig } from 'vitest/config'
-import vue from '@vitejs/plugin-vue'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
-  plugins: [vue(), react()],
+  plugins: [react()],
   test: {
     globals: true,
     environment: 'jsdom',
@@ -13,7 +12,17 @@ export default defineConfig({
       'src/**/__tests__/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
     ],
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
+    exclude: [
+      'node_modules', 
+      'dist', 
+      '.idea', 
+      '.git', 
+      '.cache',
+      'tests/**/*.e2e.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
+      'tests/**/*.perf.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
+      'tests/**/playwright.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
+      'e2e/**'
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
