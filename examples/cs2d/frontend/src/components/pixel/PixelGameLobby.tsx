@@ -115,7 +115,7 @@ export const PixelGameLobby: React.FC = () => {
                 PLAYERS: 1247
               </div>
               <div className="flex items-center space-x-2" data-testid="pixel-connection-status">
-                <div className="w-3 h-3 bg-green-400 animate-pulse"></div>
+                <div className="w-3 h-3 bg-green-400 animate-pulse" />
                 <span 
                   className="font-pixel text-green-400 text-xs"
                   style={{ letterSpacing: '1px' }}

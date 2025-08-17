@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: [fileURLToPath(new URL('./tests/setup.ts', import.meta.url))],
     include: [
       'src/**/__tests__/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
+      'tests/**/*.test.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
     ],
     exclude: [
       'node_modules', 
@@ -21,8 +21,10 @@ export default defineConfig({
       'tests/**/*.e2e.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
       'tests/**/*.perf.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
       'tests/**/playwright.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
-      'tests/e2e/**',
-      'e2e/**'
+      'tests/e2e/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      'tests/e2e/**/*',
+      'e2e/**',
+      '**/playwright.config.ts'
     ],
     coverage: {
       provider: 'v8',

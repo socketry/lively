@@ -40,11 +40,19 @@ describe('App Tailwind Styling', () => {
     const { container } = render(<App />);
     
     // Check if loading fallback is rendered (it should be since views are lazy loaded)
-    const loadingElement = container.querySelector('.animate-pulse');
+    // Look specifically for the text loading element, not other animated elements
+    const loadingElement = container.querySelector('.text-lg.animate-pulse');
     if (loadingElement) {
       expect(loadingElement).toHaveClass('text-lg');
       expect(loadingElement).toHaveClass('text-cs-text-muted');
       expect(loadingElement).toHaveClass('animate-pulse');
+    }
+    
+    // Or check for other animated elements like status indicators
+    const statusIndicator = container.querySelector('.bg-green-400.animate-pulse');
+    if (statusIndicator) {
+      expect(statusIndicator).toHaveClass('animate-pulse');
+      expect(statusIndicator).toHaveClass('rounded-full');
     }
   });
 });
