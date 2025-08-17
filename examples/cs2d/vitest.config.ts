@@ -7,7 +7,7 @@ export default defineConfig({
     environment: 'node',
     include: [
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
+      'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
     ],
     exclude: [
       'node_modules',
@@ -21,7 +21,7 @@ export default defineConfig({
       // Exclude e2e tests - they should be run with Playwright
       'tests/e2e/**',
       'tests/e2e/**/*',
-      '**/playwright.config.ts'
+      '**/playwright.config.ts',
     ],
     coverage: {
       provider: 'v8',
@@ -35,9 +35,9 @@ export default defineConfig({
         '**/*.test.ts',
         '**/*.spec.ts',
         '**/mockData',
-        '**/test-utils'
-      ]
-    }
+        '**/test-utils',
+      ],
+    },
   },
   resolve: {
     alias: {

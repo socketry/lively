@@ -1,0 +1,538 @@
+/* Enhanced Pixel Art Style - 16-bit Quality */
+
+:root {
+  /* Enhanced Color Palette - More depth and gradients */
+  --pixel-primary: #ff6b35;
+  --pixel-secondary: #4ecdc4;
+  --pixel-accent: #ff1744;
+  --pixel-dark: #1a1a2e;
+  --pixel-light: #f5f5f5;
+  
+  /* Gradient Colors for depth */
+  --gradient-orange: linear-gradient(135deg, #ff9a56, #ff6b35, #ff4410);
+  --gradient-blue: linear-gradient(135deg, #6ee7df, #4ecdc4, #2ca8a0);
+  --gradient-purple: linear-gradient(135deg, #b794f6, #9f7aea, #805ad5);
+  --gradient-green: linear-gradient(135deg, #68d391, #48bb78, #38a169);
+  --gradient-red: linear-gradient(135deg, #fc8181, #f56565, #e53e3e);
+  
+  /* Shadow Colors for depth */
+  --shadow-light: rgba(255, 255, 255, 0.2);
+  --shadow-dark: rgba(0, 0, 0, 0.3);
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  
+  /* Pixel Sizes */
+  --pixel-size: 2px;
+  --pixel-size-large: 4px;
+}
+
+/* Enhanced Pixel Art Rendering */
+* {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Smooth animations while maintaining pixel art */
+@keyframes pixel-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.2); }
+}
+
+@keyframes pixel-glow {
+  0%, 100% { 
+    box-shadow: 
+      0 0 10px var(--shadow-color),
+      inset 0 0 5px var(--shadow-light);
+  }
+  50% { 
+    box-shadow: 
+      0 0 20px var(--pixel-accent),
+      inset 0 0 10px var(--shadow-light);
+  }
+}
+
+@keyframes pixel-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-5px) scale(1.02); }
+  75% { transform: translateY(5px) scale(0.98); }
+}
+
+@keyframes pixel-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Enhanced Pixel Buttons with Depth */
+.pixel-button-enhanced {
+  position: relative;
+  padding: 12px 24px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  
+  /* Multi-layer border effect */
+  background: var(--gradient-orange);
+  box-shadow: 
+    /* Outer border */
+    0 0 0 2px var(--pixel-dark),
+    /* 3D effect */
+    4px 4px 0 0 var(--pixel-dark),
+    /* Inner glow */
+    inset 0 2px 0 var(--shadow-light),
+    inset 0 -2px 0 var(--shadow-dark);
+}
+
+.pixel-button-enhanced:hover {
+  transform: translate(-2px, -2px);
+  filter: brightness(1.1);
+  box-shadow: 
+    0 0 0 2px var(--pixel-dark),
+    6px 6px 0 0 var(--pixel-dark),
+    inset 0 2px 0 var(--shadow-light),
+    inset 0 -2px 0 var(--shadow-dark),
+    0 0 20px rgba(255, 107, 53, 0.5);
+}
+
+.pixel-button-enhanced:active {
+  transform: translate(2px, 2px);
+  box-shadow: 
+    0 0 0 2px var(--pixel-dark),
+    2px 2px 0 0 var(--pixel-dark),
+    inset 0 2px 0 var(--shadow-dark),
+    inset 0 -2px 0 var(--shadow-light);
+}
+
+/* Enhanced Pixel Cards with Glass Effect */
+.pixel-card-enhanced {
+  position: relative;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1), 
+    rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(10px);
+  border: 2px solid var(--pixel-dark);
+  padding: 20px;
+  
+  /* Enhanced 3D border effect */
+  box-shadow: 
+    /* Main border */
+    0 0 0 2px var(--pixel-dark),
+    /* 3D layers */
+    2px 2px 0 2px rgba(0, 0, 0, 0.2),
+    4px 4px 0 2px rgba(0, 0, 0, 0.1),
+    /* Inner highlights */
+    inset 2px 2px 0 var(--shadow-light),
+    inset -2px -2px 0 var(--shadow-dark);
+}
+
+.pixel-card-enhanced::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: var(--gradient-purple);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.pixel-card-enhanced:hover::before {
+  opacity: 0.3;
+  animation: pixel-glow 2s infinite;
+}
+
+/* Enhanced Character Sprites */
+.pixel-character {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  
+  /* Dynamic shadows for depth */
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+}
+
+.pixel-character::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 8px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.3), transparent);
+  border-radius: 50%;
+}
+
+/* Enhanced Weapon Sprites */
+.pixel-weapon {
+  position: relative;
+  image-rendering: pixelated;
+  
+  /* Metallic shine effect */
+  background: linear-gradient(135deg,
+    #c0c0c0 0%,
+    #e0e0e0 20%,
+    #ffffff 30%,
+    #c0c0c0 50%,
+    #808080 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.pixel-weapon::before {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.8), 
+    transparent);
+  animation: weapon-shine 3s infinite;
+}
+
+@keyframes weapon-shine {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+/* Enhanced Particle Effects */
+.pixel-particle {
+  position: absolute;
+  width: var(--pixel-size-large);
+  height: var(--pixel-size-large);
+  background: var(--pixel-accent);
+  box-shadow: 
+    0 0 4px var(--pixel-accent),
+    0 0 8px var(--pixel-accent);
+}
+
+.pixel-explosion {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  
+  /* Multi-frame explosion animation */
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAOklEQVQoU2NkYGD4z0ABYBw1gBGKF1Ag8P8/AwMDA==');
+  animation: explosion-frames 0.5s steps(8) forwards;
+}
+
+@keyframes explosion-frames {
+  to { background-position: -256px 0; }
+}
+
+/* Enhanced Muzzle Flash */
+.pixel-muzzle-flash {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle,
+    rgba(255, 255, 200, 1) 0%,
+    rgba(255, 200, 100, 0.8) 30%,
+    rgba(255, 100, 0, 0.6) 60%,
+    transparent 100%);
+  animation: muzzle-flash 0.1s ease-out forwards;
+}
+
+@keyframes muzzle-flash {
+  0% { 
+    transform: scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5) rotate(180deg);
+    opacity: 0.8;
+  }
+  100% { 
+    transform: scale(2) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Enhanced Blood/Hit Effects */
+.pixel-blood {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #cc0000;
+  box-shadow: 
+    2px 0 0 #990000,
+    0 2px 0 #990000,
+    2px 2px 0 #660000;
+  animation: blood-splat 0.3s ease-out forwards;
+}
+
+@keyframes blood-splat {
+  0% { 
+    transform: scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2) rotate(45deg);
+  }
+  100% { 
+    transform: scale(1) rotate(90deg) translateY(10px);
+    opacity: 0.7;
+  }
+}
+
+/* Enhanced Smoke Effects */
+.pixel-smoke {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle,
+    rgba(128, 128, 128, 0.8) 0%,
+    rgba(160, 160, 160, 0.6) 40%,
+    rgba(192, 192, 192, 0.3) 70%,
+    transparent 100%);
+  filter: blur(1px);
+  animation: smoke-rise 2s ease-out forwards;
+}
+
+@keyframes smoke-rise {
+  0% { 
+    transform: scale(0.5) translateY(0);
+    opacity: 0.8;
+  }
+  100% { 
+    transform: scale(2) translateY(-20px);
+    opacity: 0;
+  }
+}
+
+/* Enhanced Environment Tiles */
+.pixel-tile {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  
+  /* Texture variation */
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+}
+
+.pixel-tile-wall {
+  background-color: #4a4a4a;
+  box-shadow: 
+    inset 2px 2px 0 #5a5a5a,
+    inset -2px -2px 0 #3a3a3a;
+}
+
+.pixel-tile-floor {
+  background-color: #8b7355;
+  box-shadow: 
+    inset 1px 1px 0 #9b8365,
+    inset -1px -1px 0 #7b6345;
+}
+
+.pixel-tile-water {
+  background: linear-gradient(135deg, #006994, #0099cc);
+  animation: water-wave 2s linear infinite;
+}
+
+@keyframes water-wave {
+  0%, 100% { 
+    background-position: 0 0;
+    filter: brightness(1);
+  }
+  50% { 
+    background-position: 4px 4px;
+    filter: brightness(1.1);
+  }
+}
+
+/* Enhanced HUD Elements */
+.pixel-hud {
+  font-family: 'Press Start 2P', monospace;
+  padding: 10px;
+  background: linear-gradient(135deg,
+    rgba(0, 0, 0, 0.9),
+    rgba(0, 0, 0, 0.7));
+  border: 2px solid var(--pixel-dark);
+  box-shadow: 
+    inset 2px 2px 0 var(--shadow-light),
+    inset -2px -2px 0 var(--shadow-dark),
+    0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.pixel-health-bar {
+  position: relative;
+  width: 200px;
+  height: 20px;
+  background: #2a2a2a;
+  border: 2px solid var(--pixel-dark);
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.pixel-health-fill {
+  height: 100%;
+  background: linear-gradient(180deg,
+    #00ff00 0%,
+    #00cc00 50%,
+    #009900 100%);
+  transition: width 0.3s ease;
+  box-shadow: 
+    inset 2px 2px 0 rgba(255, 255, 255, 0.3),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.pixel-health-fill.low {
+  background: linear-gradient(180deg,
+    #ff3333 0%,
+    #cc0000 50%,
+    #990000 100%);
+  animation: health-pulse 0.5s infinite;
+}
+
+@keyframes health-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Enhanced Minimap */
+.pixel-minimap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 3px solid var(--pixel-dark);
+  box-shadow: 
+    inset 3px 3px 0 rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(0, 255, 0, 0.2);
+  image-rendering: pixelated;
+}
+
+.pixel-minimap-player {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #00ff00;
+  box-shadow: 0 0 4px #00ff00;
+  animation: radar-ping 2s infinite;
+}
+
+@keyframes radar-ping {
+  0%, 100% { 
+    box-shadow: 0 0 4px #00ff00;
+  }
+  50% { 
+    box-shadow: 0 0 8px #00ff00, 0 0 16px rgba(0, 255, 0, 0.5);
+  }
+}
+
+/* Enhanced Crosshair */
+.pixel-crosshair {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.pixel-crosshair::before,
+.pixel-crosshair::after {
+  content: '';
+  position: absolute;
+  background: #00ff00;
+  box-shadow: 
+    0 0 2px #00ff00,
+    0 0 4px rgba(0, 255, 0, 0.5);
+}
+
+.pixel-crosshair::before {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.pixel-crosshair::after {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+/* Enhanced Damage Numbers */
+.pixel-damage {
+  position: absolute;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffff00;
+  text-shadow: 
+    2px 2px 0 #ff0000,
+    -1px -1px 0 #000000,
+    1px -1px 0 #000000,
+    -1px 1px 0 #000000,
+    1px 1px 0 #000000;
+  animation: damage-float 1s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes damage-float {
+  0% { 
+    transform: translateY(0) scale(0.5);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.2);
+  }
+  100% { 
+    transform: translateY(-40px) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Enhanced Loading Screen */
+.pixel-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+}
+
+.pixel-loading-bar {
+  width: 300px;
+  height: 30px;
+  background: #2a2a2a;
+  border: 3px solid var(--pixel-dark);
+  box-shadow: 
+    inset 3px 3px 0 rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(255, 107, 53, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.pixel-loading-fill {
+  height: 100%;
+  background: var(--gradient-orange);
+  animation: loading-fill 2s ease-in-out infinite;
+}
+
+@keyframes loading-fill {
+  0% { width: 0%; }
+  50% { width: 100%; }
+  100% { width: 0%; }
+}
+
+/* Font Import for Pixel Style */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
