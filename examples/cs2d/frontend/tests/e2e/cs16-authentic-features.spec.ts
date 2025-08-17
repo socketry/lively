@@ -10,7 +10,7 @@ test.describe('🎮 CS 1.6 AUTHENTIC FEATURES TEST', () => {
     console.log('📍 PHASE 1: LOADING AUTHENTIC CS 1.6 INTERFACE');
     console.log('='.repeat(60));
     
-    await page.goto('http://localhost:3003/game');
+    await page.goto('http://localhost:3000/game');
     await page.waitForLoadState('networkidle');
     
     // Check for CS 1.6 authentic canvas
@@ -408,7 +408,7 @@ test.describe('🎮 CS 1.6 AUTHENTIC FEATURES TEST', () => {
     console.log('\n🔊 TESTING AUDIO SYSTEM INTEGRATION');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3003/game');
+    await page.goto('http://localhost:3000/game');
     await page.waitForLoadState('networkidle');
     
     // Test audio context creation
@@ -455,7 +455,7 @@ test.describe('🎮 CS 1.6 AUTHENTIC FEATURES TEST', () => {
     
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
-      await page.goto('http://localhost:3003/game');
+      await page.goto('http://localhost:3000/game');
       await page.waitForLoadState('networkidle');
       
       // Check HUD elements are still visible

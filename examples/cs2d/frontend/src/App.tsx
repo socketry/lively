@@ -13,6 +13,8 @@ const NotFoundView = React.lazy(() => import('./views/NotFoundView'));
 // Import new components
 import { GameLobby } from './components/GameLobby';
 import { ModernGameLobby } from './components/ModernGameLobby';
+import { EnhancedModernLobby } from './components/EnhancedModernLobby';
+import { EnhancedWaitingRoom } from './components/EnhancedWaitingRoom';
 import { GameRoom } from './components/GameRoom';
 import { GameCanvas } from './components/GameCanvas';
 import { I18nProvider } from './contexts/I18nContext';
@@ -23,6 +25,7 @@ import { PixelWaitingRoom } from './components/pixel/PixelWaitingRoom';
 
 // Import pixel styles
 import './styles/pixel.css';
+import './styles/enhanced-pixel.css';
 
 function App() {
   React.useEffect(() => {
@@ -51,12 +54,16 @@ function App() {
           </div>
         }>
           <Routes>
-            {/* Modern UI Routes */}
-            <Route path="/" element={<ModernGameLobby />} />
-            <Route path="/lobby" element={<ModernGameLobby />} />
-            <Route path="/room/:id" element={<GameRoom />} />
+            {/* Enhanced Modern UI Routes (Default) */}
+            <Route path="/" element={<EnhancedModernLobby />} />
+            <Route path="/lobby" element={<EnhancedModernLobby />} />
+            <Route path="/room/:id" element={<EnhancedWaitingRoom roomId={window.location.pathname.split('/').pop() || '1'} />} />
             <Route path="/game/:id" element={<GameCanvas />} />
             <Route path="/game" element={<GameCanvas />} />
+            
+            {/* Legacy Modern UI Routes */}
+            <Route path="/legacy" element={<ModernGameLobby />} />
+            <Route path="/legacy/room/:id" element={<GameRoom />} />
             
             {/* Pixel UI Routes */}
             <Route path="/pixel" element={<PixelGameLobby />} />

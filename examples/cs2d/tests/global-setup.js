@@ -1,5 +1,5 @@
 // @ts-check
-const { chromium } = require('@playwright/test');
+import { chromium } from '@playwright/test';
 
 /**
  * Global setup for Playwright tests
@@ -67,4 +67,4 @@ async function globalSetup(config) {
   }
 }
 
-module.exports = globalSetup;
+export default globalSetup;

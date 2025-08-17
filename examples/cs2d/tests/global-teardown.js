@@ -1,5 +1,5 @@
 // @ts-check
-const { chromium } = require('@playwright/test');
+import { chromium } from '@playwright/test';
 
 /**
  * Global teardown for Playwright tests
@@ -30,4 +30,4 @@ async function globalTeardown(config) {
   }
 }
 
-module.exports = globalTeardown;
+export default globalTeardown;

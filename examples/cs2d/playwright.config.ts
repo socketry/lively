@@ -102,8 +102,8 @@ const config: PlaywrightTestConfig = defineConfig({
   ],
 
   /* Global setup and teardown */
-  globalSetup: './tests/global-setup.ts',
-  globalTeardown: './tests/global-teardown.ts',
+  globalSetup: './tests/global-setup.js',
+  globalTeardown: './tests/global-teardown.js',
 
   /* Run your local dev server before starting the tests */
   webServer: [
