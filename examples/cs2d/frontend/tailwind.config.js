@@ -27,7 +27,8 @@ export default {
       },
       fontFamily: {
         'cs': ['Counter-Strike', 'Arial', 'sans-serif'],
-        'mono': ['Consolas', 'Monaco', 'monospace']
+        'mono': ['Consolas', 'Monaco', 'monospace'],
+        'pixel': ['Press Start 2P', 'monospace']
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -108,6 +109,28 @@ export default {
         },
         '.crosshair': {
           cursor: 'crosshair'
+        },
+        // Pixel Art utilities
+        '.pixel-art': {
+          imageRendering: '-moz-crisp-edges',
+          imageRendering: '-webkit-crisp-edges', 
+          imageRendering: 'pixelated',
+          imageRendering: 'crisp-edges'
+        },
+        '.pixel-font': {
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: '8px',
+          lineHeight: '1.5',
+          textRendering: 'optimizeSpeed',
+          imageRendering: 'pixelated',
+          WebkitFontSmoothing: 'none',
+          MozOsxFontSmoothing: 'unset'
+        },
+        '.pixel-border': {
+          border: '3px solid',
+          borderImageSource: 'url("data:image/svg+xml,%3csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3e%3cpath d=\'m0,0 L100,0 L100,100 L0,100 Z\' fill=\'none\' stroke=\'%23ffffff\' stroke-width=\'4\'/%3e%3c/svg%3e")',
+          borderImageSlice: '4',
+          borderImageWidth: '4px'
         }
       });
       
@@ -120,6 +143,61 @@ export default {
         },
         '.status-indicator': {
           '@apply w-2 h-2 rounded-full animate-pulse': {}
+        },
+        // Pixel Components
+        '.pixel-button': {
+          '@apply font-pixel pixel-art text-white cursor-pointer transition-none py-2 px-4 min-h-8 min-w-16 text-xs': {},
+          background: 'linear-gradient(145deg, #5a9fd4 0%, #306998 100%)',
+          border: '3px solid',
+          borderColor: '#7bb3e0 #1e4b66 #1e4b66 #7bb3e0',
+          textShadow: '1px 1px 0px #000',
+          '&:hover': {
+            background: 'linear-gradient(145deg, #6bb0e5 0%, #4179a9 100%)',
+            borderColor: '#8cc4f1 #2f5c77 #2f5c77 #8cc4f1'
+          },
+          '&:active': {
+            background: 'linear-gradient(145deg, #306998 0%, #5a9fd4 100%)',
+            borderColor: '#1e4b66 #7bb3e0 #7bb3e0 #1e4b66'
+          }
+        },
+        '.pixel-panel': {
+          '@apply pixel-art p-4': {},
+          background: 'linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 100%)',
+          border: '3px solid',
+          borderColor: '#666 #333 #333 #666',
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: '-3px',
+            left: '-3px',
+            right: '-3px',
+            bottom: '-3px',
+            border: '1px solid #888',
+            pointerEvents: 'none'
+          }
+        },
+        '.pixel-input': {
+          '@apply font-pixel pixel-art w-full bg-black text-green-400 p-2 outline-none': {},
+          border: '3px solid',
+          borderColor: '#333 #666 #666 #333',
+          caretColor: '#00ff00',
+          '&::placeholder': {
+            color: '#555'
+          },
+          '&:focus': {
+            borderColor: '#00ff00 #00aa00 #00aa00 #00ff00',
+            boxShadow: '0 0 8px rgba(0, 255, 0, 0.4)'
+          }
+        },
+        '.pixel-title': {
+          '@apply font-pixel text-white text-base': {},
+          textShadow: '2px 2px 0px #000',
+          letterSpacing: '2px'
+        },
+        '.pixel-text': {
+          '@apply font-pixel text-white text-xs': {},
+          letterSpacing: '1px'
         }
       });
     }

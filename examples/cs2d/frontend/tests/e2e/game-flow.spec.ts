@@ -1,4 +1,4 @@
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
 test.describe('CS2D Complete Game Flow', () => {
   let context: BrowserContext;

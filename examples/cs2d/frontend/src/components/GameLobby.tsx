@@ -52,7 +52,7 @@ export const GameLobby: React.FC = () => {
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-400">Players Online: 247</span>
             <div className="flex items-center space-x-2" data-testid="connection-status" data-status="connected">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
               <span className="text-xs text-green-500">Connected</span>
             </div>
           </div>

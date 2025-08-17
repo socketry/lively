@@ -17,6 +17,13 @@ import { GameRoom } from './components/GameRoom';
 import { GameCanvas } from './components/GameCanvas';
 import { I18nProvider } from './contexts/I18nContext';
 
+// Import pixel components
+import { PixelGameLobby } from './components/pixel/PixelGameLobby';
+import { PixelWaitingRoom } from './components/pixel/PixelWaitingRoom';
+
+// Import pixel styles
+import './styles/pixel.css';
+
 function App() {
   React.useEffect(() => {
     // Set game state for Playwright tests
@@ -44,11 +51,21 @@ function App() {
           </div>
         }>
           <Routes>
+            {/* Modern UI Routes */}
             <Route path="/" element={<ModernGameLobby />} />
             <Route path="/lobby" element={<ModernGameLobby />} />
             <Route path="/room/:id" element={<GameRoom />} />
             <Route path="/game/:id" element={<GameCanvas />} />
             <Route path="/game" element={<GameCanvas />} />
+            
+            {/* Pixel UI Routes */}
+            <Route path="/pixel" element={<PixelGameLobby />} />
+            <Route path="/pixel/lobby" element={<PixelGameLobby />} />
+            <Route path="/pixel/room/:id" element={<PixelWaitingRoom />} />
+            <Route path="/pixel/game/:id" element={<GameCanvas />} />
+            <Route path="/pixel/game" element={<GameCanvas />} />
+            
+            {/* Other Routes */}
             <Route path="/settings" element={<SettingsView />} />
             <Route path="/about" element={<AboutView />} />
             <Route path="*" element={<NotFoundView />} />

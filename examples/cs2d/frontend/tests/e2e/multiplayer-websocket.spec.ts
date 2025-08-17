@@ -572,8 +572,8 @@ test.describe('Multiplayer and WebSocket', () => {
             loadTime: perf.loadEventEnd - perf.fetchStart,
             domReady: perf.domContentLoadedEventEnd - perf.fetchStart
           };
-        })
-      );
+        });
+      });
       
       // All should load in reasonable time
       for (const metric of metrics) {

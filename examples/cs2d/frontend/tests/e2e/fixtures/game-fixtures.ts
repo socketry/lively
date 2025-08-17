@@ -1,4 +1,4 @@
-import { test as base, Page } from '@playwright/test';
+import { test as base, type Page } from '@playwright/test';
 import { GameHelpers } from '../helpers/game-helpers';
 import { LobbyHelpers } from '../helpers/lobby-helpers';
 
@@ -189,7 +189,7 @@ export async function measurePerformance(page: Page): Promise<{
     return new Promise<any>((resolve) => {
       // Measure FPS
       let fps = 0;
-      let lastTime = performance.now();
+      const lastTime = performance.now();
       let frameCount = 0;
       
       const measureFPS = () => {

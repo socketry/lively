@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { type Page, expect } from '@playwright/test';
 
 /**
  * Game helper functions for Playwright tests
@@ -237,7 +237,7 @@ export class GameHelpers {
   async getCurrentFPS(): Promise<number> {
     return await this.page.evaluate(() => {
       return new Promise<number>((resolve) => {
-        let lastTime = performance.now();
+        const lastTime = performance.now();
         let frames = 0;
         
         const measureFPS = () => {
