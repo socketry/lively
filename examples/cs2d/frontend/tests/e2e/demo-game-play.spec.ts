@@ -180,9 +180,9 @@ test.describe('🎮 CS2D Game Demo', () => {
     // Go to main page
     await page.goto('http://localhost:3000');
     
-    // Look for any "Play", "Start", "Join" buttons
+    // Look for any "Play", "Start", "Join", "Create Room" buttons
     const playButtons = page.locator('button, a').filter({ 
-      hasText: /play|start|join|enter|begin|lobby|game|quick/i 
+      hasText: /play|start|join|enter|begin|lobby|game|quick|create.*room|room|新建|創建/i 
     });
     
     const playButtonCount = await playButtons.count();
@@ -196,6 +196,31 @@ test.describe('🎮 CS2D Game Demo', () => {
       
       await firstButton.click();
       await page.waitForTimeout(2000);
+      
+      // If this opened a modal, try to fill it and proceed
+      const modal = page.locator('[role="dialog"], .modal, [class*="modal"]');
+      const modalExists = await modal.count() > 0;
+      
+      if (modalExists) {
+        console.log('Room creation modal detected, filling form...');
+        
+        // Try to fill room name
+        const roomNameInput = page.locator('input[placeholder*="room" i], input[name*="name" i]').first();
+        if (await roomNameInput.count() > 0) {
+          await roomNameInput.fill('Test Game Room');
+        }
+        
+        // Try to find and click create/confirm button
+        const confirmButton = page.locator('button').filter({ 
+          hasText: /create|confirm|start|ok|確認|創建|開始/i 
+        }).first();
+        
+        if (await confirmButton.count() > 0) {
+          await confirmButton.click();
+          await page.waitForTimeout(2000);
+          console.log('Room created successfully');
+        }
+      }
       
       // Take screenshot after clicking
       await page.screenshot({ 
