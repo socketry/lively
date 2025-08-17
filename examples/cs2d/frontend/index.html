@@ -45,7 +45,7 @@
         width: 100vw;
       }
 
-      /* Loading screen while Vue.js loads */
+      /* Loading screen while React loads */
       .initial-loader {
         position: fixed;
         top: 0;
@@ -109,13 +109,13 @@
 
     <script
       type="module"
-      src="/src/main.ts"
+      src="/src/main.tsx"
     ></script>
 
-    <!-- Remove initial loader once Vue app loads -->
+    <!-- Remove initial loader once React app loads -->
     <script>
       window.addEventListener('DOMContentLoaded', () => {
-        // Remove loader after a short delay to ensure Vue has mounted
+        // Remove loader after a short delay to ensure React has mounted
         setTimeout(() => {
           const loader = document.getElementById('initial-loader')
           if (loader) {

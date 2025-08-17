@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 
+type SupportedLanguage = 'en' | 'zh-TW';
+
 interface GameSettings {
   volume: number;
   sensitivity: number;
   graphics: string;
-  language: string;
+  language: SupportedLanguage;
 }
 
 const SettingsView: React.FC = () => {
@@ -16,12 +18,12 @@ const SettingsView: React.FC = () => {
   const { state, actions } = useApp();
   const { addNotification } = actions;
   const settings = { volume: state.volume * 100, sensitivity: 50, graphics: 'medium', language: state.language };
-  const updateSettings = (newSettings: GameSettings) => { actions.setVolume(newSettings.volume / 100); actions.setLanguage(newSettings.language as 'en' | 'zh-TW'); };
+  const updateSettings = (newSettings: GameSettings) => { actions.setVolume(newSettings.volume / 100); actions.setLanguage(newSettings.language); };
   const [localSettings, setLocalSettings] = useState(settings || {
     volume: 50,
     sensitivity: 50,
     graphics: 'medium',
-    language: 'en'
+    language: 'en' as SupportedLanguage
   });
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,7 +39,7 @@ const SettingsView: React.FC = () => {
   };
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setLocalSettings({ ...localSettings, language: e.target.value });
+    setLocalSettings({ ...localSettings, language: e.target.value as SupportedLanguage });
   };
 
   const saveSettings = () => {
@@ -54,7 +56,7 @@ const SettingsView: React.FC = () => {
       volume: 50,
       sensitivity: 50,
       graphics: 'medium',
-      language: 'en'
+      language: 'en' as SupportedLanguage
     };
     setLocalSettings(defaultSettings);
     updateSettings(defaultSettings);
@@ -145,8 +147,6 @@ const SettingsView: React.FC = () => {
               >
                 <option value="en">English</option>
                 <option value="zh-TW">繁體中文</option>
-                <option value="es">Español</option>
-                <option value="fr">Français</option>
               </select>
             </div>
           </div>

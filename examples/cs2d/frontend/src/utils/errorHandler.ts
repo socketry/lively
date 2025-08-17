@@ -52,8 +52,9 @@ export function setupErrorHandler(_app?: unknown) {
   })
 
   // WebSocket error handler
-  window.addEventListener('ws-error', (event: CustomEvent) => {
-    logError(event.detail, 'WebSocket Error')
+  window.addEventListener('ws-error', (event: Event) => {
+    const customEvent = event as CustomEvent
+    logError(customEvent.detail, 'WebSocket Error')
   })
 }
 

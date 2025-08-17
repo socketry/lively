@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, type ReactNode } from 'react';
-import type { Player, GameState, GameStatus, Weapon, Position, PlayerInput } from '@/types/game';
+import type { Player, GameState, GameStatus, Weapon, Position, SimplePlayerInput } from '@/types/game';
 
 // Event data types for game events
 interface GameStateUpdateData {
@@ -75,7 +75,7 @@ interface GameContextState {
   bombPlanted: boolean;
   bombPosition: Position | null;
   bombTimer: number;
-  pendingInputs: PlayerInput[];
+  pendingInputs: SimplePlayerInput[];
   inputSequence: number;
   fps: number;
   ping: number;
@@ -96,7 +96,7 @@ type GameAction =
   | { type: 'SET_BOMB_PLANTED'; payload: boolean }
   | { type: 'SET_BOMB_POSITION'; payload: Position | null }
   | { type: 'SET_BOMB_TIMER'; payload: number }
-  | { type: 'ADD_PENDING_INPUT'; payload: PlayerInput }
+  | { type: 'ADD_PENDING_INPUT'; payload: SimplePlayerInput }
   | { type: 'REMOVE_PENDING_INPUTS'; payload: number }
   | { type: 'INCREMENT_INPUT_SEQUENCE' }
   | { type: 'UPDATE_PERFORMANCE_METRICS'; payload: { fps: number; ping: number; packetLoss: number } }

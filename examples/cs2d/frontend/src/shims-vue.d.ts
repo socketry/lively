@@ -1,4 +1,8 @@
 /* eslint-disable */
+// This file is no longer needed for React project
+// Keeping for reference but Vue declarations are commented out
+
+/*
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
   const component: DefineComponent<{}, {}, any>
@@ -11,3 +15,4 @@ declare module '@vue/runtime-core' {
     RouterView: (typeof import('vue-router'))['RouterView']
   }
 }
+*/

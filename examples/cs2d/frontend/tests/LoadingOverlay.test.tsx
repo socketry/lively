@@ -6,11 +6,11 @@ describe('LoadingOverlay Tailwind Styling', () => {
     const { container } = render(<LoadingOverlay isLoading={true} />);
     
     // Check for Tailwind classes
-    const element = container.firstChild;
+    const element = container.firstChild as HTMLElement;
     expect(element).toHaveClass(/^[a-z-]+/);
     
     // Verify no CSS modules
-    expect(element.className).not.toContain('module');
+    expect(element?.className).not.toContain('module');
   });
   
   it('applies responsive classes correctly', () => {

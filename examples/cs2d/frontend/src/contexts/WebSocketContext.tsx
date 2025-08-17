@@ -1,8 +1,12 @@
 import React, { createContext, useContext, useReducer, type ReactNode } from 'react';
 import type { ConnectionStatus, WebSocketMessage } from '@/types/websocket';
 
-interface ConnectionInfo extends ConnectionStatus {
+interface ConnectionInfo {
+  status: ConnectionStatus['status'];
   connected: boolean;
+  lastConnected?: Date;
+  latency?: number;
+  reconnectAttempts: number;
   messageCount: number;
   queuedCount: number;
 }
@@ -218,8 +222,6 @@ export const useWebSocket = () => {
   
   return {
     connectionStatus: state.connectionStatus.status,
-    latency: state.connectionStatus.latency,
-    reconnectAttempts: state.connectionStatus.reconnectAttempts,
     sendMessage,
     connect: () => actions.setConnectionStatus('connected'),
     disconnect: () => actions.setConnectionStatus('disconnected'),

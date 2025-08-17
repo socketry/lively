@@ -153,6 +153,16 @@ export interface PlayerInput {
   direction: number
 }
 
+// Simplified input for basic movement commands
+export interface SimplePlayerInput {
+  sequence: number
+  timestamp: number
+  dx?: number
+  dy?: number
+  weapon?: string
+  angle?: number
+}
+
 export interface MovementState {
   position: Position
   velocity: Velocity
@@ -209,6 +219,9 @@ export interface Room {
   status: 'waiting' | 'starting' | 'playing' | 'finished'
   settings: RoomSettings
   host: string
+  // Computed properties for room state
+  isHost?: boolean
+  allReady?: boolean
 }
 
 export interface RoomSettings {

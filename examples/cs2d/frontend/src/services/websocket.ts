@@ -200,20 +200,20 @@ class WebSocketService {
   }
 
   on<T = unknown>(event: string, handler: (data: T) => void): () => void {
-    this.emitter.on(event, handler)
+    this.emitter.on(event, handler as (data: unknown) => void)
     return () => this.off(event, handler)
   }
 
   off<T = unknown>(event: string, handler: (data: T) => void): void {
-    this.emitter.off(event, handler)
+    this.emitter.off(event, handler as (data: unknown) => void)
   }
 
   once<T = unknown>(event: string, handler: (data: T) => void): void {
-    const wrappedHandler = (data: T) => {
-      handler(data)
-      this.off(event, wrappedHandler)
+    const wrappedHandler = (data: unknown) => {
+      handler(data as T)
+      this.emitter.off(event, wrappedHandler)
     }
-    this.on(event, wrappedHandler)
+    this.emitter.on(event, wrappedHandler)
   }
 
   private startHeartbeat() {
