@@ -29,4 +29,6 @@ Gem::Specification.new do |spec|
 	spec.add_dependency "falcon", "~> 0.47"
 	spec.add_dependency "live", "~> 0.17"
 	spec.add_dependency "xrb"
+
+	spec.add_development_dependency "overcommit"
 end
