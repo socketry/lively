@@ -32,6 +32,11 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
   const [chatMessage, setChatMessage] = useState('');
   const [consoleCommand, setConsoleCommand] = useState('');
   const [fps, setFps] = useState(60);
+  // Simple round/phase state for SPA demo
+  const [phase, setPhase] = useState<'team-select' | 'freeze' | 'live'>(
+    'team-select'
+  );
+  const [buyTimeRemaining, setBuyTimeRemaining] = useState(20);
   
   // Player movement state
   const [_keys, setKeys] = useState({
@@ -66,6 +71,23 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
     bombPlanted: false,
     bombTimer: 35
   });
+
+  // Score and bomb-related state
+  const [ctScore, setCtScore] = useState(0);
+  const [tScore, setTScore] = useState(0);
+  const [hasBomb, setHasBomb] = useState(false);
+  const [bombPosition, setBombPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isPlanting, setIsPlanting] = useState(false);
+  const [plantProgress, setPlantProgress] = useState(0);
+  const [isDefusing, setIsDefusing] = useState(false);
+  const [defuseProgress, setDefuseProgress] = useState(0);
+  const [defuseKit, setDefuseKit] = useState(false);
+
+  // Bomb logic constants
+  const PLANT_TIME_MS = 3000;
+  const DEFUSE_TIME_MS = 10000;
+  const DEFUSE_KIT_TIME_MS = 5000;
+  const BOMB_TIMER_DEFAULT = 40; // seconds
 
   // Weapon configurations
   const weapons = useMemo(() => ({
@@ -740,11 +762,55 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
           setShowConsole(prev => !prev);
           break;
         case 'b':
-          if (!showBuyMenu.open) {
+          // Only allow buying during freeze/buy time
+          if (!showBuyMenu.open && phase === 'freeze') {
             setShowBuyMenu({ open: true, category: null });
             playSound('ui/buttonclick.wav');
           }
           break;
+        case 'e': {
+          if (phase !== 'live') break;
+          // Planting (Terrorists with bomb, not yet planted)
+          if (stats.team === 't' && hasBomb && !stats.bombPlanted && !isPlanting) {
+            setIsPlanting(true);
+            setPlantProgress(0);
+            const start = Date.now();
+            plantTimerRef.current = window.setInterval(() => {
+              const elapsed = Date.now() - start;
+              const progress = Math.min(1, elapsed / PLANT_TIME_MS);
+              setPlantProgress(progress);
+              if (progress >= 1) {
+                if (plantTimerRef.current) window.clearInterval(plantTimerRef.current);
+                plantTimerRef.current = null;
+                setIsPlanting(false);
+                setHasBomb(false);
+                setBombPosition({ x: (canvasRef.current?.width || 1920) / 2, y: (canvasRef.current?.height || 1080) / 2 });
+                setStats((prev) => ({ ...prev, bombPlanted: true, bombTimer: BOMB_TIMER_DEFAULT }));
+                playSound('radio/bombpl.wav', 0.7);
+              }
+            }, 50);
+          }
+          // Defusing (CTs near bomb when planted)
+          else if (stats.team === 'ct' && stats.bombPlanted && !isDefusing) {
+            setIsDefusing(true);
+            setDefuseProgress(0);
+            const start = Date.now();
+            const total = defuseKit ? DEFUSE_KIT_TIME_MS : DEFUSE_TIME_MS;
+            defuseTimerRef.current = window.setInterval(() => {
+              const elapsed = Date.now() - start;
+              const progress = Math.min(1, elapsed / total);
+              setDefuseProgress(progress);
+              if (progress >= 1) {
+                if (defuseTimerRef.current) window.clearInterval(defuseTimerRef.current);
+                defuseTimerRef.current = null;
+                setIsDefusing(false);
+                playSound('radio/bombdef.wav', 0.8);
+                endRound('ct');
+              }
+            }, 50);
+          }
+          break;
+        }
         case 'g': {
           // Demo grenade explosion effect
           const canvas = canvasRef.current;
@@ -806,6 +872,17 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
       if (['w', 'a', 's', 'd', 'shift', 'control', ' '].includes(key)) {
         setKeys(prev => ({ ...prev, [key === ' ' ? 'space' : key === 'control' ? 'ctrl' : key]: false }));
       }
+      if (key === 'e') {
+        // Cancel current plant/defuse
+        if (plantTimerRef.current) window.clearInterval(plantTimerRef.current);
+        if (defuseTimerRef.current) window.clearInterval(defuseTimerRef.current);
+        plantTimerRef.current = null;
+        defuseTimerRef.current = null;
+        setIsPlanting(false);
+        setIsDefusing(false);
+        setPlantProgress(0);
+        setDefuseProgress(0);
+      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
@@ -819,7 +896,7 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
 
   // Mouse controls
   const handleMouseClick = useCallback((e: React.MouseEvent) => {
-    if (showMenu || showBuyMenu.open || showScoreboard) return;
+    if (showMenu || showBuyMenu.open || showScoreboard || phase !== 'live') return;
     
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -872,7 +949,7 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
       // Empty clip sound
       playSound('weapons/clipempty_rifle.wav', 0.5);
     }
-  }, [stats.ammo, stats.currentWeapon, showMenu, showBuyMenu.open, showScoreboard, playSound, addVisualEffect]);
+  }, [stats.ammo, stats.currentWeapon, showMenu, showBuyMenu.open, showScoreboard, playSound, addVisualEffect, phase]);
 
   // Timer countdown
   useEffect(() => {
@@ -887,6 +964,87 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
     
     return () => clearInterval(timer);
   }, []);
+
+  // Freeze/buy timer countdown when in freeze phase
+  useEffect(() => {
+    if (phase !== 'freeze') return;
+    const id = setInterval(() => {
+      setBuyTimeRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(id);
+          setPhase('live');
+          setShowBuyMenu({ open: false, category: null });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  // On entering freeze, reset round states and assign bomb to Terrorists
+  useEffect(() => {
+    if (phase === 'freeze') {
+      // Reset bomb-related state for new round
+      setIsPlanting(false);
+      setPlantProgress(0);
+      setIsDefusing(false);
+      setDefuseProgress(0);
+      setBombPosition(null);
+      setStats((prev) => ({ ...prev, bombPlanted: false, bombTimer: 0, roundTime: 115 }));
+      // Assign bomb if player is T
+      setHasBomb((prevHasBomb) => (stats.team === 't' ? true : false));
+    }
+  }, [phase]);
+
+  // Bomb timer countdown when planted
+  useEffect(() => {
+    if (!stats.bombPlanted || stats.bombTimer <= 0) return;
+    const id = setInterval(() => {
+      setStats((prev) => {
+        if (!prev.bombPlanted) return prev;
+        const next = Math.max(0, prev.bombTimer - 1);
+        return { ...prev, bombTimer: next };
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [stats.bombPlanted, stats.bombTimer]);
+
+  // When bomb timer hits zero, Terrorists win by explosion
+  useEffect(() => {
+    if (stats.bombPlanted && stats.bombTimer === 0) {
+      endRound('t');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats.bombPlanted, stats.bombTimer]);
+
+  // Refs for plant/defuse timers
+  const plantTimerRef = useRef<number | null>(null);
+  const defuseTimerRef = useRef<number | null>(null);
+
+  const endRound = (winner: 'ct' | 't') => {
+    if (winner === 'ct') setCtScore((s) => s + 1);
+    if (winner === 't') setTScore((s) => s + 1);
+    // Award simple economy
+    const WIN_REWARD = 3250;
+    const LOSS_REWARD = 1400;
+    setStats((prev) => ({
+      ...prev,
+      money: prev.money + (prev.team === winner ? WIN_REWARD : LOSS_REWARD),
+      bombPlanted: false,
+      bombTimer: 0,
+      roundTime: 115
+    }));
+    setBombPosition(null);
+    setIsPlanting(false);
+    setIsDefusing(false);
+    setPlantProgress(0);
+    setDefuseProgress(0);
+    setPhase('freeze');
+    setBuyTimeRemaining(20);
+    // Give/clear bomb for next round
+    setHasBomb((prevHasBomb) => (stats.team === 't' ? true : false));
+  };
 
   return (
     <div className="relative w-full h-screen bg-gray-900 overflow-hidden font-mono" data-testid="cs16-game-container">
@@ -908,6 +1066,27 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
       
       {/* Authentic CS 1.6 HUD */}
       <div className="absolute inset-0 pointer-events-none select-none" style={{ pointerEvents: 'none' }}>
+        {/* Phase banners */}
+        {phase !== 'live' && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30">
+            <div className="px-4 py-2 bg-black/80 border-2 border-yellow-500 text-yellow-300 font-bold" style={{ imageRendering: 'pixelated' }}>
+              {phase === 'team-select' ? 'Select Team' : `Freeze Time — Buy: ${buyTimeRemaining}s`}
+            </div>
+          </div>
+          {stats.bombPlanted && (
+            <div className="bg-red-900/80 border-4 border-double border-red-600 px-4 py-2 ml-4"
+                 style={{
+                   fontFamily: 'monospace',
+                   fontSize: '14px',
+                   fontWeight: 'bold',
+                   color: '#FFAAAA',
+                   imageRendering: 'pixelated'
+                 }}
+                 data-testid="bomb-timer-box">
+              💣 BOMB: {stats.bombTimer}s
+            </div>
+          )}
+        )}
         {/* Top HUD - Pixel Art Style */}
         <div className="absolute top-2 left-0 right-0 flex justify-between items-start px-4">
           {/* Round Timer - Pixel Style */}
@@ -922,8 +1101,50 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
                }}
                data-testid="round-timer">
             {Math.floor(stats.roundTime / 60)}:{(stats.roundTime % 60).toString().padStart(2, '0')}
-          </div>
-          
+  </div>
+  
+  {/* Team Selection Overlay */}
+  {phase === 'team-select' && (
+    <div className="absolute inset-0 bg-black/70 flex items-center justify-center pointer-events-auto z-50">
+      <div className="bg-black border-4 border-double border-blue-400 p-6 w-[520px]" style={{ imageRendering: 'pixelated' }}>
+        <div className="text-center text-white font-bold text-xl mb-4">CHOOSE TEAM</div>
+        <div className="grid grid-cols-3 gap-4">
+          <button
+            className="p-4 bg-blue-900/40 border-2 border-blue-500 text-blue-200 hover:bg-blue-800/60"
+            onClick={() => {
+              setStats(prev => ({ ...prev, team: 'ct', money: 800, currentWeapon: 'USP', currentWeaponSlot: 1, ammo: { current: 12, max: 100 } }));
+              setPhase('freeze');
+              setBuyTimeRemaining(20);
+            }}
+          >
+            CT — Counter‑Terrorists
+          </button>
+          <button
+            className="p-4 bg-red-900/40 border-2 border-red-500 text-red-200 hover:bg-red-800/60"
+            onClick={() => {
+              setStats(prev => ({ ...prev, team: 't', money: 800, currentWeapon: 'Glock', currentWeaponSlot: 2, ammo: { current: 20, max: 120 } }));
+              setPhase('freeze');
+              setBuyTimeRemaining(20);
+            }}
+          >
+            T — Terrorists
+          </button>
+          <button
+            className="p-4 bg-gray-800 border-2 border-gray-600 text-gray-200 hover:bg-gray-700"
+            onClick={() => {
+              // Simple spectator defaults
+              setStats(prev => ({ ...prev, team: 'ct' }));
+              setPhase('freeze');
+              setBuyTimeRemaining(20);
+            }}
+          >
+            SPECTATOR
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
           {/* Team Score - Pixel Style */}
           <div className="bg-black border-4 border-double border-gray-500 px-6 py-2"
                style={{
@@ -933,11 +1154,11 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
                  imageRendering: 'pixelated'
                }}
                data-testid="team-score">
-            <span style={{ color: '#4A90E2', textShadow: '1px 1px 0px #000000' }}>CT: 0</span>
+            <span style={{ color: '#4A90E2', textShadow: '1px 1px 0px #000000' }}>CT: {ctScore}</span>
             <span style={{ color: '#FFFFFF', margin: '0 8px' }}>|</span>
-            <span style={{ color: '#E74C3C', textShadow: '1px 1px 0px #000000' }}>T: 0</span>
+            <span style={{ color: '#E74C3C', textShadow: '1px 1px 0px #000000' }}>T: {tScore}</span>
           </div>
-          
+
           {/* FPS and Net - Pixel Style */}
           <div className="text-right space-y-1">
             <div className="bg-black border-2 border-green-500 px-3 py-1"
@@ -1052,6 +1273,16 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
             }} data-testid="cs16-ammo">
               {stats.ammo.current} / {stats.ammo.max}
             </div>
+            {hasBomb && stats.team === 't' && !stats.bombPlanted && (
+              <div className="mt-2 text-red-300 text-sm" style={{ imageRendering: 'pixelated' }}>
+                You have the bomb — Hold [E] to plant
+              </div>
+            )}
+            {stats.bombPlanted && stats.team === 'ct' && (
+              <div className="mt-2 text-blue-300 text-sm" style={{ imageRendering: 'pixelated' }}>
+                Bomb planted — Hold [E] to defuse {defuseKit ? '(kit)' : ''}
+              </div>
+            )}
           </div>
         </div>
         
@@ -1187,8 +1418,8 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
         </div>
       </div>
       
-      {/* Buy Menu - Pixel Art Style */}
-      {showBuyMenu.open && (
+  {/* Buy Menu - Pixel Art Style */}
+  {showBuyMenu.open && (
         <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center pointer-events-auto">
           <div className="bg-black border-4 border-double border-yellow-500 p-8 w-96" 
                data-testid="cs16-buy-menu"
@@ -1281,12 +1512,41 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
                   <button
                     key={item.name}
                     onClick={() => {
-                      if (stats.money >= item.price) {
-                        setStats(prev => ({ ...prev, money: prev.money - item.price }));
-                        playSound('buttons/weapon_confirm.wav');
-                        setShowBuyMenu({ open: false, category: null });
-                      } else {
+                      if (stats.money < item.price) {
                         playSound('buttons/weapon_cant_buy.wav');
+                        return;
+                      }
+                      // Equipment handling
+                      if (showBuyMenu.category === 'equipment') {
+                        if (item.name === 'Defuse Kit' && stats.team === 'ct') {
+                          setDefuseKit(true);
+                          setStats(prev => ({ ...prev, money: prev.money - item.price }));
+                          playSound('items/kevlar.wav', 0.5);
+                          setShowBuyMenu({ open: false, category: null });
+                          return;
+                        }
+                        if (item.name.startsWith('Kevlar')) {
+                          setStats(prev => ({ ...prev, money: prev.money - item.price, armor: 100 }));
+                          playSound('items/kevlar.wav', 0.5);
+                          setShowBuyMenu({ open: false, category: null });
+                          return;
+                        }
+                      }
+                      // Weapons handling
+                      const nameToSlot: Record<string, number> = { 'USP': 1, 'Glock': 2, 'AK-47': 3, 'M4A1': 4, 'AWP': 5 };
+                      const slot = nameToSlot[item.name];
+                      const weapon = slot ? weapons[slot as 1|2|3|4|5] : undefined;
+                      if (weapon) {
+                        setStats(prev => ({
+                          ...prev,
+                          money: prev.money - item.price,
+                          currentWeapon: weapon.name,
+                          currentWeaponSlot: slot,
+                          ammo: { ...weapon.ammo }
+                        }));
+                        playSound('items/gunpickup2.wav', 0.3);
+                        setShowBuyMenu({ open: false, category: null });
+                        return;
                       }
                     }}
                     className={`w-full text-left px-4 py-2 border border-gray-600 ${
@@ -1464,6 +1724,26 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
                 [Q] DISCONNECT
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plant/Defuse Progress */}
+      {isPlanting && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-yellow-500 px-6 py-3 text-yellow-300"
+             style={{ imageRendering: 'pixelated' }}>
+          PLANTING... {Math.round(plantProgress * 100)}%
+          <div className="w-64 h-2 bg-gray-700 mt-2">
+            <div className="h-2 bg-yellow-400" style={{ width: `${plantProgress * 100}%` }} />
+          </div>
+        </div>
+      )}
+      {isDefusing && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/80 border-2 border-blue-500 px-6 py-3 text-blue-300"
+             style={{ imageRendering: 'pixelated' }}>
+          DEFUSING... {Math.round(defuseProgress * 100)}% {defuseKit ? '(KIT)' : ''}
+          <div className="w-64 h-2 bg-gray-700 mt-2">
+            <div className="h-2 bg-blue-400" style={{ width: `${defuseProgress * 100}%` }} />
           </div>
         </div>
       )}
