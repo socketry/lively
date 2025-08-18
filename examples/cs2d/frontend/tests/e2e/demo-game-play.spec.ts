@@ -8,7 +8,7 @@ test.describe('🎮 CS2D Game Demo', () => {
     
     // 1. Navigate to the game
     console.log('\n📍 Step 1: Loading CS2D...');
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     
     // Take screenshot of landing page
@@ -30,7 +30,7 @@ test.describe('🎮 CS2D Game Demo', () => {
     console.log('\n📍 Step 3: Exploring game routes...');
     
     // Try lobby
-    await page.goto('http://localhost:3000/lobby');
+    await page.goto('/lobby');
     await page.waitForTimeout(2000);
     await page.screenshot({ 
       path: 'tests/e2e/screenshots/2-lobby-page.png',
@@ -40,7 +40,7 @@ test.describe('🎮 CS2D Game Demo', () => {
     console.log(`   🏛️ Lobby page: ${lobbyText.substring(0, 100) || 'Empty'}`);
     
     // Try game
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForTimeout(2000);
     await page.screenshot({ 
       path: 'tests/e2e/screenshots/3-game-page.png',
@@ -178,7 +178,7 @@ test.describe('🎮 CS2D Game Demo', () => {
     console.log('='.repeat(50));
     
     // Go to main page
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     // Look for any "Play", "Start", "Join", "Create Room" buttons
     const playButtons = page.locator('button, a').filter({ 

@@ -5,7 +5,7 @@ test.describe('🎨 Modern UI with i18n Testing', () => {
     console.log('\n🎨 TESTING MODERN UI WITH GLASS MORPHISM');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     
     // Test 1: Modern header with gradient
@@ -48,7 +48,7 @@ test.describe('🎨 Modern UI with i18n Testing', () => {
     console.log('\n🌐 TESTING INTERNATIONALIZATION (i18n)');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     
     // Test default language (English)
@@ -124,7 +124,7 @@ test.describe('🎨 Modern UI with i18n Testing', () => {
     console.log('\n🎨 TESTING MODERN CREATE ROOM MODAL');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     // Open create room modal
     const createBtn = page.locator('[data-testid="create-room-btn"]');
@@ -173,7 +173,7 @@ test.describe('🎨 Modern UI with i18n Testing', () => {
     console.log('\n🔍 TESTING SEARCH AND FILTER');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     
     // Test search
@@ -213,7 +213,7 @@ test.describe('🎨 Modern UI with i18n Testing', () => {
     console.log('\n🎯 FULL MODERN UI INTEGRATION TEST');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     // Test animations and effects
     console.log('🎨 Testing visual effects:');

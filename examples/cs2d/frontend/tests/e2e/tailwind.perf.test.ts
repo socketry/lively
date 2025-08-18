@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Tailwind Performance', () => {
   test('CSS bundle size is optimized', async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     const resources = await page.evaluate(() => 
       performance.getEntriesByType('resource') as PerformanceResourceTiming[]
     );

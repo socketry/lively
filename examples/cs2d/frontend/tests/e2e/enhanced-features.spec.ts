@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('CS2D Enhanced Features', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
   });
 
@@ -85,7 +85,7 @@ test.describe('CS2D Enhanced Features', () => {
 
   test('Enhanced Waiting Room with Bot Controls', async ({ page }) => {
     // Navigate to a room
-    await page.goto('http://localhost:3000/room/test-room');
+    await page.goto('/room/test-room');
     await page.waitForLoadState('networkidle');
     
     // Check if waiting room loaded
@@ -167,7 +167,7 @@ test.describe('CS2D Enhanced Features', () => {
 
   test('Room Settings Display', async ({ page }) => {
     // Navigate to waiting room
-    await page.goto('http://localhost:3000/room/test-room');
+    await page.goto('/room/test-room');
     await page.waitForLoadState('networkidle');
     
     // Check room settings panel
@@ -184,7 +184,7 @@ test.describe('CS2D Enhanced Features', () => {
 
   test('Chat System in Waiting Room', async ({ page }) => {
     // Navigate to waiting room
-    await page.goto('http://localhost:3000/room/test-room');
+    await page.goto('/room/test-room');
     await page.waitForLoadState('networkidle');
     
     // Check chat panel
@@ -211,7 +211,7 @@ test.describe('CS2D Enhanced Features', () => {
   test('Performance Check', async ({ page }) => {
     // Measure page load time
     const startTime = Date.now();
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
     const loadTime = Date.now() - startTime;
     
@@ -237,7 +237,7 @@ test.describe('CS2D Enhanced Features', () => {
 
 test.describe('Bot AI Integration', () => {
   test('Bot AI Configuration Available', async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     // Create a room with bots
     await page.locator('button:has-text("Create Room")').click();

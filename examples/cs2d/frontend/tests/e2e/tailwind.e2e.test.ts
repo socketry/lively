@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Tailwind CSS Integration', () => {
   test('styles load correctly', async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     // Check Tailwind utilities are applied
     const button = await page.locator('.btn-cs').first();
@@ -18,7 +18,7 @@ test.describe('Tailwind CSS Integration', () => {
   });
   
   test('responsive design works', async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     // Desktop view
     await page.setViewportSize({ width: 1920, height: 1080 });
@@ -40,7 +40,7 @@ test.describe('Tailwind CSS Integration', () => {
   });
   
   test('dark mode toggle works', async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     // Toggle dark mode
     const darkToggle = await page.locator('[data-testid="dark-mode-toggle"]');

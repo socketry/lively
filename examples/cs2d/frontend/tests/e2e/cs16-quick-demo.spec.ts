@@ -7,7 +7,7 @@ test.describe('🎮 CS 1.6 QUICK DEMONSTRATION', () => {
     console.log('🔫'.repeat(20) + '\n');
     
     // Navigate to game
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForLoadState('networkidle');
     console.log('✅ Game loaded');
     

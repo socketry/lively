@@ -5,7 +5,7 @@ test.describe('🔄 Development Test Loop - TailwindCSS UI', () => {
     console.log('\n🔄 DEV LOOP - ITERATION 1: LOBBY UI');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     
     // Test 1: Check lobby header
@@ -49,7 +49,7 @@ test.describe('🔄 Development Test Loop - TailwindCSS UI', () => {
     console.log('\n🔄 DEV LOOP - ITERATION 2: ROOM CREATION');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     
     // Click Create Room
     const createRoomBtn = page.locator('[data-testid="create-room-btn"]');
@@ -113,7 +113,7 @@ test.describe('🔄 Development Test Loop - TailwindCSS UI', () => {
     console.log('='.repeat(50));
     
     // Go directly to a room
-    await page.goto('http://localhost:3000/room/test-room');
+    await page.goto('/room/test-room');
     await page.waitForLoadState('networkidle');
     
     // Test room elements
@@ -155,7 +155,7 @@ test.describe('🔄 Development Test Loop - TailwindCSS UI', () => {
     console.log('='.repeat(50));
     
     // Go directly to game
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForLoadState('networkidle');
     
     // Test game container
@@ -240,7 +240,7 @@ test.describe('🔄 Development Test Loop - TailwindCSS UI', () => {
     console.log('='.repeat(50));
     
     // 1. Start at lobby
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     console.log('📍 Step 1: Lobby loaded');
     
     // 2. Create room
@@ -270,7 +270,7 @@ test.describe('🔄 Development Test Loop - TailwindCSS UI', () => {
     }
     
     // 6. Navigate to game manually if not redirected
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForLoadState('networkidle');
     
     // 7. Verify game loaded

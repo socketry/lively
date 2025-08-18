@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Quick Visual Verification', () => {
   test('direct game visual test', async ({ page }) => {
     // Go directly to game
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     
     // Wait for game to load
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });

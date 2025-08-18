@@ -7,7 +7,7 @@ test.describe('🎮 Interactive CS2D Game Demo', () => {
     console.log('🎮'.repeat(25) + '\n');
     
     // Go to the game
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     
     console.log('📍 Current page: ' + page.url());
@@ -221,11 +221,11 @@ test.describe('🎮 Interactive CS2D Game Demo', () => {
     const player2 = await context2.newPage();
     
     console.log('👤 Player 1 joining...');
-    await player1.goto('http://localhost:3000');
+    await player1.goto('/');
     await player1.waitForLoadState('networkidle');
     
     console.log('👤 Player 2 joining...');
-    await player2.goto('http://localhost:3000');
+    await player2.goto('/');
     await player2.waitForLoadState('networkidle');
     
     // Player 1 creates a room

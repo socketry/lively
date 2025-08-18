@@ -10,7 +10,7 @@ test.describe('🎮 CS 1.6 AUTHENTIC SHOWCASE', () => {
     console.log('📍 INITIALIZING CS 1.6 AUTHENTIC EXPERIENCE');
     console.log('='.repeat(60));
     
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForLoadState('networkidle');
     console.log('✅ CS 1.6 Game Environment Loaded');
     

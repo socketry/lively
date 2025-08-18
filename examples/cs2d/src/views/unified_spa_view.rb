@@ -76,6 +76,9 @@ class UnifiedSPAView < Live::View
 			handle_navigation(event[:detail])
 		when "hash_change"
 			handle_hash_change(event[:detail])
+		when "refresh_room"
+			@room_id ||= event[:detail][:room_id]
+			load_room_data
 			
 		# Lobby events
 		when "change_locale"
@@ -217,6 +220,28 @@ class UnifiedSPAView < Live::View
 						background: linear-gradient(135deg, #f44336, #da190b);
 						color: white;
 					}
+
+					/* New layout utilities */
+					.container { max-width: 1200px; margin: 0 auto; }
+					.header-bar { position: sticky; top: 0; z-index: 10; }
+					.layout-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 20px; }
+					@media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } }
+					.card { background: #2a2a2a; border-radius: 10px; padding: 16px; }
+					.card + .card { margin-top: 16px; }
+					.section-title { margin: 0 0 12px 0; font-size: 18px; }
+					.rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+					.room-card { background: #333; border-radius: 8px; padding: 14px; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+					.room-card:hover { background: #3a3a3a; }
+					.pill { padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+					.pill.ok { background: rgba(76,175,80,0.15); color: #81c784; }
+					.pill.warn { background: rgba(255,152,0,0.15); color: #ffb74d; }
+					.pill.full { background: rgba(244,67,54,0.15); color: #e57373; }
+					.toolbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+					.input { width: 100%; padding: 10px; background: #333; border: 1px solid #444; border-radius: 6px; color: white; }
+					.player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+					.player-item { background: #333; border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+					.avatar { width: 28px; height: 28px; border-radius: 50%; background: #555; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 8px; }
+					.meta-dim { font-size: 12px; opacity: 0.7; }
 				CSS
 				)
 			end
@@ -255,8 +280,8 @@ class UnifiedSPAView < Live::View
 	def render_lobby(builder)
 		builder.tag(:div, id: "lobby", style: "height: 100vh; display: flex; flex-direction: column;") do
 			# Header
-			builder.tag(:div, style: "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);") do
-				builder.tag(:div, style: "max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;") do
+			builder.tag(:div, class: "header-bar", style: "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);") do
+				builder.tag(:div, class: "container", style: "display: flex; justify-content: space-between; align-items: center;") do
 					builder.tag(:h1, style: "margin: 0; font-size: 28px; display: flex; align-items: center;") do
 						builder.text(I18n.t("lobby.title"))
 						builder.tag(:span, style: "margin-left: 10px; font-size: 14px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;") do
@@ -269,21 +294,31 @@ class UnifiedSPAView < Live::View
 			
 			# Main content
 			builder.tag(:div, style: "flex: 1; overflow-y: auto; padding: 20px;") do
-				builder.tag(:div, style: "max-width: 1200px; margin: 0 auto;") do
-					# Stats bar
-					render_stats_bar(builder)
-					
-					# Action buttons
-					render_action_buttons(builder)
-					
-					# Room creation form
-					render_room_creation_form(builder)
-					
-					# Join room form
-					render_join_room_form(builder)
-					
-					# Active rooms list
-					render_rooms_list(builder)
+				builder.tag(:div, class: "container") do
+					# Layout: left controls, right rooms
+					builder.tag(:div, class: "layout-grid") do
+						# Left column: controls
+						builder.tag(:div) do
+							builder.tag(:div, class: "card") do
+								builder.tag(:h2, class: "section-title") { builder.text(I18n.t("lobby.buttons.create_room")) }
+								render_room_creation_form(builder)
+							end
+							builder.tag(:div, class: "card") do
+								builder.tag(:h2, class: "section-title") { builder.text(I18n.t("lobby.buttons.join_room")) }
+								render_join_room_form(builder)
+							end
+							builder.tag(:div, class: "card") do
+								builder.tag(:h2, class: "section-title") { builder.text(I18n.t("lobby.stats.active_rooms")) }
+								render_stats_bar(builder)
+							end
+						end
+						# Right column: rooms list
+						builder.tag(:div) do
+							builder.tag(:div, class: "card") do
+								render_rooms_list(builder)
+							end
+						end
+					end
 				end
 			end
 		end
@@ -292,58 +327,81 @@ class UnifiedSPAView < Live::View
 	def render_room_waiting(builder)
 		builder.tag(:div, id: "room-waiting", style: "height: 100vh; display: flex; flex-direction: column; background: #1a1a1a;") do
 			# Header
-			builder.tag(:div, style: "background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px;") do
-				builder.tag(:h1, style: "margin: 0; text-align: center; font-size: 24px;") do
-					builder.text("Room: #{@room_id}")
+			builder.tag(:div, class: "header-bar", style: "background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 16px;") do
+				builder.tag(:div, class: "container toolbar") do
+					# Left: back/leave
+					leave_text = begin
+						I18n.t('lobby.buttons.leave')
+					rescue
+						'Leave'
+					end
+					builder.tag(:button,
+						class: "btn btn-danger",
+						onclick: "window.Live.event('leave_room', {})") { builder.text(leave_text) }
+					# Center: room id + copy
+					builder.tag(:div, style: "display:flex; align-items:center; gap:10px;") do
+						builder.tag(:h1, style: "margin: 0; font-size: 22px;") { builder.text("Room: #{@room_id}") }
+						builder.tag(:button, class: "btn btn-secondary", onclick: "navigator.clipboard.writeText('#{@room_id}')") { builder.text('Copy ID') }
+						builder.tag(:button, class: "btn btn-secondary", onclick: "navigator.clipboard.writeText(location.origin + location.pathname + '#room/#{@room_id}')") { builder.text('Copy Invite Link') }
+					end
+					# Right: ready info
+					if @room_data
+						ready = (@room_data[:players] || []).count { |p| p[:ready] }
+						total = @room_data[:player_count]
+						full = total >= (@room_data[:max_players] || total)
+						pill_class = full ? 'pill full' : (ready == total ? 'pill ok' : 'pill warn')
+						builder.tag(:span, class: pill_class) { builder.text("#{ready}/#{total} ready") }
+					end
 				end
 			end
 			
 			# Room info
 			if @room_data
-				builder.tag(:div, style: "padding: 20px; max-width: 800px; margin: 0 auto; flex: 1;") do
+				builder.tag(:div, class: "container", style: "flex:1; padding: 20px; overflow-y: auto;") do
 					# Players list
-					builder.tag(:div, style: "background: #2a2a2a; border-radius: 8px; padding: 20px; margin-bottom: 20px;") do
-						builder.tag(:h2) { builder.text("Players (#{@room_data[:player_count]}/#{@room_data[:max_players]})") }
-						builder.tag(:div, style: "display: grid; gap: 10px;") do
+					builder.tag(:div, class: "card") do
+						builder.tag(:h2, class: "section-title") { builder.text("Players (#{@room_data[:player_count]}/#{@room_data[:max_players]})") }
+						builder.tag(:div, class: "player-grid") do
 							(@room_data[:players] || []).each do |player|
-								builder.tag(:div, style: "background: #333; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between;") do
-									builder.tag(:span) { builder.text(player[:name] || player[:id]) }
-									builder.tag(:span, style: "color: #{player[:ready] ? '#4caf50' : '#ff9800'};") do
-										builder.text(player[:ready] ? "Ready" : "Not Ready")
+								builder.tag(:div, class: "player-item") do
+									builder.tag(:div, style: "display:flex; align-items:center;") do
+										initials = (player[:name] || player[:id]).to_s.split(/\s+/).map{|w| w[0]}.join[0,2].upcase
+										builder.tag(:span, class: "avatar") { builder.text(initials)
+										}
+										builder.tag(:div) do
+											builder.tag(:div) { builder.text(player[:name] || player[:id]) }
+											if player[:id] == @room_data[:creator_id]
+												builder.tag(:div, class: "meta-dim") { builder.text('Host') }
+											end
+										end
 									end
+									builder.tag(:span, class: (player[:ready] ? 'pill ok' : 'pill warn')) { builder.text(player[:ready] ? 'Ready' : 'Not Ready') }
 								end
 							end
 						end
 					end
 					
-					# Room settings
-					builder.tag(:div, style: "background: #2a2a2a; border-radius: 8px; padding: 20px; margin-bottom: 20px;") do
-						builder.tag(:h3) { builder.text("Settings") }
-						builder.tag(:p) { builder.text("Map: #{@room_data[:map] || 'de_dust2'}") }
-						builder.tag(:p) { builder.text("Status: #{@room_data[:status] || 'waiting'}") }
+					# Room settings + actions
+					builder.tag(:div, class: "card") do
+						builder.tag(:h3, class: "section-title") { builder.text("Settings") }
+						builder.tag(:div, class: "meta-dim") { builder.text("Map: #{@room_data[:map] || 'de_dust2'} • Status: #{@room_data[:status] || 'waiting'}") }
+						builder.tag(:div, class: "toolbar", style: "margin-top:12px;") do
+							if @player_id == @room_data[:creator_id]
+								all_ready = (@room_data[:players] || []).all? { |p| p[:ready] }
+								can_start = (@room_data[:player_count] || 0) >= 2 && all_ready
+								attrs = { class: "btn btn-primary", onclick: "window.Live.event('start_game', {})" }
+								attrs[:disabled] = true unless can_start
+								builder.tag(:button, **attrs) { builder.text("Start Game") }
+							else
+								builder.tag(:button, class: "btn btn-secondary", onclick: "window.Live.event('toggle_ready', {})") { builder.text("Toggle Ready") }
+							end
+							builder.tag(:span, class: "meta-dim") { builder.text("Auto-refreshing room…") }
+						end
 					end
 					
-					# Action buttons
-					builder.tag(:div, style: "display: flex; gap: 10px;") do
-						if @player_id == @room_data[:creator_id]
-							builder.tag(:button, 
-								class: "btn btn-primary",
-								onclick: "window.Live.event('start_game', {})") do
-								builder.text("Start Game")
-							end
-						else
-							builder.tag(:button,
-								class: "btn btn-secondary",
-								onclick: "window.Live.event('toggle_ready', {})") do
-								builder.text("Toggle Ready")
-							end
-						end
-						
-						builder.tag(:button,
-							class: "btn btn-danger",
-							onclick: "window.Live.event('leave_room', {})") do
-							builder.text("Leave Room")
-						end
+					# Auto refresh script
+					builder.tag(:script) do
+						builder.raw("(function(){ if(window.__roomRefresh) clearInterval(window.__roomRefresh); window.__roomRefresh = setInterval(function(){ window.Live?.event('refresh_room', {room_id: '#{@room_id}'}); }, 5000); })();")
 					end
 				end
 			else
@@ -660,7 +718,7 @@ class UnifiedSPAView < Live::View
 	end
 
 	def render_stats_bar(builder)
-		builder.tag(:div, style: "background: #2a2a2a; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: flex; justify-content: space-around;") do
+		builder.tag(:div, style: "background: #2a2a2a; border-radius: 8px; padding: 15px; display: flex; justify-content: space-around;") do
 			builder.tag(:div, style: "text-align: center;") do
 				builder.tag(:div, style: "font-size: 24px; font-weight: bold; color: #4caf50;") do
 					builder.text(@active_rooms.size.to_s)
@@ -672,28 +730,10 @@ class UnifiedSPAView < Live::View
 		end
 	end
 
-	def render_action_buttons(builder)
-		builder.tag(:div, style: "display: flex; gap: 10px; margin-bottom: 20px;") do
-			builder.tag(:button,
-				class: "btn btn-primary",
-				onclick: "document.getElementById('create-room-form').style.display = document.getElementById('create-room-form').style.display === 'none' ? 'block' : 'none'") do
-				builder.text(I18n.t("lobby.buttons.create_room"))
-			end
-			builder.tag(:button,
-				class: "btn btn-secondary",
-				onclick: "document.getElementById('join-room-form').style.display = document.getElementById('join-room-form').style.display === 'none' ? 'block' : 'none'") do
-				builder.text(I18n.t("lobby.buttons.join_room"))
-			end
-			builder.tag(:button,
-				class: "btn btn-secondary",
-				onclick: "window.Live.event('quick_join', {})") do
-				builder.text(I18n.t("lobby.buttons.quick_join"))
-			end
-		end
-	end
+	def render_action_buttons(builder); end
 
 	def render_room_creation_form(builder)
-		builder.tag(:div, id: "create-room-form", style: "display: none; background: #2a2a2a; border-radius: 8px; padding: 20px; margin-bottom: 20px;") do
+		builder.tag(:div, id: "create-room-form") do
 			builder.tag(:h2, style: "margin-top: 0;") do
 				builder.text(I18n.t("lobby.create_room.title"))
 			end
@@ -710,7 +750,7 @@ class UnifiedSPAView < Live::View
 						type: "text",
 						id: "room_name",
 						required: true,
-						style: "width: 100%; padding: 8px; background: #333; border: 1px solid #444; border-radius: 4px; color: white;")
+						class: "input")
 				end
 				
 				# Max players
@@ -720,7 +760,7 @@ class UnifiedSPAView < Live::View
 					end
 					builder.tag(:select,
 						id: "max_players",
-						style: "width: 100%; padding: 8px; background: #333; border: 1px solid #444; border-radius: 4px; color: white;") do
+						class: "input") do
 						[2, 4, 6, 8, 10].each do |num|
 							builder.tag(:option, value: num, selected: num == 2) do
 								builder.text(num.to_s)
@@ -736,7 +776,7 @@ class UnifiedSPAView < Live::View
 					end
 					builder.tag(:select,
 						id: "map",
-						style: "width: 100%; padding: 8px; background: #333; border: 1px solid #444; border-radius: 4px; color: white;") do
+						class: "input") do
 						["de_dust2", "de_inferno", "de_mirage", "de_nuke"].each do |map|
 							builder.tag(:option, value: map, selected: map == "de_dust2") do
 								builder.text(map)
@@ -775,7 +815,7 @@ class UnifiedSPAView < Live::View
 	end
 
 	def render_join_room_form(builder)
-		builder.tag(:div, id: "join-room-form", style: "display: none; background: #2a2a2a; border-radius: 8px; padding: 20px; margin-bottom: 20px;") do
+		builder.tag(:div, id: "join-room-form") do
 			builder.tag(:h2, style: "margin-top: 0;") do
 				builder.text(I18n.t("lobby.join_room.title"))
 			end
@@ -789,7 +829,7 @@ class UnifiedSPAView < Live::View
 						id: "join_room_id",
 						placeholder: I18n.t("lobby.join_room.room_id_placeholder"),
 						required: true,
-						style: "width: 100%; padding: 8px; background: #333; border: 1px solid #444; border-radius: 4px; color: white;")
+						class: "input")
 				end
 				builder.tag(:button,
 					type: "submit",
@@ -816,14 +856,13 @@ class UnifiedSPAView < Live::View
 	end
 
 	def render_rooms_list(builder)
-		builder.tag(:div, style: "background: #2a2a2a; border-radius: 8px; padding: 20px;") do
-			builder.tag(:h2, style: "margin-top: 0; display: flex; justify-content: space-between; align-items: center;") do
+		builder.tag(:div) do
+			builder.tag(:div, class: "toolbar", style: "margin-bottom: 10px;") do
 				builder.text(I18n.t("lobby.rooms.title"))
-				builder.tag(:button,
-					class: "btn btn-secondary",
-					style: "font-size: 14px; padding: 5px 10px;",
-					onclick: "window.Live.event('refresh_rooms', {})") do
-					builder.text("🔄 #{I18n.t('lobby.buttons.refresh')}")
+				builder.tag(:div, style: "display:flex; gap:8px; align-items:center;") do
+					builder.tag(:input, id: "rooms-filter", class: "input", placeholder: "Filter rooms…", oninput: "filterRooms(this.value)")
+					builder.tag(:button, class: "btn btn-secondary", style: "font-size: 14px; padding: 6px 10px;", onclick: "window.Live.event('refresh_rooms', {})") { builder.text("🔄 #{I18n.t('lobby.buttons.refresh')}") }
+					builder.tag(:button, class: "btn btn-secondary", style: "font-size: 14px; padding: 6px 10px;", onclick: "window.Live.event('quick_join', {})") { builder.text(I18n.t('lobby.buttons.quick_join')) }
 				end
 			end
 			
@@ -832,20 +871,34 @@ class UnifiedSPAView < Live::View
 					builder.text(I18n.t("lobby.rooms.no_rooms"))
 				end
 			else
-				builder.tag(:div, style: "display: grid; gap: 10px;") do
+				builder.tag(:div, id: "rooms-grid", class: "rooms-grid") do
 					@active_rooms.each do |room|
 						render_room_card(builder, room)
 					end
 				end
 			end
+			# Client-side filter
+			builder.tag(:script) do
+				builder.raw(<<~JS)
+					function filterRooms(q){
+						q = (q||'').toLowerCase();
+						document.querySelectorAll('#rooms-grid [data-room]').forEach(function(el){
+							const name = (el.dataset.name||'').toLowerCase();
+							const id = (el.dataset.id||'').toLowerCase();
+							el.style.display = (name.includes(q) || id.includes(q)) ? '' : 'none';
+						});
+					}
+				JS
+			end
 		end
 	end
 
 	def render_room_card(builder, room)
-		builder.tag(:div, 
-			style: "background: #333; border-radius: 6px; padding: 15px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; cursor: pointer;",
-			onmouseover: "this.style.background='#3a3a3a'",
-			onmouseout: "this.style.background='#333'") do
+		full = room[:player_count].to_i >= room[:max_players].to_i
+		pill = full ? 'pill full' : 'pill ok'
+		builder.tag(:div,
+			class: "room-card",
+			data: {room: true, id: room[:id], name: (room[:name] || "Room #{room[:id]}")}) do
 			
 			builder.tag(:div) do
 				builder.tag(:div, style: "font-weight: bold; font-size: 16px; margin-bottom: 5px;") do
@@ -857,12 +910,11 @@ class UnifiedSPAView < Live::View
 					builder.text("#{I18n.t('lobby.rooms.players')}: #{room[:player_count]}/#{room[:max_players]}")
 				end
 			end
-			
-			builder.tag(:button,
-				class: "btn btn-primary",
-				style: "font-size: 14px; padding: 8px 16px;",
-				onclick: "event.stopPropagation(); window.Live.event('join_room', {room_id: '#{room[:id]}'})") do
-				builder.text(I18n.t("lobby.buttons.join"))
+			builder.tag(:div, style: "display:flex; align-items:center; gap:8px;") do
+				builder.tag(:span, class: pill) { builder.text(full ? 'Full' : 'Open') }
+				attrs = { class: "btn btn-primary", style: "font-size:14px; padding:8px 16px;", onclick: "event.stopPropagation(); window.Live.event('join_room', {room_id: '#{room[:id]}'})" }
+				attrs[:disabled] = true if full
+				builder.tag(:button, **attrs) { builder.text(I18n.t("lobby.buttons.join")) }
 			end
 		end
 	end

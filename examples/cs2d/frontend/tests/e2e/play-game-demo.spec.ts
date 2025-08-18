@@ -10,7 +10,7 @@ test.describe('🎮 PLAY CS2D GAME DEMO', () => {
     console.log('📍 PHASE 1: ENTERING MODERN LOBBY');
     console.log('='.repeat(50));
     
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     
     // Check modern UI elements
@@ -149,7 +149,7 @@ test.describe('🎮 PLAY CS2D GAME DEMO', () => {
     console.log('='.repeat(50));
     
     // Navigate to game directly
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForLoadState('networkidle');
     
     // Check for game canvas

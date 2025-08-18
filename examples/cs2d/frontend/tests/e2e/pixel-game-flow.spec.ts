@@ -10,7 +10,7 @@ test.describe('🎮 PIXEL GAME FLOW TESTING', () => {
     console.log('📍 PHASE 1: ENTERING PIXEL GAME LOBBY');
     console.log('==================================================');
     
-    await page.goto('http://localhost:3000/pixel');
+    await page.goto('/pixel');
     await page.waitForLoadState('networkidle');
     
     // 验证像素风格元素
@@ -229,7 +229,7 @@ test.describe('🎮 PIXEL GAME FLOW TESTING', () => {
     console.log('\n🎨 TESTING PIXEL UI COMPONENTS');
     console.log('==================================================');
 
-    await page.goto('http://localhost:3000/pixel');
+    await page.goto('/pixel');
     await page.waitForLoadState('networkidle');
 
     // 测试像素按钮样式
@@ -257,7 +257,7 @@ test.describe('🎮 PIXEL GAME FLOW TESTING', () => {
     console.log('\n🚪 TESTING JOIN EXISTING ROOM FLOW');
     console.log('==================================================');
 
-    await page.goto('http://localhost:3000/pixel');
+    await page.goto('/pixel');
     await page.waitForLoadState('networkidle');
 
     // 点击第一个房间

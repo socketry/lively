@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('CS2D Visual Enhancements', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
   });
 
   test('should display modern glass morphism lobby', async ({ page }) => {
@@ -30,7 +30,7 @@ test.describe('CS2D Visual Enhancements', () => {
       await gameButton.click();
     } else {
       // Navigate directly to game
-      await page.goto('http://localhost:3000/game');
+      await page.goto('/game');
     }
     
     // Wait for game canvas to load
@@ -44,7 +44,7 @@ test.describe('CS2D Visual Enhancements', () => {
 
   test('should display enhanced HUD elements', async ({ page }) => {
     // Navigate directly to game
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     // Check for HUD elements
@@ -69,7 +69,7 @@ test.describe('CS2D Visual Enhancements', () => {
   });
 
   test('should display enhanced tactical minimap', async ({ page }) => {
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     // Check for enhanced radar
@@ -91,7 +91,7 @@ test.describe('CS2D Visual Enhancements', () => {
   });
 
   test('should trigger visual effects on interaction', async ({ page }) => {
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     const gameCanvas = page.locator('#cs16-game-canvas');
@@ -113,7 +113,7 @@ test.describe('CS2D Visual Enhancements', () => {
   });
 
   test('should display weapon switching effects', async ({ page }) => {
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     const weaponDisplay = page.locator('[data-testid="cs16-weapon"]');
@@ -132,7 +132,7 @@ test.describe('CS2D Visual Enhancements', () => {
   });
 
   test('should trigger grenade explosion effect', async ({ page }) => {
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     // Press 'g' to trigger grenade explosion
@@ -150,7 +150,7 @@ test.describe('CS2D Visual Enhancements', () => {
   });
 
   test('should handle game menu interactions', async ({ page }) => {
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     // Press Escape to open menu
@@ -172,7 +172,7 @@ test.describe('CS2D Visual Enhancements', () => {
   });
 
   test('should display buy menu with modern styling', async ({ page }) => {
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     // Press 'b' to open buy menu
@@ -198,7 +198,7 @@ test.describe('CS2D Visual Enhancements', () => {
   });
 
   test('should measure visual performance', async ({ page }) => {
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     // Wait for initial render
@@ -235,7 +235,7 @@ test.describe('CS2D Visual Enhancements', () => {
   });
 
   test('should verify modern art style elements', async ({ page }) => {
-    await page.goto('http://localhost:3000/game');
+    await page.goto('/game');
     await page.waitForSelector('[data-testid="cs16-game-container"]', { timeout: 15000 });
     
     const gameContainer = page.locator('[data-testid="cs16-game-container"]');
