@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 
 interface GameStats {
   health: number;
@@ -34,7 +34,7 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
   const [fps, setFps] = useState(60);
   
   // Player movement state
-  const [keys, setKeys] = useState({
+  const [_keys, setKeys] = useState({
     w: false, a: false, s: false, d: false,
     shift: false, ctrl: false, space: false
   });
@@ -68,13 +68,13 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
   });
 
   // Weapon configurations
-  const weapons = {
+  const weapons = useMemo(() => ({
     1: { name: 'USP', ammo: { current: 12, max: 100 }, damage: 34, price: 500 },
     2: { name: 'Glock', ammo: { current: 20, max: 120 }, damage: 25, price: 400 },
     3: { name: 'AK-47', ammo: { current: 30, max: 90 }, damage: 36, price: 2500 },
     4: { name: 'M4A1', ammo: { current: 30, max: 90 }, damage: 33, price: 3100 },
     5: { name: 'AWP', ammo: { current: 10, max: 30 }, damage: 115, price: 4750 }
-  };
+  }), []);
 
   // Buy menu items
   const buyMenuItems = {
@@ -102,7 +102,9 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
   // Audio system
   const playSound = useCallback((soundPath: string, volume = 0.3) => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const W = window as typeof window & { webkitAudioContext?: typeof AudioContext };
+      const Ctor = W.AudioContext || W.webkitAudioContext;
+      audioContextRef.current = new Ctor();
     }
     
     const audio = new Audio(`/cstrike/sound/${soundPath}`);
@@ -141,8 +143,13 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
     
     // Enable pixel art rendering
     ctx.imageSmoothingEnabled = false;
-    (ctx as any).webkitImageSmoothingEnabled = false;
-    (ctx as any).mozImageSmoothingEnabled = false;
+    type VendorCtx = CanvasRenderingContext2D & {
+      webkitImageSmoothingEnabled?: boolean;
+      mozImageSmoothingEnabled?: boolean;
+    };
+    const vctx = ctx as VendorCtx;
+    vctx.webkitImageSmoothingEnabled = false;
+    vctx.mozImageSmoothingEnabled = false;
     
     let animationId: number;
     let lastTime = 0;
@@ -173,6 +180,9 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
       
       // Draw visual effects
       drawVisualEffects(ctx, timestamp);
+      // Optional tactical overlays
+      drawTacticalMap(ctx, canvas.width, canvas.height);
+      drawTacticalCover(ctx, canvas.width, canvas.height);
       
       // Draw crosshair (CS 1.6 style)
       drawCS16Crosshair(ctx, canvas.width / 2, canvas.height / 2);
@@ -702,7 +712,7 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
     return () => {
       cancelAnimationFrame(animationId);
     };
-  }, [stats.team]);
+  }, [stats.team, visualEffects]);
 
   // Enhanced keyboard controls
   useEffect(() => {
@@ -805,7 +815,7 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [showChat, showConsole, showBuyMenu.open, playSound, addVisualEffect]);
+  }, [showChat, showConsole, showBuyMenu.open, playSound, addVisualEffect, weapons]);
 
   // Mouse controls
   const handleMouseClick = useCallback((e: React.MouseEvent) => {
@@ -862,7 +872,7 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
       // Empty clip sound
       playSound('weapons/clipempty_rifle.wav', 0.5);
     }
-  }, [stats.ammo.current, stats.currentWeapon, showMenu, showBuyMenu.open, showScoreboard, playSound, addVisualEffect]);
+  }, [stats.ammo, stats.currentWeapon, showMenu, showBuyMenu.open, showScoreboard, playSound, addVisualEffect]);
 
   // Timer countdown
   useEffect(() => {

@@ -32,7 +32,7 @@ export class GameHelpers {
       await this.page.waitForFunction(() => {
         const canvasEl = document.querySelector('canvas') as HTMLCanvasElement;
         return canvasEl && (canvasEl.getContext('webgl') || canvasEl.getContext('2d'));
-      }).catch(() => {}); // Don't fail if no canvas context
+      }).catch(() => undefined); // Don't fail if no canvas context
     }
   }
 

@@ -2,7 +2,6 @@ import { test, expect } from './fixtures/game-fixtures';
 import { 
   createMultiplePlayers, 
   simulateNetworkConditions,
-  captureGameState,
   waitForGameState 
 } from './fixtures/game-fixtures';
 
@@ -84,7 +83,7 @@ test.describe('Multiplayer and WebSocket', () => {
     test('should handle reconnection with state recovery', async ({ page, lobbyHelpers }) => {
       // Join a room
       await lobbyHelpers.goToLobby();
-      const roomId = await lobbyHelpers.createRoom({
+      const _roomId = await lobbyHelpers.createRoom({
         name: 'Reconnect Test'
       });
       

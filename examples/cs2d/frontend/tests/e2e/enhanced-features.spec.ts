@@ -125,7 +125,7 @@ test.describe('CS2D Enhanced Features', () => {
 
   test('Visual Style Enhancements', async ({ page }) => {
     // Check if enhanced pixel styles are loaded
-    const hasEnhancedStyles = await page.evaluate(() => {
+    const _hasEnhancedStyles = await page.evaluate(() => {
       const styles = Array.from(document.styleSheets);
       return styles.some(sheet => {
         try {

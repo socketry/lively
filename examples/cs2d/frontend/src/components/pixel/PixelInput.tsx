@@ -9,6 +9,8 @@ interface PixelInputProps {
   className?: string;
   testId?: string;
   maxLength?: number;
+  id?: string;
+  ariaLabel?: string;
 }
 
 export const PixelInput: React.FC<PixelInputProps> = ({
@@ -19,14 +21,18 @@ export const PixelInput: React.FC<PixelInputProps> = ({
   disabled = false,
   className = '',
   testId,
-  maxLength
+  maxLength,
+  id,
+  ariaLabel
 }) => {
   return (
     <input
+      id={id}
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      aria-label={ariaLabel}
       disabled={disabled}
       maxLength={maxLength}
       className={`

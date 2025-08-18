@@ -148,8 +148,9 @@ export const GameLobby: React.FC = () => {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Room Name</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="gl-room-name">Room Name</label>
                 <input
+                  id="gl-room-name"
                   type="text"
                   value={roomConfig.name}
                   onChange={(e) => setRoomConfig({...roomConfig, name: e.target.value})}
@@ -159,8 +160,9 @@ export const GameLobby: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Game Mode</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="gl-game-mode">Game Mode</label>
                 <select 
+                  id="gl-game-mode"
                   value={roomConfig.mode}
                   onChange={(e) => setRoomConfig({...roomConfig, mode: e.target.value})}
                   className="w-full bg-gray-700 px-3 py-2 rounded focus:outline-none"
@@ -174,8 +176,9 @@ export const GameLobby: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Map</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="gl-map">Map</label>
                 <select 
+                  id="gl-map"
                   value={roomConfig.map}
                   onChange={(e) => setRoomConfig({...roomConfig, map: e.target.value})}
                   className="w-full bg-gray-700 px-3 py-2 rounded focus:outline-none"
@@ -189,8 +192,9 @@ export const GameLobby: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Max Players</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="gl-max-players">Max Players</label>
                 <input
+                  id="gl-max-players"
                   type="number"
                   min="2"
                   max="32"
@@ -201,8 +205,9 @@ export const GameLobby: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Password (Optional)</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="gl-password">Password (Optional)</label>
                 <input
+                  id="gl-password"
                   type="password"
                   value={roomConfig.password}
                   onChange={(e) => setRoomConfig({...roomConfig, password: e.target.value})}

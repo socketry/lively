@@ -283,7 +283,9 @@ test.describe('CS2D Complete Game Flow', () => {
 
         // Store room ID for player 2
         await playerOnePage.evaluate((id) => {
-          window.localStorage.setItem('test-room-id', id!);
+          if (id) {
+            window.localStorage.setItem('test-room-id', id);
+          }
         }, roomId);
       });
 

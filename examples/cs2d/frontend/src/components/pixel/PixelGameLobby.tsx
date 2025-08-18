@@ -170,9 +170,10 @@ export const PixelGameLobby: React.FC = () => {
 
             {/* 房间列表 */}
             {filteredRooms.map(room => (
-              <div
+              <button
                 key={room.id}
-                className="grid grid-cols-6 gap-4 p-2 hover:bg-gray-800 cursor-pointer transition-colors"
+                type="button"
+                className="text-left grid grid-cols-6 gap-4 p-2 hover:bg-gray-800 cursor-pointer transition-colors"
                 onClick={() => joinRoom(room.id)}
                 data-testid={`room-${room.id}`}
               >
@@ -194,7 +195,7 @@ export const PixelGameLobby: React.FC = () => {
                 <span className={`font-pixel text-xs ${room.status === 'waiting' ? 'text-green-400' : 'text-red-400'}`} style={{ letterSpacing: '1px' }}>
                   {room.status === 'waiting' ? 'WAITING' : 'PLAYING'}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </PixelPanel>
@@ -236,8 +237,9 @@ export const PixelGameLobby: React.FC = () => {
           <PixelPanel title="CREATE NEW ROOM" className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 max-w-90vw max-h-90vh overflow-auto z-50" glow>
             <div className="space-y-4">
               <div>
-                <label className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>ROOM NAME</label>
+                <label htmlFor="px-room-name" className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>ROOM NAME</label>
                 <PixelInput
+                  id="px-room-name"
                   value={roomConfig.name}
                   onChange={(value) => setRoomConfig({...roomConfig, name: value})}
                   placeholder="ENTER ROOM NAME..."
@@ -247,8 +249,9 @@ export const PixelGameLobby: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>GAME MODE</label>
+                <label htmlFor="px-game-mode" className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>GAME MODE</label>
                 <select
+                  id="px-game-mode"
                   value={roomConfig.mode}
                   onChange={(e) => setRoomConfig({...roomConfig, mode: e.target.value})}
                   className="font-pixel w-full bg-black text-green-400 p-2 outline-none border-3 border-solid border-gray-800 border-b-gray-400 border-r-gray-400" style={{ imageRendering: 'pixelated', borderWidth: '3px', borderStyle: 'solid' }}
@@ -263,8 +266,9 @@ export const PixelGameLobby: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>MAP</label>
+                <label htmlFor="px-map" className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>MAP</label>
                 <select
+                  id="px-map"
                   value={roomConfig.map}
                   onChange={(e) => setRoomConfig({...roomConfig, map: e.target.value})}
                   className="font-pixel w-full bg-black text-green-400 p-2 outline-none border-3 border-solid border-gray-800 border-b-gray-400 border-r-gray-400" style={{ imageRendering: 'pixelated', borderWidth: '3px', borderStyle: 'solid' }}
@@ -278,8 +282,9 @@ export const PixelGameLobby: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>MAX PLAYERS</label>
+                <label htmlFor="px-max-players" className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>MAX PLAYERS</label>
                 <select
+                  id="px-max-players"
                   value={roomConfig.maxPlayers}
                   onChange={(e) => setRoomConfig({...roomConfig, maxPlayers: parseInt(e.target.value)})}
                   className="font-pixel w-full bg-black text-green-400 p-2 outline-none border-3 border-solid border-gray-800 border-b-gray-400 border-r-gray-400" style={{ imageRendering: 'pixelated', borderWidth: '3px', borderStyle: 'solid' }}
@@ -294,8 +299,9 @@ export const PixelGameLobby: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>PASSWORD (OPTIONAL)</label>
+                <label htmlFor="px-password" className="font-pixel text-white text-xs block mb-2" style={{ letterSpacing: '1px' }}>PASSWORD (OPTIONAL)</label>
                 <PixelInput
+                  id="px-password"
                   value={roomConfig.password}
                   onChange={(value) => setRoomConfig({...roomConfig, password: value})}
                   placeholder="LEAVE EMPTY FOR PUBLIC..."

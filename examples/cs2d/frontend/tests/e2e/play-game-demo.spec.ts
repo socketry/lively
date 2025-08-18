@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('🎮 PLAY CS2D GAME DEMO', () => {
   test('🚀 Complete Game Session with Modern UI', async ({ page }) => {

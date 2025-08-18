@@ -316,10 +316,12 @@ export const EnhancedModernLobby: React.FC = () => {
         {/* Enhanced Room List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="room-list">
           {filteredRooms.map((room) => (
-            <div 
+            <button
               key={room.id}
-              className="backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-6 hover:bg-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer transform hover:scale-105"
+              type="button"
+              className="text-left backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-6 hover:bg-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer transform hover:scale-105"
               onClick={() => window.location.href = `/room/${room.id}`}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') window.location.href = `/room/${room.id}`; }}
             >
               {/* Room Header */}
               <div className="flex items-start justify-between mb-4">
@@ -402,7 +404,7 @@ export const EnhancedModernLobby: React.FC = () => {
               >
                 Join Room
               </button>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -430,8 +432,9 @@ export const EnhancedModernLobby: React.FC = () => {
             
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block text-white/80 mb-2">Room Name</label>
+                <label className="block text-white/80 mb-2" htmlFor="room-name">Room Name</label>
                 <input 
+                  id="room-name"
                   type="text"
                   value={roomConfig.name}
                   onChange={(e) => setRoomConfig({...roomConfig, name: e.target.value})}
@@ -441,8 +444,9 @@ export const EnhancedModernLobby: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-white/80 mb-2">Game Mode</label>
+                <label className="block text-white/80 mb-2" htmlFor="game-mode">Game Mode</label>
                 <select 
+                  id="game-mode"
                   value={roomConfig.mode}
                   onChange={(e) => setRoomConfig({...roomConfig, mode: e.target.value})}
                   className="w-full px-4 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
@@ -456,8 +460,9 @@ export const EnhancedModernLobby: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-white/80 mb-2">Map</label>
+                <label className="block text-white/80 mb-2" htmlFor="map">Map</label>
                 <select 
+                  id="map"
                   value={roomConfig.map}
                   onChange={(e) => setRoomConfig({...roomConfig, map: e.target.value})}
                   className="w-full px-4 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
@@ -471,8 +476,9 @@ export const EnhancedModernLobby: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-white/80 mb-2">Max Players</label>
+                <label className="block text-white/80 mb-2" htmlFor="max-players">Max Players</label>
                 <input 
+                  id="max-players"
                   type="number"
                   value={roomConfig.maxPlayers}
                   onChange={(e) => setRoomConfig({...roomConfig, maxPlayers: parseInt(e.target.value)})}
@@ -483,8 +489,9 @@ export const EnhancedModernLobby: React.FC = () => {
               </div>
               
               <div className="col-span-2">
-                <label className="block text-white/80 mb-2">Password (Optional)</label>
+                <label className="block text-white/80 mb-2" htmlFor="room-password">Password (Optional)</label>
                 <input 
+                  id="room-password"
                   type="password"
                   value={roomConfig.password}
                   onChange={(e) => setRoomConfig({...roomConfig, password: e.target.value})}
@@ -498,8 +505,9 @@ export const EnhancedModernLobby: React.FC = () => {
             <div className="mt-6 p-4 backdrop-blur-md bg-white/5 border border-white/20 rounded-lg">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-white">🤖 Bot Configuration</h3>
-                <label className="flex items-center space-x-2">
+                <label className="flex items-center space-x-2" htmlFor="enable-bots">
                   <input 
+                    id="enable-bots"
                     type="checkbox"
                     checked={roomConfig.botConfig.enabled}
                     onChange={(e) => setRoomConfig({
@@ -515,8 +523,9 @@ export const EnhancedModernLobby: React.FC = () => {
               {roomConfig.botConfig.enabled && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-white/80 mb-2">Number of Bots</label>
+                    <label className="block text-white/80 mb-2" htmlFor="bot-count">Number of Bots</label>
                     <input 
+                      id="bot-count"
                       type="number"
                       value={roomConfig.botConfig.count}
                       onChange={(e) => setRoomConfig({
@@ -530,12 +539,13 @@ export const EnhancedModernLobby: React.FC = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-white/80 mb-2">Bot Difficulty</label>
+                    <label className="block text-white/80 mb-2" htmlFor="bot-difficulty">Bot Difficulty</label>
                     <select 
+                      id="bot-difficulty"
                       value={roomConfig.botConfig.difficulty}
                       onChange={(e) => setRoomConfig({
                         ...roomConfig,
-                        botConfig: {...roomConfig.botConfig, difficulty: e.target.value as any}
+                        botConfig: { ...roomConfig.botConfig, difficulty: e.target.value as 'easy' | 'normal' | 'hard' | 'expert' }
                       })}
                       className="w-full px-4 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
                     >
@@ -547,8 +557,9 @@ export const EnhancedModernLobby: React.FC = () => {
                   </div>
                   
                   <div>
-                    <label className="flex items-center space-x-2 text-white mt-6">
+                    <label className="flex items-center space-x-2 text-white mt-6" htmlFor="fill-empty">
                       <input 
+                        id="fill-empty"
                         type="checkbox"
                         checked={roomConfig.botConfig.fillEmpty}
                         onChange={(e) => setRoomConfig({
@@ -562,8 +573,9 @@ export const EnhancedModernLobby: React.FC = () => {
                   </div>
                   
                   <div>
-                    <label className="flex items-center space-x-2 text-white mt-6">
+                    <label className="flex items-center space-x-2 text-white mt-6" htmlFor="team-balance">
                       <input 
+                        id="team-balance"
                         type="checkbox"
                         checked={roomConfig.botConfig.teamBalance}
                         onChange={(e) => setRoomConfig({

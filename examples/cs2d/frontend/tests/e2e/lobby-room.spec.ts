@@ -26,7 +26,7 @@ test.describe('Lobby and Room Management', () => {
     expect(status).toBe('connected');
   });
 
-  test('should create a new room with custom settings', async ({ page, lobbyHelpers }) => {
+  test('should create a new room with custom settings', async ({ lobbyHelpers }) => {
     await lobbyHelpers.goToLobby();
     
     const roomConfig = {
@@ -53,7 +53,7 @@ test.describe('Lobby and Room Management', () => {
     expect(players[0].isHost).toBe(true);
   });
 
-  test('should join an existing room', async ({ browser, lobbyHelpers }) => {
+  test('should join an existing room', async ({ browser }) => {
     const context = await browser.newContext();
     
     // Player 1: Create room
@@ -168,9 +168,9 @@ test.describe('Lobby and Room Management', () => {
     await context.close();
   });
 
-  test('should handle room settings changes', async ({ page, lobbyHelpers, gameRoom }) => {
+  test('should handle room settings changes', async ({ lobbyHelpers }) => {
     // Use gameRoom fixture which auto-creates a room
-    const initialInfo = await lobbyHelpers.getRoomInfo();
+    const _initialInfo = await lobbyHelpers.getRoomInfo();
     
     // Change settings (host only)
     await lobbyHelpers.changeRoomSettings({
@@ -186,7 +186,7 @@ test.describe('Lobby and Room Management', () => {
     expect(updatedInfo.maxPlayers).toBe(16);
   });
 
-  test('should handle team selection', async ({ page, lobbyHelpers, gameRoom }) => {
+  test('should handle team selection', async ({ lobbyHelpers }) => {
     // Switch to CT team
     await lobbyHelpers.switchTeam('ct');
     

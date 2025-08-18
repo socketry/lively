@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/game-fixtures';
-import { simulatePlayerActions, measurePerformance, waitForGameState } from './fixtures/game-fixtures';
+import { simulatePlayerActions, waitForGameState } from './fixtures/game-fixtures';
 
 // Configure test settings at top level
 test.use({
@@ -12,7 +12,7 @@ test.describe('Game Mechanics', () => {
   test.beforeEach(async ({ page, lobbyHelpers }) => {
     // Setup: Create room and start game
     await lobbyHelpers.goToLobby();
-    const roomId = await lobbyHelpers.createRoom({
+    await lobbyHelpers.createRoom({
       name: 'Mechanics Test',
       gameMode: 'deathmatch',
       map: 'de_dust2'
@@ -175,7 +175,7 @@ test.describe('Game Mechanics', () => {
     await expect(gameMenu).not.toBeVisible();
   });
 
-  test('should maintain stable FPS during gameplay', async ({ gameHelpers, page }) => {
+  test('should maintain stable FPS during gameplay', async ({ gameHelpers }) => {
     // Measure FPS during various actions
     const fpsData: number[] = [];
     
@@ -288,12 +288,12 @@ test.describe('Game Mechanics', () => {
     await page.keyboard.press('F1'); // Toggle back
   });
 
-  test('should handle buy menu in appropriate game modes', async ({ page, gameHelpers, lobbyHelpers }) => {
+  test('should handle buy menu in appropriate game modes', async ({ page, lobbyHelpers }) => {
     // This test needs to be in a mode with buy zones
     await page.goto('/');
     await lobbyHelpers.goToLobby();
     
-    const roomId = await lobbyHelpers.createRoom({
+    await lobbyHelpers.createRoom({
       name: 'Buy Menu Test',
       gameMode: 'defuse',
       map: 'de_dust2'

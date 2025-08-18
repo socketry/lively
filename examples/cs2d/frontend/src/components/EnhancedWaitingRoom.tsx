@@ -124,11 +124,7 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
     }
   };
 
-  const changeTeam = (playerId: string, newTeam: 'ct' | 't' | 'spectator') => {
-    setPlayers(players.map(p => 
-      p.id === playerId ? { ...p, team: newTeam } : p
-    ));
-  };
+  // Team switching UI not active in current demo
 
   const toggleReady = () => {
     // Toggle ready status for current player
@@ -171,7 +167,7 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
 
   const ctPlayers = players.filter(p => p.team === 'ct');
   const tPlayers = players.filter(p => p.team === 't');
-  const spectators = players.filter(p => p.team === 'spectator');
+  // Spectator list is not displayed in current layout
   const allReady = players.filter(p => !p.isBot).every(p => p.ready);
   const humanPlayers = players.filter(p => !p.isBot);
   const readyHumanPlayers = humanPlayers.filter(p => p.ready);
