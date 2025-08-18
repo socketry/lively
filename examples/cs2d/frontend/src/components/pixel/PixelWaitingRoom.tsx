@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useI18n } from '../../contexts/I18nContext';
 import { PixelButton } from './PixelButton';
 import { PixelPanel } from './PixelPanel';
 import { PixelInput } from './PixelInput';
@@ -25,7 +24,6 @@ interface ChatMessage {
 }
 
 export const PixelWaitingRoom: React.FC = () => {
-  const { t } = useI18n();
   const navigate = useNavigate();
   const { id: roomId } = useParams();
   const [players, setPlayers] = useState<Player[]>([
@@ -48,12 +46,15 @@ export const PixelWaitingRoom: React.FC = () => {
 
   // 模拟倒计时
   useEffect(() => {
+    let timer: number | undefined;
     if (gameStarting && countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
+      timer = window.setTimeout(() => setCountdown(countdown - 1), 1000);
     } else if (gameStarting && countdown === 0) {
       navigate(`/pixel/game/${roomId}`);
     }
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, [gameStarting, countdown, navigate, roomId]);
 
   const sendMessage = () => {

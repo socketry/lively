@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useI18n } from '../contexts/I18nContext';
 
 interface Player {
   id: string;
@@ -41,7 +40,6 @@ interface ChatMessage {
 }
 
 export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) => {
-  const { t } = useI18n();
   const [players, setPlayers] = useState<Player[]>([
     { id: '1', name: 'Player1', team: 'ct', ready: false, isBot: false, kills: 0, deaths: 0, ping: 45, avatar: '👤' },
     { id: 'bot1', name: '[BOT] Alpha', team: 'ct', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
@@ -75,11 +73,11 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
   ]);
 
   const [chatInput, setChatInput] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState<'ct' | 't' | 'spectator'>('ct');
+  // Selected team management not used in current UI; can be added later
   const [showBotPanel, setShowBotPanel] = useState(false);
   const [showMapVote, setShowMapVote] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [isHost, setIsHost] = useState(true); // For demo purposes
+  const [isHost] = useState(true); // For demo purposes
 
   const difficultyColors = {
     easy: 'text-green-400 bg-green-500/20 border-green-500/30',
@@ -88,11 +86,7 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
     expert: 'text-red-400 bg-red-500/20 border-red-500/30'
   };
 
-  const teamColors = {
-    ct: 'from-blue-500 to-cyan-500',
-    t: 'from-orange-500 to-red-500',
-    spectator: 'from-gray-500 to-gray-600'
-  };
+  // Team gradient colors (unused)
 
   const addBot = (difficulty: 'easy' | 'normal' | 'hard' | 'expert') => {
     const botNames = ['Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India', 'Juliet'];

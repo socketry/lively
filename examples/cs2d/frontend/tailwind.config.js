@@ -112,10 +112,7 @@ export default {
         },
         // Pixel Art utilities
         '.pixel-art': {
-          imageRendering: '-moz-crisp-edges',
-          imageRendering: '-webkit-crisp-edges', 
-          imageRendering: 'pixelated',
-          imageRendering: 'crisp-edges'
+          imageRendering: 'pixelated'
         },
         '.pixel-font': {
           fontFamily: "'Press Start 2P', monospace",

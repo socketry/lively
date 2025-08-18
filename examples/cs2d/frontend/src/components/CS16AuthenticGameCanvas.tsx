@@ -141,8 +141,8 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
     
     // Enable pixel art rendering
     ctx.imageSmoothingEnabled = false;
-    ctx.webkitImageSmoothingEnabled = false;
-    ctx.mozImageSmoothingEnabled = false;
+    (ctx as any).webkitImageSmoothingEnabled = false;
+    (ctx as any).mozImageSmoothingEnabled = false;
     
     let animationId: number;
     let lastTime = 0;
@@ -388,6 +388,47 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
       }
     };
     
+    // Helpers for tactical geometry (neon/glass styled)
+    const drawGlassBuilding = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      color: string,
+      glow: number
+    ) => {
+      ctx.save();
+      ctx.fillStyle = color + '33';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = glow * 40;
+      ctx.strokeRect(x, y, w, h);
+      ctx.restore();
+    };
+
+    const drawNeonCrate = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      color: string,
+      glow: string
+    ) => {
+      ctx.save();
+      ctx.fillStyle = color + '22';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = glow;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 12;
+      ctx.strokeRect(x, y, w, h);
+      ctx.restore();
+    };
+
     // Complex tactical map layout with geometric shapes
     const drawTacticalMap = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
       // Main compound structure (inspired by reference layout)
@@ -1283,7 +1324,6 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
                 }
               }}
               className="bg-transparent outline-none text-green-400 flex-1 ml-1"
-              autoFocus
               placeholder="Enter command..."
             />
           </div>
@@ -1438,7 +1478,6 @@ export const CS16AuthenticGameCanvas: React.FC = () => {
             }}
             placeholder="Say:"
             className="w-full bg-gray-700 border border-gray-600 px-2 py-1 text-white text-sm outline-none"
-            autoFocus
           />
         </div>
       )}

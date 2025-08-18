@@ -2,16 +2,12 @@ import { cn } from '@/utils/tailwind';
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 
-// Lazy load components
-const LobbyView = React.lazy(() => import('./views/LobbyView'));
-const RoomView = React.lazy(() => import('./views/RoomView'));
-const GameView = React.lazy(() => import('./views/GameView'));
+// Lazy load pages used below
 const SettingsView = React.lazy(() => import('./views/SettingsView'));
 const AboutView = React.lazy(() => import('./views/AboutView'));
 const NotFoundView = React.lazy(() => import('./views/NotFoundView'));
 
 // Import new components
-import { GameLobby } from './components/GameLobby';
 import { ModernGameLobby } from './components/ModernGameLobby';
 import { EnhancedModernLobby } from './components/EnhancedModernLobby';
 import { EnhancedWaitingRoom } from './components/EnhancedWaitingRoom';
@@ -30,8 +26,14 @@ import './styles/enhanced-pixel.css';
 function App() {
   React.useEffect(() => {
     // Set game state for Playwright tests
-    (window as any).__gameState = 'ready';
-    (window as any).__gameAPI = {
+    (window as unknown as Window & {
+      __gameState: string;
+      __gameAPI: { takeDamage: (amount: number) => void; killPlayer: () => void };
+    }).__gameState = 'ready';
+
+    (window as unknown as Window & {
+      __gameAPI: { takeDamage: (amount: number) => void; killPlayer: () => void };
+    }).__gameAPI = {
       takeDamage: (amount: number) => console.log(`Taking ${amount} damage`),
       killPlayer: () => console.log('Player killed'),
     };

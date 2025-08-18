@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useI18n } from '../contexts/I18nContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
@@ -16,13 +16,6 @@ interface Room {
   botDifficulty: 'easy' | 'normal' | 'hard' | 'expert';
 }
 
-interface BotConfig {
-  enabled: boolean;
-  count: number;
-  difficulty: 'easy' | 'normal' | 'hard' | 'expert';
-  fillEmpty: boolean;
-  teamBalance: boolean;
-}
 
 export const EnhancedModernLobby: React.FC = () => {
   const { t } = useI18n();
@@ -57,7 +50,6 @@ export const EnhancedModernLobby: React.FC = () => {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBotPanel, setShowBotPanel] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   
   const [roomConfig, setRoomConfig] = useState({
     name: '',
@@ -165,7 +157,7 @@ export const EnhancedModernLobby: React.FC = () => {
             <nav className="flex items-center space-x-4">
               {/* Connection Status */}
               <div className="flex items-center space-x-2 px-3 py-1 bg-green-500/20 rounded-lg" data-testid="connection-status" data-status="connected">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span className="text-green-400 text-sm">Connected</span>
               </div>
               

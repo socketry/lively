@@ -274,8 +274,7 @@ export class GameHelpers {
   async takeGameScreenshot(name: string) {
     const gameContainer = this.page.locator('[data-testid="game-container"]');
     await gameContainer.screenshot({ 
-      path: `tests/e2e/screenshots/${name}.png`,
-      fullPage: false 
+      path: `tests/e2e/screenshots/${name}.png`
     });
   }
 

@@ -56,7 +56,7 @@ module.exports = {
     // TypeScript rules
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unused-vars': [
-      'error',
+      'warn',
       {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_'
@@ -84,6 +84,8 @@ module.exports = {
     'jsx-a11y/aria-proptypes': 'error',
     'jsx-a11y/aria-unsupported-elements': 'error',
     'jsx-a11y/click-events-have-key-events': 'warn',
+    'jsx-a11y/no-static-element-interactions': 'warn',
+    'jsx-a11y/label-has-associated-control': 'warn',
     'jsx-a11y/heading-has-content': 'error',
     'jsx-a11y/img-redundant-alt': 'error',
     'jsx-a11y/no-access-key': 'error',

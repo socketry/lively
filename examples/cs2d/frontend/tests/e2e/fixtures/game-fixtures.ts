@@ -115,7 +115,7 @@ export async function createMultiplePlayers(
     pages.push(page);
     
     // Set unique player name
-    await page.evaluate((index) => {
+    await page.evaluate((index: number) => {
       localStorage.setItem('playerName', `Player_${index + 1}`);
     }, i);
     

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useI18n } from '../../contexts/I18nContext';
 import { PixelButton } from './PixelButton';
 import { PixelPanel } from './PixelPanel';
 import { PixelInput } from './PixelInput';
@@ -17,7 +16,6 @@ interface Room {
 }
 
 export const PixelGameLobby: React.FC = () => {
-  const { t } = useI18n();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([
     { id: '1', name: '🔫 DUST2 CLASSIC', players: 4, maxPlayers: 10, mode: 'DM', map: 'de_dust2', status: 'waiting', ping: 32 },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface Player {
   id: string;
@@ -10,7 +10,7 @@ interface Player {
 }
 
 export const GameRoom: React.FC = () => {
-  const [players, setPlayers] = useState<Player[]>([
+  const [players] = useState<Player[]>([
     { id: '1', name: 'Player1', team: 'ct', isReady: true, isHost: true, ping: 32 },
     { id: '2', name: 'Player2', team: 't', isReady: false, isHost: false, ping: 45 },
   ]);
