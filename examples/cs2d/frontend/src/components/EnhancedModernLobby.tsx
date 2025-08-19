@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../contexts/I18nContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { setupWebSocket } from '@/services/websocket';
 
 interface Room {
   id: string;
@@ -19,6 +20,7 @@ interface Room {
 
 export const EnhancedModernLobby: React.FC = () => {
   const { t } = useI18n();
+  const wsRef = useRef<ReturnType<typeof setupWebSocket> | null>(null)
   const [rooms, setRooms] = useState<Room[]>([
     { 
       id: '1', 
@@ -50,6 +52,7 @@ export const EnhancedModernLobby: React.FC = () => {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBotPanel, setShowBotPanel] = useState(false);
+  const [isConnected, setIsConnected] = useState(false)
   
   const [roomConfig, setRoomConfig] = useState({
     name: '',
@@ -98,9 +101,22 @@ export const EnhancedModernLobby: React.FC = () => {
       bots: roomConfig.botConfig.enabled ? roomConfig.botConfig.count : 0,
       botDifficulty: roomConfig.botConfig.difficulty
     };
-    setRooms([...rooms, newRoom]);
-    setShowCreateModal(false);
-    window.location.href = `/room/${newRoom.id}`;
+    // Try server create, fall back to local
+    if (wsRef.current?.isConnected) {
+      wsRef.current.emit('room:create', {
+        name: roomConfig.name || t('lobby.roomName'),
+        mode: roomConfig.mode,
+        map: roomConfig.map,
+        maxPlayers: roomConfig.maxPlayers,
+        password: roomConfig.password || undefined,
+        bots: roomConfig.botConfig
+      })
+      setShowCreateModal(false)
+    } else {
+      setRooms([...rooms, newRoom]);
+      setShowCreateModal(false);
+      window.location.href = `/room/${newRoom.id}`;
+    }
   };
 
   const filteredRooms = rooms.filter(room => {
@@ -123,6 +139,39 @@ export const EnhancedModernLobby: React.FC = () => {
       window.location.href = `/room/${room.id}`;
     }
   };
+
+  // WebSocket: connect and listen for room updates
+  useEffect(() => {
+    const ws = setupWebSocket()
+    wsRef.current = ws
+    ws.connect().then(() => setIsConnected(true)).catch(() => setIsConnected(false))
+    const offCreated = ws.on('room:created', (data: any) => {
+      const id = (data && (data.id || data.roomId)) || String(Date.now())
+      window.location.href = `/room/${id}`
+    })
+    const offUpdated = ws.on('room:updated', (data: any) => {
+      // Accept either { rooms: [...] } or array
+      const list = Array.isArray(data) ? data : (data?.rooms || [])
+      if (Array.isArray(list) && list.length) {
+        // Normalize minimal fields
+        const mapped: Room[] = list.map((r: any) => ({
+          id: String(r.id || r.roomId || Date.now()),
+          name: r.name || 'Room',
+          players: (r.players && (r.players.length || r.players)) || 0,
+          maxPlayers: r.maxPlayers || 10,
+          mode: r.mode || 'deathmatch',
+          map: r.map || 'de_dust2',
+          status: r.status || 'waiting',
+          ping: 32,
+          hasPassword: !!r.hasPassword,
+          bots: r.bots || 0,
+          botDifficulty: r.botDifficulty || 'normal'
+        }))
+        setRooms(mapped)
+      }
+    })
+    return () => { offCreated(); offUpdated() }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden relative">

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { setupWebSocket } from '@/services/websocket';
 
 interface Player {
   id: string;
@@ -40,6 +41,7 @@ interface ChatMessage {
 }
 
 export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) => {
+  const wsRef = useRef<ReturnType<typeof setupWebSocket> | null>(null)
   const [players, setPlayers] = useState<Player[]>([
     { id: '1', name: 'Player1', team: 'ct', ready: false, isBot: false, kills: 0, deaths: 0, ping: 45, avatar: '👤' },
     { id: 'bot1', name: '[BOT] Alpha', team: 'ct', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
@@ -73,6 +75,7 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
   ]);
 
   const [chatInput, setChatInput] = useState('');
+  const [chatMode, setChatMode] = useState<'all'|'team'|'dead'>('all')
   // Selected team management not used in current UI; can be added later
   const [showBotPanel, setShowBotPanel] = useState(false);
   const [showMapVote, setShowMapVote] = useState(false);
@@ -158,9 +161,12 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
         playerName: 'Player1',
         message: chatInput,
         timestamp: new Date(),
-        team: 'all'
+        team: chatMode
       };
       setChatMessages([...chatMessages, newMessage]);
+      if (wsRef.current?.isConnected) {
+        wsRef.current.emit('chat:message', { sender: newMessage.playerName, team: newMessage.team, text: newMessage.message, roomId })
+      }
       setChatInput('');
     }
   };
@@ -183,6 +189,41 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
       canStartGame: isHost && allReady && humanPlayers.length >= 1
     });
   }, [isHost, allReady, humanPlayers.length, readyHumanPlayers.length, players.length]);
+
+  // WebSocket wiring for room events
+  useEffect(() => {
+    const ws = setupWebSocket()
+    wsRef.current = ws
+    ws.connect().catch(() => {})
+    // Join room
+    ws.emit('room:join', { roomId })
+    const offRoomUpdated = ws.on('room:updated', (data: any) => {
+      // If payload has players for this room, update
+      const room = Array.isArray(data) ? null : data
+      if (room && (room.id === roomId || room.roomId === roomId)) {
+        if (Array.isArray(room.players)) {
+          const mapped: Player[] = room.players.map((p: any) => ({
+            id: String(p.id || p.name),
+            name: String(p.name || 'Player'),
+            team: (p.team === 'ct' || p.team === 't') ? p.team : 'ct',
+            ready: !!p.ready,
+            isBot: !!p.isBot,
+            botDifficulty: p.botDifficulty || 'normal',
+            kills: p.kills || 0,
+            deaths: p.deaths || 0,
+            ping: p.ping || 32,
+            avatar: '👤'
+          }))
+          setPlayers(mapped)
+        }
+      }
+    })
+    const offChat = ws.on('chat:message', (msg: any) => {
+      const m = msg as { sender:string; team:'all'|'ct'|'t'|'dead'; text:string }
+      setChatMessages(prev => [...prev, { id: String(Date.now()), playerId: 'remote', playerName: m.sender, message: m.text, timestamp: new Date(), team: m.team }].slice(-100))
+    })
+    return () => { offRoomUpdated(); offChat(); ws.emit('room:leave', { roomId }) }
+  }, [roomId])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden relative">

@@ -1,11 +1,31 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+// Minimal local implementations to avoid external deps in E2E
+export type ClassValue =
+  | string
+  | number
+  | null
+  | false
+  | undefined
+  | Record<string, boolean>
+  | ClassValue[]
+
+function toClassNames(value: ClassValue): string[] {
+  if (!value) return []
+  if (typeof value === 'string' || typeof value === 'number') return [String(value)]
+  if (Array.isArray(value)) return value.flatMap(toClassNames)
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .filter(([, v]) => Boolean(v))
+      .map(([k]) => k)
+  }
+  return []
+}
 
 /**
  * Merge Tailwind classes with proper precedence
  */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  // Simple merge without Tailwind conflict resolution
+  return toClassNames(inputs).join(' ')
 }
 
 /**

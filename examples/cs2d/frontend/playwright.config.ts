@@ -9,6 +9,9 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+const startBackends = process.env.START_BACKENDS !== '0'
+const skipWebServer = process.env.SKIP_WEB_SERVER === '1'
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -21,7 +24,7 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/junit.xml' }]
   ],
   use: {
-    baseURL: 'http://localhost:5174',
+    baseURL: process.env.BASE_URL || 'http://localhost:5174',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -68,7 +71,7 @@ export default defineConfig({
   ],
 
   /* Run local servers before starting the tests (SPA + API + WS) */
-  webServer: [
+  webServer: skipWebServer ? [] : [
     {
       command: 'npm run dev -- --port=5174',
       url: 'http://localhost:5174',
@@ -77,23 +80,28 @@ export default defineConfig({
       stdout: 'pipe',
       stderr: 'pipe',
     },
-    {
-      // API Bridge (WEBrick) for `/api/*` at :9294
-      command: 'ruby ../src/servers/api_bridge_server.rb 9294',
-      url: 'http://localhost:9294/api/rooms',
-      reuseExistingServer: true,
-      timeout: 60 * 1000,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
-    {
-      // Lively/Falcon app providing WS at :9292 and serving lobby at '/'
-      command: 'ruby ../src/servers/start_server.rb',
-      url: 'http://localhost:9292/',
-      reuseExistingServer: true,
-      timeout: 60 * 1000,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
+    // Optionally start API + WS backends; skip in local CI where Ruby gems may be missing
+    ...(
+      startBackends
+        ? [
+            {
+              command: 'ruby ../src/servers/api_bridge_server.rb 9294',
+              url: 'http://localhost:9294/api/rooms',
+              reuseExistingServer: true,
+              timeout: 60 * 1000,
+              stdout: 'pipe',
+              stderr: 'pipe',
+            },
+            {
+              command: 'ruby ../src/servers/start_server.rb',
+              url: 'http://localhost:9292/',
+              reuseExistingServer: true,
+              timeout: 60 * 1000,
+              stdout: 'pipe',
+              stderr: 'pipe',
+            },
+          ]
+        : []
+    )
   ]
 })

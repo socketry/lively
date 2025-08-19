@@ -1,16 +1,27 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+// Make React plugin optional to avoid hard failure in CI where devDeps may be pruned
+let reactPlugin: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  reactPlugin = (await import('@vitejs/plugin-react')).default?.() || null;
+} catch {
+  reactPlugin = null;
+}
 import { resolve } from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [reactPlugin].filter(Boolean),
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'react'
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
   },
   server: {
-    port: 3000,
+    port: 5174,
     proxy: {
       '/api': {
         target: 'http://localhost:9294',

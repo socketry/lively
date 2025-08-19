@@ -41,7 +41,7 @@ function App() {
   }, []);
   return (
     <I18nProvider>
-      <div className={cn(
+      <div data-testid="app-container" className={cn(
         "min-h-screen bg-gradient-to-br from-cs-blue-900 to-cs-gray-900",
         "text-cs-text font-cs antialiased",
         "transition-all duration-300",
