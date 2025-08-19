@@ -33,6 +33,7 @@ test_*.rb
 *.test.js
 *.spec.js
 test_report.json
+test-results.json
 coverage/
 .rspec_status
 
