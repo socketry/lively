@@ -1,135 +1,270 @@
-# 🎮 CLAUDE.md — CS2D Developer Guide (SPA-first)
+# 🎮 CS2D TypeScript SPA - Developer Guide
 
-This document contains comprehensive guidance for CS2D development, testing, and performance optimization.
+## Architecture
+**Pure TypeScript/React SPA** - No Ruby backend dependencies
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: TailwindCSS + CSS Modules
+- **Game Engine**: Canvas API with WebSocket multiplayer
+- **State Management**: React Context API
+- **Testing**: Playwright E2E + Vitest unit tests
 
-## Overview
-- **Architecture**: React SPA for UI; Lively provides sockets/backend only
-- **SPA dev server**: Vite on port 5174
-- **Backend services**:
-  - API Bridge (WEBrick): http://localhost:9294
-  - Lively/Falcon (WS + lobby): http://localhost:9292
-- **Testing**: Comprehensive Playwright test suite with self-improving iterations
-- **Performance**: 57-58 FPS average, 10MB memory usage, 90%+ test pass rate
-
-## Run (SPA)
-From `examples/cs2d/frontend`:
+## Quick Start
 
 ```bash
-npm ci
-npx playwright install
-npm run dev -- --port=5174
-# Open: http://localhost:5174
+cd frontend
+npm install
+npm run dev
+# Open http://localhost:3000
 ```
 
-Routes:
-- `/` or `/lobby` — Lobby
-- `/room/:id` — Waiting room
-- `/game` or `/game/:id` — Game canvas
-- `/pixel` — Pixel UI demo
+## Available Scripts
 
-## E2E Tests (Comprehensive Suite)
-
-### Test Suites
-1. **Core Game Flow Tests** (`tests/e2e/cs2d-game-flow.spec.ts`)
-   - 15 comprehensive tests covering initialization, controls, collision, weapons, networking
-   - 100% pass rate with performance metrics
-   
-2. **Self-Improving Test Suite** (`tests/e2e/cs2d-enhanced-flow.spec.ts`)
-   - 6 iterative improvement cycles with automatic optimization suggestions
-   - Real-time performance monitoring and baseline establishment
-   - Memory leak detection and frame rate consistency validation
-
-3. **Debug Utilities**
-   - `check-app.spec.ts`: React app mounting validation
-   - `debug-page.spec.ts`: Page content inspection tools
-
-### Running Tests
-
-From project root:
 ```bash
-# Run all CS2D tests
-npx playwright test tests/e2e/cs2d-game-flow.spec.ts tests/e2e/cs2d-enhanced-flow.spec.ts
-
-# Run basic test suite only
-npx playwright test tests/e2e/cs2d-game-flow.spec.ts
-
-# Run enhanced self-improving tests
-npx playwright test tests/e2e/cs2d-enhanced-flow.spec.ts
-
-# Run in headed mode for debugging
-npx playwright test --headed
-
-# Generate HTML report
-npx playwright show-report
+npm run dev        # Start dev server (port 3000)
+npm run build      # Production build
+npm run preview    # Preview production build
+npm run test       # Run unit tests
+npm run test:e2e   # Run Playwright E2E tests
+npm run lint       # ESLint + Prettier check
+npm run typecheck  # TypeScript type checking
 ```
 
-### Test Infrastructure
-- Auto-starts: Vite (5174), API Bridge (9294), Lively/Falcon (9292)
-- Performance monitoring: FPS, memory usage, load times
-- Self-improvement: Automatic optimization suggestions
-- Coverage: Game mechanics, multiplayer, networking, error handling
+## Project Structure
 
-## Services
-- Vite dev server (SPA): 5174
-- API Bridge (WEBrick): 9294 (`ruby ../src/servers/api_bridge_server.rb 9294`)
-- Lively/Falcon (WS): 9292 (`ruby ../src/servers/start_server.rb`)
+```
+frontend/
+├── src/
+│   ├── components/    # React components
+│   ├── contexts/      # React contexts
+│   ├── views/         # Page components
+│   ├── services/      # WebSocket, API services
+│   ├── types/         # TypeScript types
+│   └── utils/         # Helper functions
+├── tests/
+│   ├── e2e/          # Playwright E2E tests
+│   └── unit/         # Vitest unit tests
+└── public/           # Static assets
+```
 
-## Internationalization
-- 3 languages supported: English, 繁體中文, 日本語.
-- Language switching via `useI18n()`; translations in `src/i18n/translations.ts`.
+## Testing
 
-## Performance & Quality Metrics
-- **Target Performance**: 57-58 FPS average, <20MB memory usage
-- **Load Time**: ~370ms with first paint at 316ms
-- **Test Pass Rate**: 90%+ (19/21 tests passing consistently)
-- **Self-Improvement**: Automatic performance baseline establishment
-- **Monitoring**: Real-time FPS, memory leak detection, frame consistency
+### E2E Tests
+```bash
+# Run all tests
+npm run test:e2e
 
-### Quality Gates
-- All core functionality tests must pass (15/15)
-- Frame rate must stay above 30 FPS average
-- Memory usage should not exceed 20MB growth during gameplay
-- No critical JavaScript errors in console
+# Run specific test
+npm run test:e2e -- tests/e2e/game-flow.spec.ts
 
-## Gameplay (Basics)
-- **Movement**: WASD, Jump: Space, Reload: R
-- **Weapons**: switch keys 1–5; click canvas to shoot
-- **Buy Menu**: B key (with money/buy time restrictions)
-- **HUD**: Health, ammo, weapon display
-- **Scoreboard**: Tab key to show/hide
-- **Advanced**: Bomb planting (E key), spectator mode
+# Debug mode
+npm run test:e2e:debug
 
-## Conventions
-- SPA-first: avoid static `room.html`/`game.html` in new work.
-- Use relative paths in tests; rely on Playwright `baseURL`.
-- Run SPA tests from `examples/cs2d/frontend` to avoid mixed dependencies.
+# UI mode
+npm run test:e2e:ui
+```
+
+### Unit Tests
+```bash
+# Run with watch mode
+npm run test
+
+# Coverage report
+npm run test:coverage
+```
+
+## Performance Targets
+
+- **Frame Rate**: 60 FPS (game), 120 FPS (UI)
+- **Bundle Size**: < 500KB gzipped
+- **Load Time**: < 2s on 3G
+- **Memory**: < 50MB during gameplay
+- **Lighthouse Score**: 95+ on all metrics
+
+## Game Controls
+
+| Action | Key |
+|--------|-----|
+| Move | WASD |
+| Jump | Space |
+| Shoot | Mouse Click |
+| Reload | R |
+| Switch Weapon | 1-5 |
+| Buy Menu | B |
+| Scoreboard | Tab |
+| Plant Bomb | E |
+
+## UI/UX Optimization
+
+### Implemented Features
+- Dark mode with theme persistence
+- Responsive design (mobile-first)
+- Keyboard navigation support
+- ARIA labels for accessibility
+- Haptic feedback on mobile
+- 60 FPS animations
+
+### Planned Improvements
+- 3D card animations for room selection
+- Real-time player avatars
+- Voice chat integration
+- Replay system
+- Spectator mode enhancements
+
+## Migration from Ruby Backend
+
+### Cleanup Scripts
+
+**Standard Cleanup** - Removes Ruby files while keeping structure:
+```bash
+./cleanup-old-files.sh
+```
+
+**Deep Cleanup** - Minimal TypeScript-only project:
+```bash
+./deep-cleanup.sh
+```
+
+### What Gets Removed
+- All Ruby backend code (`*.rb` files)
+- Old static HTML pages
+- Legacy JavaScript files
+- Ruby test suites
+- Migration scripts
+
+### What Gets Preserved
+- Complete TypeScript/React frontend
+- E2E test suite
+- Docker configurations
+- Documentation
+
+## WebSocket Protocol
+
+### Message Types
+```typescript
+interface GameMessage {
+  type: 'move' | 'shoot' | 'reload' | 'buy' | 'plant';
+  playerId: string;
+  data: any;
+  timestamp: number;
+}
+```
+
+### Connection Management
+```typescript
+// Auto-reconnect with exponential backoff
+const ws = new ReconnectingWebSocket(WS_URL, {
+  maxReconnectDelay: 10000,
+  minReconnectDelay: 1000,
+  reconnectDecayRate: 1.5
+});
+```
+
+## Deployment
+
+### Development
+```bash
+npm run dev
+```
+
+### Production Build
+```bash
+npm run build
+npm run preview
+```
+
+### Docker
+```bash
+docker build -t cs2d-spa .
+docker run -p 3000:3000 cs2d-spa
+```
+
+### Environment Variables
+```env
+VITE_WS_URL=ws://localhost:8080
+VITE_API_URL=http://localhost:3001
+VITE_PUBLIC_URL=/
+```
+
+## Code Quality
+
+### Pre-commit Hooks
+```bash
+# Auto-runs on commit:
+- TypeScript type check
+- ESLint/Prettier
+- Unit tests
+```
+
+### VSCode Settings
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  }
+}
+```
 
 ## Troubleshooting
 
-### Common Issues
-- **"test.describe called here"** → Ensure single Playwright version (use SPA's)
-- **Port in use** → Change Vite port in `playwright.config.js` 
-- **Overcommit hooks blocking commit** → Install gem or set `OVERCOMMIT_DISABLE=1`
-- **TypeScript errors in frontend** → Run `npm install @types/react @types/react-dom @testing-library/react`
-- **Tests failing with "ERR_EMPTY_RESPONSE"** → Ensure frontend dev server is running on port 5174
+| Issue | Solution |
+|-------|----------|
+| Port 3000 in use | `lsof -ti:3000 \| xargs kill -9` |
+| TypeScript errors | `npm run typecheck` to identify |
+| Slow hot reload | Clear `.vite` cache folder |
+| Test timeouts | Increase timeout in `playwright.config.ts` |
+| Memory leaks | Use Chrome DevTools Memory Profiler |
 
-### Testing Issues
-- **React components not mounting** → Check for missing TypeScript types
-- **Canvas not found** → Wait for `networkidle` state before testing
-- **Performance tests failing** → Check if target FPS (30+) and memory (<20MB) are met
-- **WebSocket tests failing** → Verify backend services are running (9292, 9294)
+## Performance Optimization
 
-### Performance Debugging
-- **Low FPS** → Check for infinite render loops or multiple canvas elements
-- **High memory usage** → Run tests with memory leak detection enabled
-- **Slow load times** → Review bundle size and script count
+### Bundle Optimization
+- Code splitting by route
+- Lazy loading for game assets
+- Tree shaking unused imports
+- WebP images with fallbacks
 
-## Reports & Documentation
-- **TEST_REPORT.md**: Comprehensive testing results and improvement recommendations
-- **Performance baselines**: Established through self-improving test iterations
-- **Coverage metrics**: Available in Playwright HTML reports
+### Runtime Optimization
+- Virtual scrolling for long lists
+- Web Workers for game physics
+- RequestAnimationFrame for animations
+- Canvas layer compositing
+
+## Roadmap
+
+### Phase 1 (Current)
+- [x] TypeScript migration
+- [x] React SPA architecture
+- [x] E2E test coverage
+- [x] Cleanup scripts
+
+### Phase 2 (Next)
+- [ ] PWA support
+- [ ] Offline gameplay
+- [ ] Cloud save sync
+- [ ] Mobile app (React Native)
+
+### Phase 3 (Future)
+- [ ] WebRTC voice chat
+- [ ] Tournament system
+- [ ] Custom map editor
+- [ ] Steam integration
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open Pull Request
+
+## Resources
+
+- [React Documentation](https://react.dev)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Vite Guide](https://vitejs.dev/guide/)
+- [Playwright Docs](https://playwright.dev)
+- [TailwindCSS](https://tailwindcss.com)
 
 ---
 
-*Last updated: 2025-08-19 - Updated with comprehensive testing suite and performance metrics*
-
+*Last updated: 2025-08-19 - Refactored for TypeScript SPA-only architecture*
