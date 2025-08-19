@@ -1,10 +1,9 @@
-// Remove unused import
-// import { cn } from '@/utils/tailwind';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useApp } from '@/contexts/AppContext';
 import type { Room } from '@/types/game';
+import { ResponsiveLobby } from '@/components/ResponsiveLobby';
 
 const LobbyView: React.FC = () => {
   const navigate = useNavigate();
@@ -38,55 +37,7 @@ const LobbyView: React.FC = () => {
     navigate(`/room/${roomId}`);
   };
 
-  return (
-    <div className="lobby-view">
-      <div className="lobby-container">
-        <header className="lobby-header">
-          <h1>CS2D Lobby</h1>
-          <button 
-            onClick={() => navigate('/settings')} 
-            className="btn btn-secondary"
-          >
-            Settings
-          </button>
-        </header>
-
-        <div className="lobby-content">
-          <div className="room-controls">
-            <button 
-              onClick={createRoom} 
-              disabled={isCreatingRoom}
-              className="btn btn-primary hover:scale-105 active:scale-95 transition-transform"
-            >
-              {isCreatingRoom ? 'Creating...' : 'Create Room'}
-            </button>
-          </div>
-
-          <div className="room-list">
-            <h2>Available Rooms</h2>
-            {rooms.length === 0 ? (
-              <p className="no-rooms">No rooms available. Create one!</p>
-            ) : (
-              <ul>
-                {rooms.map((room: Room) => (
-                  <li key={room.id} className="room-item">
-                    <span className="room-name">{room.name}</span>
-                    <span className="room-players">{room.players.length}/{room.maxPlayers}</span>
-                    <button 
-                      onClick={() => joinRoom(room.id)}
-                      className="btn btn-sm btn-primary"
-                    >
-                      Join
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <ResponsiveLobby />;
 };
 
 export default LobbyView;

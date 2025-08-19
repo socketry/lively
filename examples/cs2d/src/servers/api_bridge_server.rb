@@ -3,6 +3,7 @@
 
 require "webrick"
 require "json"
+require_relative "../../lib/server_config"
 require_relative "../../game/async_redis_room_manager"
 require_relative "../../game/map_templates"
 
@@ -184,9 +185,80 @@ class APIBridgeServer < WEBrick::HTTPServlet::AbstractServlet
 	end
 end
 
+# Health check servlet
+class HealthCheckServlet < WEBrick::HTTPServlet::AbstractServlet
+	def initialize(server, start_time)
+		super(server)
+		@start_time = start_time
+	end
+	
+	def do_GET(request, response)
+		response["Access-Control-Allow-Origin"] = "*"
+		response["Content-Type"] = "application/json"
+		
+		uptime_seconds = Time.now.to_i - @start_time
+		
+		health_data = {
+			status: 'healthy',
+			service: 'CS2D API Bridge Server',
+			version: '1.0.0',
+			port: ServerConfig.api_port,
+			hostname: ServerConfig.hostname,
+			uptime_seconds: uptime_seconds,
+			uptime_human: format_uptime(uptime_seconds),
+			endpoints: [
+				'/api/room',
+				'/api/rooms',
+				'/api/maps',
+				'/api/map/:name',
+				'/api/room/add_bot',
+				'/api/room/remove_bot',
+				'/api/room/start_game'
+			],
+			server_config: {
+				api_url: ServerConfig.api_url,
+				lively_url: ServerConfig.lively_url,
+				static_url: ServerConfig.static_url
+			},
+			timestamp: Time.now.iso8601
+		}
+		
+		response.body = health_data.to_json
+	end
+	
+	private
+	
+	def format_uptime(seconds)
+		days = seconds / (24 * 3600)
+		hours = (seconds % (24 * 3600)) / 3600
+		minutes = (seconds % 3600) / 60
+		secs = seconds % 60
+		
+		if days > 0
+			"#{days}d #{hours}h #{minutes}m #{secs}s"
+		elsif hours > 0
+			"#{hours}h #{minutes}m #{secs}s"
+		elsif minutes > 0
+			"#{minutes}m #{secs}s"
+		else
+			"#{secs}s"
+		end
+	end
+end
+
 # Start the API bridge server
 if __FILE__ == $0
-	port = ARGV[0]&.to_i || 9294
+	port = ARGV[0]&.to_i || ServerConfig.api_port
+	start_time = Time.now.to_i
+	
+	puts "CS2D API Bridge Server Configuration:"
+	puts "===================================="
+	puts "Port: #{port}"
+	puts "API URL: #{ServerConfig.api_url}"
+	puts "Lively URL: #{ServerConfig.lively_url}"
+	puts "Static URL: #{ServerConfig.static_url}"
+	puts "Health endpoint: #{ServerConfig.api_health_url}"
+	puts
 	
 	puts "Starting API Bridge Server on port #{port}..."
 	
@@ -195,9 +267,11 @@ if __FILE__ == $0
 	
 	server = WEBrick::HTTPServer.new(Port: port)
 	server.mount "/api", APIBridgeServer, room_manager
+	server.mount "/health", HealthCheckServlet, start_time
 	
 	trap("INT") { server.shutdown }
 	
-	puts "API Bridge Server running at http://localhost:#{port}"
+	puts "API Bridge Server running at #{ServerConfig.api_url}"
+	puts "Health check available at: #{ServerConfig.api_health_url}"
 	server.start
 end

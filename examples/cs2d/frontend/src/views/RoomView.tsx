@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useApp } from '@/contexts/AppContext';
 import type { Room } from '@/types/game';
+import { ResponsiveWaitingRoom } from '@/components/ResponsiveWaitingRoom';
 
 const RoomView: React.FC = () => {
   const navigate = useNavigate();
@@ -43,54 +44,7 @@ const RoomView: React.FC = () => {
   };
 
   return (
-    <div className="room-view">
-      <div className="room-container">
-        <header className="room-header">
-          <button 
-            onClick={leaveRoom} 
-            className="btn btn-secondary hover:scale-105 active:scale-95 transition-transform"
-          >
-            Leave Room
-          </button>
-          <h1>Room: {params.roomId}</h1>
-        </header>
-
-        <div className="room-content">
-          <div className="players-section">
-            <h2>Players</h2>
-            <ul className="players-list">
-              {roomData?.players?.map((player) => (
-                <li key={player.id} className="player-item">
-                  <span className="player-name">{player.name}</span>
-                  <span className={cn('player-status', { ready: player.ready })}>
-                    {player.ready ? 'Ready' : 'Not Ready'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="room-actions">
-            <button 
-              onClick={toggleReady}
-              className={cn('btn', isReady ? 'btn-success' : 'btn-warning')}
-            >
-              {isReady ? 'Ready!' : 'Not Ready'}
-            </button>
-            
-            {roomData?.isHost && (
-              <button 
-                onClick={startGame}
-                disabled={!roomData?.allReady}
-                className="btn btn-primary"
-              >
-                Start Game
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    <ResponsiveWaitingRoom roomId={params.roomId || 'default'} />
   );
 };
 

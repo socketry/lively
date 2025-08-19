@@ -38,7 +38,10 @@ export default {
         'defuse': 'defuse 10s linear',
         'plant': 'plant 3s ease-in-out',
         'slide-in': 'slide-in 0.3s ease-out',
-        'fade-in': 'fade-in 0.3s ease-in'
+        'fade-in': 'fade-in 0.3s ease-in',
+        'shimmer': 'shimmer 2s ease-in-out infinite',
+        'blob': 'blob 7s infinite',
+        'float': 'float 3s ease-in-out infinite'
       },
       keyframes: {
         'damage-flash': {
@@ -65,6 +68,19 @@ export default {
         'fade-in': {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' }
+        },
+        'shimmer': {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' }
+        },
+        'blob': {
+          '0%, 100%': { transform: 'translate(0px, 0px) scale(1)' },
+          '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+          '66%': { transform: 'translate(-20px, 20px) scale(0.9)' }
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-20px)' }
         }
       },
       spacing: {
@@ -74,6 +90,11 @@ export default {
       },
       screens: {
         'xs': '475px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
         '3xl': '1920px'
       },
       backdropBlur: {
@@ -195,6 +216,29 @@ export default {
         '.pixel-text': {
           '@apply font-pixel text-white text-xs': {},
           letterSpacing: '1px'
+        },
+        // Mobile-specific components
+        '.mobile-touch-target': {
+          '@apply min-h-[44px] min-w-[44px]': {}
+        },
+        '.mobile-input': {
+          '@apply text-base': {},
+          fontSize: '16px' // Prevents zoom on iOS
+        },
+        '.mobile-safe-area': {
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)'
+        },
+        '.mobile-sticky-bottom': {
+          position: 'sticky',
+          bottom: 'env(safe-area-inset-bottom)',
+          zIndex: '50'
+        },
+        '.scrollable-content': {
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch'
         }
       });
     }

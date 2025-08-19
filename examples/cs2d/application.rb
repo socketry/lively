@@ -17,9 +17,11 @@ require "lively/application"
 require_relative "lib/emergency_patch"
 require_relative "lib/render_manager"
 require_relative "lib/managed_view"
+require_relative "lib/server_config"
 
-# Load the patched lobby view
+# Load the patched lobby view and health view
 require_relative "src/lobby/async_redis_lobby_i18n_patched"
+require_relative "lib/lively_health_view"
 
 # CS2D Application - Main Server Entrypoint with Emergency Patch
 # 
@@ -99,4 +101,13 @@ if ENV['EMERGENCY_MONITORING'] != 'false'
   end
 end
 
-Application = Lively::Application[AsyncRedisLobbyI18nPatchedView]
+# Create routed application with health endpoint
+require "rack"
+
+health_app = Lively::Application[LivelyHealthView]
+main_app = Lively::Application[AsyncRedisLobbyI18nPatchedView]
+
+Application = Rack::URLMap.new({
+  "/health" => health_app,
+  "/" => main_app
+})

@@ -2,6 +2,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../contexts/I18nContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { setupWebSocket } from '@/services/websocket';
+import {
+  ARIA_LABELS,
+  KEYBOARD_KEYS,
+  isActionKey,
+  handleEscapeKey,
+  createButtonProps,
+  createListProps,
+  createListItemProps,
+  focusUtils,
+  announceToScreenReader
+} from '@/utils/accessibility';
 
 interface Room {
   id: string;
@@ -173,8 +184,65 @@ export const EnhancedModernLobby: React.FC = () => {
     return () => { offCreated(); offUpdated() }
   }, [])
 
+  // Handle global keyboard shortcuts
+  const handleGlobalKeyDown = (event: React.KeyboardEvent) => {
+    // Escape key closes modals
+    if (event.key === KEYBOARD_KEYS.ESCAPE) {
+      if (showCreateModal) {
+        setShowCreateModal(false);
+        announceToScreenReader('Create room dialog closed');
+      }
+      if (showBotPanel) {
+        setShowBotPanel(false);
+        announceToScreenReader('Bot manager closed');
+      }
+    }
+  };
+
+  // Focus management for modals
+  useEffect(() => {
+    if (showCreateModal) {
+      const modalElement = document.querySelector('.create-room-modal') as HTMLElement;
+      if (modalElement) {
+        setTimeout(() => focusUtils.focusFirst(modalElement), 100);
+      }
+      announceToScreenReader('Create room dialog opened', 'assertive');
+    }
+  }, [showCreateModal]);
+
+  useEffect(() => {
+    if (showBotPanel) {
+      const modalElement = document.querySelector('.bot-manager-panel') as HTMLElement;
+      if (modalElement) {
+        setTimeout(() => focusUtils.focusFirst(modalElement), 100);
+      }
+      announceToScreenReader('Bot manager opened', 'assertive');
+    }
+  }, [showBotPanel]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden relative">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden relative"
+      onKeyDown={handleGlobalKeyDown}
+      role="application"
+      aria-label="CS2D Game Lobby"
+    >
+      {/* Skip navigation link */}
+      <a 
+        href="#main-content" 
+        className="skip-nav sr-only focus:not-sr-only"
+        aria-label="Skip to main content"
+      >
+        Skip to main content
+      </a>
+      
+      {/* Live region for screen reader announcements */}
+      <div 
+        aria-live="polite" 
+        aria-atomic="true" 
+        className="live-region"
+        id="announcements"
+      ></div>
       {/* Enhanced Animated Background */}
       <div className="absolute inset-0">
         <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
@@ -184,7 +252,11 @@ export const EnhancedModernLobby: React.FC = () => {
       </div>
 
       {/* Enhanced Header with Glass Effect */}
-      <header className="relative backdrop-blur-xl bg-white/5 border-b border-white/10 shadow-2xl">
+      <header 
+        className="relative backdrop-blur-xl bg-white/5 border-b border-white/10 shadow-2xl"
+        role="banner"
+        aria-label="Game lobby header"
+      >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
@@ -362,16 +434,43 @@ export const EnhancedModernLobby: React.FC = () => {
           </div>
         </div>
 
+        {/* Data refresh indicator */}
+        {isRefreshing && (
+          <div className="fixed top-4 left-4 z-30 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg px-3 py-2">
+            <div className="flex items-center space-x-2 text-white">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Refreshing rooms...</span>
+            </div>
+          </div>
+        )}
+
         {/* Enhanced Room List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="room-list">
-          {filteredRooms.map((room) => (
-            <button
-              key={room.id}
-              type="button"
-              className="text-left backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-6 hover:bg-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer transform hover:scale-105"
-              onClick={() => window.location.href = `/room/${room.id}`}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') window.location.href = `/room/${room.id}`; }}
-            >
+        {isInitialLoading ? (
+          <LobbySkeletonGrid count={6} />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="room-list">
+            {filteredRooms.map((room) => (
+              <div
+                key={room.id}
+                className="text-left backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-6 hover:bg-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer transform hover:scale-105"
+                onClick={() => {
+                  if (isJoiningRoom !== room.id) {
+                    setIsJoiningRoom(room.id);
+                    notifyGameAction('joining', `Joining ${room.name}...`, 'info');
+                    navigateToRoom(room.id);
+                  }
+                }}
+                onKeyDown={(e) => { 
+                  if ((e.key === 'Enter' || e.key === ' ') && isJoiningRoom !== room.id) {
+                    setIsJoiningRoom(room.id);
+                    notifyGameAction('joining', `Joining ${room.name}...`, 'info');
+                    navigateToRoom(room.id);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label={`Join room ${room.name}`}
+              >
               {/* Room Header */}
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -444,18 +543,32 @@ export const EnhancedModernLobby: React.FC = () => {
               </div>
 
               {/* Join Button */}
-              <button 
-                className="w-full mt-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-200 font-semibold"
+              <div 
+                className={`w-full mt-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-200 font-semibold text-center ${
+                  isJoiningRoom === room.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.location.href = `/room/${room.id}`;
+                  if (isJoiningRoom !== room.id) {
+                    setIsJoiningRoom(room.id);
+                    notifyGameAction('joining', `Joining ${room.name}...`, 'info');
+                    navigateToRoom(room.id);
+                  }
                 }}
               >
-                Join Room
-              </button>
-            </button>
+                {isJoiningRoom === room.id ? (
+                  <span className="flex items-center justify-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Joining...</span>
+                  </span>
+                ) : (
+                  'Join Room'
+                )}
+              </div>
+            </div>
           ))}
-        </div>
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredRooms.length === 0 && (

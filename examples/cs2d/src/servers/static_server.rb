@@ -3,12 +3,13 @@
 
 require 'webrick'
 require 'json'
+require_relative '../../lib/server_config'
 
 # Simple static file server for CS2D HTML pages
 # This serves the room.html and game.html files that the lobby redirects to
 class CS2DStaticServer
-  def initialize(port = 9293)
-    @port = port
+  def initialize(port = nil)
+    @port = port || ServerConfig.static_port
     # Fix: Use absolute path relative to app root, not current script directory
     @document_root = File.expand_path('../../public', __dir__)
     
@@ -26,6 +27,23 @@ class CS2DStaticServer
   end
   
   private
+  
+  def format_uptime(seconds)
+    days = seconds / (24 * 3600)
+    hours = (seconds % (24 * 3600)) / 3600
+    minutes = (seconds % 3600) / 60
+    secs = seconds % 60
+    
+    if days > 0
+      "#{days}d #{hours}h #{minutes}m #{secs}s"
+    elsif hours > 0
+      "#{hours}h #{minutes}m #{secs}s"
+    elsif minutes > 0
+      "#{minutes}m #{secs}s"
+    else
+      "#{secs}s"
+    end
+  end
   
   def list_available_files
     return [] unless Dir.exist?(@document_root)
@@ -59,18 +77,31 @@ class CS2DStaticServer
       res['Content-Type'] = 'application/json'
       res['Access-Control-Allow-Origin'] = '*'
       
+      uptime_seconds = Time.now.to_i - @start_time
+      available_files = list_available_files
+      
       health_data = {
-        status: 'ok',
-        server: 'CS2D Static Server',
+        status: 'healthy',
+        service: 'CS2D Static Server',
+        version: '1.0.0',
         port: @port,
+        hostname: ServerConfig.hostname,
         document_root: @document_root,
         document_root_exists: Dir.exist?(@document_root),
-        uptime: Time.now.to_i - @start_time,
-        available_files: list_available_files
+        uptime_seconds: uptime_seconds,
+        uptime_human: format_uptime(uptime_seconds),
+        available_files_count: available_files.length,
+        available_files: available_files,
+        server_config: {
+          static_url: ServerConfig.static_url,
+          lively_url: ServerConfig.lively_url,
+          api_url: ServerConfig.api_url
+        },
+        timestamp: Time.now.iso8601
       }
       
       res.body = health_data.to_json
-      puts "Health check requested - Status: OK"
+      puts "[#{Time.now}] Health check requested - Status: OK"
     end
 
     # Add CORS headers for cross-origin requests
@@ -135,6 +166,16 @@ class CS2DStaticServer
 end
 
 if __FILE__ == $0
-  port = ARGV[0] ? ARGV[0].to_i : 9293
+  port = ARGV[0]&.to_i || ServerConfig.static_port
+  
+  puts "CS2D Static Server Configuration:"
+  puts "================================="
+  puts "Port: #{port}"
+  puts "Static URL: #{ServerConfig.static_url}"
+  puts "Lively URL: #{ServerConfig.lively_url}"
+  puts "API URL: #{ServerConfig.api_url}"
+  puts "Health endpoint: #{ServerConfig.static_health_url}"
+  puts
+  
   CS2DStaticServer.new(port)
 end

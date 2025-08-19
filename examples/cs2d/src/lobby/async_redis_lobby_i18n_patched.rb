@@ -11,6 +11,7 @@ require_relative "../../lib/managed_view"
 
 # Load dependencies
 require_relative "../../lib/i18n"
+require_relative "../../lib/server_config"
 require_relative "../../game/async_redis_room_manager"
 
 # 🎯 PATCHED ASYNC REDIS LOBBY - INFINITE LOOP PROTECTION
@@ -627,8 +628,8 @@ class AsyncRedisLobbyI18nPatchedView < ManagedView
 			
 			// Small delay to let the notification show
 			setTimeout(() => {
-				// Redirect to static server on port 9293 for room waiting page
-				const url = 'http://localhost:9293/room.html?room_id=#{room_id}&player_id=#{player_id}&nickname=#{encoded_nickname}';
+				// Redirect to static server for room waiting page
+				const url = '#{ServerConfig.room_url(room_id, player_id, encoded_nickname)}';
 				console.log('Navigating to:', url);
 				window.location.href = url;
 			}, 2000); // 2 second delay to show success message
@@ -863,7 +864,7 @@ class AsyncRedisLobbyI18nPatchedView < ManagedView
 	# All the extensive CSS and HTML generation is preserved
 	def render(builder)
 		# Add CSS link
-		builder.tag(:link, rel: "stylesheet", type: "text/css", href: "http://localhost:9293/_static/lobby.css") do
+		builder.tag(:link, rel: "stylesheet", type: "text/css", href: "#{ServerConfig.static_url}/_static/lobby.css") do
 		end
 		
 		# Override debug borders
