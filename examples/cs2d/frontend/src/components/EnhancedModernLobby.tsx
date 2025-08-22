@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { setupWebSocket } from '@/services/websocket';
@@ -31,6 +32,7 @@ interface Room {
 
 export const EnhancedModernLobby: React.FC = () => {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const wsRef = useRef<ReturnType<typeof setupWebSocket> | null>(null)
   const [rooms, setRooms] = useState<Room[]>([
     { 
@@ -63,7 +65,10 @@ export const EnhancedModernLobby: React.FC = () => {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBotPanel, setShowBotPanel] = useState(false);
-  const [isConnected, setIsConnected] = useState(false)
+  const [isConnected, setIsConnected] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isJoiningRoom, setIsJoiningRoom] = useState<string | null>(null);
   
   const [roomConfig, setRoomConfig] = useState({
     name: '',
@@ -149,6 +154,19 @@ export const EnhancedModernLobby: React.FC = () => {
       const room = availableRooms[Math.floor(Math.random() * availableRooms.length)];
       window.location.href = `/room/${room.id}`;
     }
+  };
+
+  const navigateToRoom = (roomId: string) => {
+    // Navigate to the game with the room ID
+    setTimeout(() => {
+      navigate(`/game/${roomId}`);
+    }, 500);
+  };
+
+  const notifyGameAction = (action: string, message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    // Simple console notification for now
+    console.log(`[${type.toUpperCase()}] ${action}: ${message}`);
+    // Could add toast notification here in the future
   };
 
   // WebSocket: connect and listen for room updates

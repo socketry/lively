@@ -270,7 +270,7 @@ export class CS16SoundPreloader {
     this.progress.bytesLoaded += cacheEntry.size;
 
     // Check cache limits
-    this.enforceCache Limits();
+    this.enforceCacheLimits();
   }
 
   /**
