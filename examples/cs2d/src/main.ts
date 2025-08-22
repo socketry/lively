@@ -10,14 +10,14 @@ const initializeCS2D = (): CS2DGlobal => {
   const cs2d: CS2DGlobal = {
     version: '0.2.0',
     buildDate: new Date().toISOString(),
-    environment: process.env['NODE_ENV'] === 'production' ? 'production' : 'development',
+    environment: import.meta.env.PROD ? 'production' : 'development',
     config: {
       apiUrl:
-        import.meta.env.VITE_API_URL.length > 0
+        import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.length > 0
           ? import.meta.env.VITE_API_URL
           : 'http://localhost:9294/api',
       wsUrl:
-        import.meta.env.VITE_WS_URL.length > 0
+        import.meta.env.VITE_WS_URL && import.meta.env.VITE_WS_URL.length > 0
           ? import.meta.env.VITE_WS_URL
           : 'ws://localhost:9292',
       assetsPath: '/cstrike',
@@ -121,7 +121,7 @@ const createAPI = (): CS2DGlobal['api'] => {
 // Create WebSocket connection
 const createConnection = (serverId: string): Connection => {
   const wsUrl =
-    import.meta.env.VITE_WS_URL.length > 0 ? import.meta.env.VITE_WS_URL : 'ws://localhost:9292';
+    import.meta.env.VITE_WS_URL && import.meta.env.VITE_WS_URL.length > 0 ? import.meta.env.VITE_WS_URL : 'ws://localhost:9292';
   const ws = new WebSocket(`${wsUrl}/servers/${serverId}`);
   const handlers = new Map<string, Set<(data: unknown) => void>>();
 
