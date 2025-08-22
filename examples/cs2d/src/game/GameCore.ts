@@ -5,6 +5,7 @@ import { CS16AudioManager, SurfaceType } from './audio/CS16AudioManager';
 import { CS16BotVoiceSystem, BotPersonality } from './audio/CS16BotVoiceSystem';
 import { CS16AmbientSystem } from './audio/CS16AmbientSystem';
 import { MapSystem } from './maps/MapSystem';
+import { GameStateManager } from './GameStateManager';
 
 export interface Player {
   id: string;
@@ -61,6 +62,7 @@ export class GameCore {
   private botVoice: CS16BotVoiceSystem;
   private ambient: CS16AmbientSystem;
   private maps: MapSystem;
+  private stateManager: GameStateManager;
   
   private players: Map<string, Player> = new Map();
   private localPlayerId: string = '';
@@ -87,6 +89,11 @@ export class GameCore {
     this.ambient = new CS16AmbientSystem(this.audio);
     this.weapons = new WeaponSystem(this.audio);
     this.maps = new MapSystem();
+    this.stateManager = new GameStateManager();
+    
+    // Connect state manager to core systems
+    this.stateManager.connectGameCore(this);
+    this.stateManager.connectAudioManager(this.audio);
     
     // Initialize CS 1.6 audio system
     this.initializeAudio();
@@ -414,6 +421,18 @@ export class GameCore {
         // Use CS 1.6 surface-based footstep sounds
         this.audio.playFootstep(player.position, player.currentSurface);
         player.lastStepTime = now;
+        
+        // Emit footstep event for multiplayer (only for local player to avoid spam)
+        if (player.id === this.localPlayerId) {
+          this.stateManager.emit({
+            type: 'footstep',
+            playerId: player.id,
+            data: { surface: player.currentSurface },
+            timestamp: now,
+            position: player.position,
+            team: player.team
+          });
+        }
       }
     }
     
@@ -496,7 +515,15 @@ export class GameCore {
     );
     
     if (bullets) {
-      // CS16AudioManager handles weapon sounds automatically in WeaponSystem
+      // Emit weapon fire event for multiplayer synchronization
+      this.stateManager.emit({
+        type: 'weapon_fire',
+        playerId: player.id,
+        data: { weaponId: player.currentWeapon, direction },
+        timestamp: Date.now(),
+        position: player.position,
+        team: player.team
+      });
       
       // Create muzzle flash effect
       this.renderer.createParticleEffect('muzzleFlash', player.position.x, player.position.y);
@@ -509,7 +536,19 @@ export class GameCore {
   
   private reloadWeapon(player: Player): void {
     // Use enhanced weapon system with CS 1.6 sounds
-    this.weapons.reload(player.currentWeapon, player.id, player.position);
+    const reloaded = this.weapons.reload(player.currentWeapon, player.id, player.position);
+    
+    if (reloaded) {
+      // Emit reload event for multiplayer synchronization
+      this.stateManager.emit({
+        type: 'weapon_reload',
+        playerId: player.id,
+        data: { weaponId: player.currentWeapon },
+        timestamp: Date.now(),
+        position: player.position,
+        team: player.team
+      });
+    }
   }
   
   private dropWeapon(player: Player): void {
@@ -565,6 +604,9 @@ export class GameCore {
     // Update game state
     this.updateGameState(deltaTime);
     
+    // Process network events for multiplayer
+    this.stateManager.processNetworkQueue();
+    
     // Update FPS
     this.updateFPS();
   }
@@ -594,6 +636,16 @@ export class GameCore {
           // Mark player as in pain for audio behavior
           player.isInPain = true;
           player.lastDamageTime = Date.now();
+          
+          // Emit damage event for multiplayer synchronization
+          this.stateManager.emit({
+            type: 'player_damage',
+            playerId: player.id,
+            data: { damage: finalDamage, headshot: wasHeadshot, armor: player.armor > 0 },
+            timestamp: Date.now(),
+            position: player.position,
+            team: player.team
+          });
           
           // Play authentic CS 1.6 hit sounds
           if (wasHeadshot) {
@@ -668,6 +720,16 @@ export class GameCore {
         killer.money += 300; // Base kill reward
       }
     }
+    
+    // Emit death event for multiplayer synchronization
+    this.stateManager.emit({
+      type: 'player_death',
+      playerId: player.id,
+      data: { killerId },
+      timestamp: Date.now(),
+      position: player.position,
+      team: player.team
+    });
     
     // Play authentic CS 1.6 death sound
     this.audio.playPlayerSound('death', player.position);
@@ -823,26 +885,26 @@ export class GameCore {
    */
   private handleRadioCommand(player: Player, command: string): void {
     // Play player radio command
-    const success = this.botVoiceSystem.playRadioCommand(command, player.position);
+    const success = this.botVoice.playRadioCommand(command, player.position);
     
     if (success) {
       // Trigger responses from nearby bots
-      const nearbyBots = this.players.filter(p => 
+      const nearbyBots = Array.from(this.players.values()).filter(p => 
         p.id !== player.id && 
         p.team === player.team && 
         p.isAlive &&
-        this.physics.getDistance(p.position, player.position) < 800
+        this.calculateDistance(p.position, player.position) < 800
       );
       
       // Some bots might respond
       nearbyBots.forEach(bot => {
         if (Math.random() < 0.3) { // 30% chance to respond
           setTimeout(() => {
-            this.botVoiceSystem.playBotVoice(
+            this.botVoice.playBotVoice(
               bot.id,
               'radio_response',
               bot.position,
-              bot.personality || 'normal'
+              bot.botPersonality || undefined
             );
           }, 500 + Math.random() * 1000);
         }
@@ -854,24 +916,31 @@ export class GameCore {
    * Trigger bot response to game events
    */
   private triggerBotResponse(player: Player, context: string): void {
-    const nearbyBots = this.players.filter(p => 
+    const nearbyBots = Array.from(this.players.values()).filter(p => 
       p.id !== player.id && 
       p.isAlive &&
-      this.physics.getDistance(p.position, player.position) < 600
+      this.calculateDistance(p.position, player.position) < 600
     );
     
     nearbyBots.forEach(bot => {
       if (Math.random() < 0.2) { // 20% chance to respond
         setTimeout(() => {
-          this.botVoiceSystem.playBotVoice(
+          this.botVoice.playBotVoice(
             bot.id,
             context,
             bot.position,
-            bot.personality || 'normal'
+            bot.botPersonality || undefined
           );
         }, 200 + Math.random() * 800);
       }
     });
+  }
+
+  /**
+   * Calculate distance between two positions
+   */
+  private calculateDistance(pos1: Vector2D, pos2: Vector2D): number {
+    return Math.sqrt((pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2);
   }
 
   public start(): void {
@@ -888,5 +957,47 @@ export class GameCore {
     
     this.lastUpdateTime = performance.now();
     gameLoop();
+  }
+
+  /**
+   * Get current game state for UI updates
+   */
+  public getState(): GameState {
+    return { ...this.gameState };
+  }
+
+  /**
+   * Get player by ID
+   */
+  public getPlayer(playerId: string): Player | undefined {
+    return this.players.get(playerId);
+  }
+
+  /**
+   * Get all players
+   */
+  public getPlayers(): Player[] {
+    return Array.from(this.players.values());
+  }
+
+  /**
+   * Get current FPS
+   */
+  public getFPS(): number {
+    return this.fps;
+  }
+
+  /**
+   * Get local player
+   */
+  public getLocalPlayer(): Player | undefined {
+    return this.players.get(this.localPlayerId);
+  }
+
+  /**
+   * Get state manager for network access
+   */
+  public getStateManager(): GameStateManager {
+    return this.stateManager;
   }
 }
