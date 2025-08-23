@@ -43,13 +43,14 @@ cd frontend && npm run dev
 
 ## ✨ Features
 
-- 🎵 **Authentic CS 1.6 Audio** - 464 original sounds
+- 🎵 **Authentic CS 1.6 Audio** - 464 original sounds with intelligent fallback
 - 🤖 **Smart Bot AI** - Bots with personality traits
 - 🌐 **Multiplayer Support** - Real-time WebSocket networking
-- 🎨 **Modern UI** - React-based responsive interface
+- 🎨 **Modern UI** - Enhanced React interface with animations
 - 🏃 **60 FPS Performance** - Optimized game engine
 - 🌍 **i18n Support** - Multiple languages
 - ♿ **Accessibility** - Full keyboard navigation
+- ✨ **Visual Effects** - Animated backgrounds and smooth transitions
 
 ## 🏗️ Architecture
 
@@ -121,4 +122,4 @@ MIT License - see [LICENSE](./LICENSE) file
 
 ---
 
-**Version**: 0.2.0 | **Status**: Alpha | **Last Updated**: 2025-08-22
+**Version**: 0.3.0 | **Status**: Beta | **Last Updated**: 2025-08-23

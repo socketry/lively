@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-CS2D is a browser-based 2D reimplementation of Counter-Strike featuring authentic CS 1.6 audio, multiplayer support, and bot AI. Built with TypeScript, React, and modern web technologies.
+CS2D is a browser-based 2D reimplementation of Counter-Strike featuring authentic CS 1.6 audio with intelligent fallback system, multiplayer support, smart bot AI, and modern UI/UX. Built with TypeScript, React, and cutting-edge web technologies for optimal performance and user experience.
 
 ## Architecture
 
@@ -23,16 +23,19 @@ Key features:
 
 #### 2. CS 1.6 Authentic Audio System (`src/game/audio/`)
 - **CS16AudioManager**: Main audio controller with 3D positional audio
-- **CS16SoundPreloader**: Async sound loading with caching (464 authentic sounds)
+- **CS16SoundPreloader**: Async sound loading with intelligent 3-tier fallback system
+  - Primary: 464 authentic CS 1.6 sounds from `/cstrike/sound/`
+  - Fallback: Categorized generic sounds from `/sounds/fallback/`
+  - Ultimate: Basic UI click sound for guaranteed audio feedback
 - **CS16BotVoiceSystem**: Bot personality-based voice lines and radio commands
 - **CS16AmbientSystem**: Dynamic ambient sounds based on map location
 
-Sound categories:
-- Weapon sounds (fire, reload, empty clip)
-- Player sounds (footsteps, damage, death)
-- Radio commands (Z/X/C menus)
-- Ambient map sounds
-- UI feedback sounds
+Sound categories with fallback support:
+- Weapon sounds (fire, reload, empty clip) → generic weapon sounds
+- Player sounds (footsteps, damage, death) → generic step/hit sounds
+- Radio commands (Z/X/C menus) → radio static fallback
+- Ambient map sounds → ambient nature/urban fallbacks
+- UI feedback sounds → click/hover/success/error sounds
 
 #### 3. Multiplayer State Management
 
@@ -70,7 +73,12 @@ Configuration:
 ### Frontend Architecture
 
 #### React Components (`frontend/src/components/`)
-- **EnhancedModernLobby**: Main game lobby with room browser
+- **EnhancedModernLobby**: Main game lobby with modern UI/UX
+  - Multi-layered animated gradient backgrounds
+  - Floating gradient orbs with staggered animations
+  - Interactive hover effects (scale, glow, shadows)
+  - Audio toggle with visual feedback
+  - Advanced loading states with skeleton screens
 - **GameCanvas**: Game rendering and HUD overlay
 - **EnhancedWaitingRoom**: Pre-game room management
 - **LanguageSwitcher**: i18n support
@@ -180,6 +188,8 @@ npm install -D @vitejs/plugin-react
 1. Check browser autoplay policies
 2. Ensure user interaction before audio playback
 3. Verify sound files exist in `public/cstrike/sound/`
+4. Audio fallback system will automatically use generic sounds if CS 1.6 sounds fail
+5. Check audio toggle button in lobby (speaker icon) to enable/disable sounds
 
 ### Issue: Poor performance
 **Solution**:
@@ -225,12 +235,16 @@ cs2d/
 ## Key Features Implemented
 
 ### ✅ Completed
-- CS 1.6 authentic audio system with 464 sounds
+- CS 1.6 authentic audio system with 464 sounds and intelligent fallback
 - GameCore engine with ECS architecture
 - Multiplayer state management and synchronization
 - WebSocket game bridge for real-time multiplayer
 - Bot AI with personality system
-- React frontend with modern UI/UX
+- Modern React frontend with enhanced UI/UX
+  - Animated gradient backgrounds with floating orbs
+  - Interactive hover effects and smooth transitions
+  - Advanced loading states with skeleton screens
+  - Audio toggle and visual feedback system
 - Room management and lobby system
 - i18n support for multiple languages
 - Accessibility features (ARIA labels, keyboard nav)
@@ -252,10 +266,14 @@ cs2d/
 ## Performance Optimizations
 
 1. **Event Throttling**: Network events limited to 20/sec per type
-2. **Sound Caching**: LRU cache with 50MB limit for audio
+2. **Sound System**: 
+   - LRU cache with 50MB limit for audio
+   - 3-tier fallback system prevents loading failures
+   - Async preloading with retry logic
 3. **Lazy Loading**: Components and assets loaded on demand
 4. **Canvas Optimization**: Hardware acceleration and layer management
 5. **State Batching**: Multiple updates combined into single render
+6. **UI Animations**: GPU-accelerated CSS transforms for smooth 60 FPS
 
 ## Contributing
 
@@ -303,5 +321,5 @@ MIT License - See LICENSE file for details
 
 ---
 
-Last Updated: 2025-08-22
-Version: 0.2.0
+Last Updated: 2025-08-23
+Version: 0.3.0
