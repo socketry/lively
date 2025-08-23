@@ -3,7 +3,8 @@
 /* Custom global styles */
 @layer base {
   html {
-    @apply bg-cs-background text-cs-text;
+    background-color: #0a0a0a;
+    color: #ffffff;
   }
   
   body {

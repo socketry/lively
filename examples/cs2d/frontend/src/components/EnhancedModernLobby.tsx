@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { LobbySkeletonGrid } from './common/SkeletonLoader';
 import { setupWebSocket } from '@/services/websocket';
 import {
   ARIA_LABELS,
@@ -69,6 +70,8 @@ export const EnhancedModernLobby: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState<string | null>(null);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [soundEffect] = useState(new Audio('/sounds/ui/click.wav')); // Fallback UI sound
   
   const [roomConfig, setRoomConfig] = useState({
     name: '',
@@ -163,7 +166,25 @@ export const EnhancedModernLobby: React.FC = () => {
     }, 500);
   };
 
+  const playUISound = (soundType: 'click' | 'hover' | 'success' | 'error' = 'click') => {
+    if (!audioEnabled) return;
+    
+    try {
+      soundEffect.currentTime = 0;
+      soundEffect.volume = 0.3;
+      soundEffect.play().catch(() => {
+        // Fallback: visual feedback only
+        console.log(`UI Sound: ${soundType}`);
+      });
+    } catch (e) {
+      // Silent fail for audio
+    }
+  };
+
   const notifyGameAction = (action: string, message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    // Play corresponding UI sound
+    playUISound(type === 'success' ? 'success' : type === 'error' ? 'error' : 'click');
+    
     // Simple console notification for now
     console.log(`[${type.toUpperCase()}] ${action}: ${message}`);
     // Could add toast notification here in the future
@@ -262,11 +283,22 @@ export const EnhancedModernLobby: React.FC = () => {
         id="announcements"
       ></div>
       {/* Enhanced Animated Background */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-        <div className="absolute top-0 -right-4 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
-        <div className="absolute bottom-0 right-20 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-6000" />
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Primary gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900" />
+        
+        {/* Floating gradient orbs */}
+        <div className="absolute top-0 -left-4 w-96 h-96 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+        <div className="absolute top-0 -right-4 w-96 h-96 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob" style={{ animationDelay: '2s' }} />
+        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-gradient-to-r from-pink-500/30 to-red-500/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob" style={{ animationDelay: '4s' }} />
+        <div className="absolute bottom-0 right-20 w-96 h-96 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob" style={{ animationDelay: '6s' }} />
+        
+        {/* Animated geometric patterns */}
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 border border-white/10 rotate-45 animate-spin" style={{ animationDuration: '20s' }} />
+        <div className="absolute top-3/4 right-1/4 w-24 h-24 border border-orange-500/20 rotate-12 animate-pulse" />
+        
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse" style={{ animationDuration: '3s' }} />
       </div>
 
       {/* Enhanced Header with Glass Effect */}
@@ -301,8 +333,12 @@ export const EnhancedModernLobby: React.FC = () => {
               </div>
               
               <button 
-                onClick={() => setShowBotPanel(!showBotPanel)}
-                className="px-4 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all duration-200 flex items-center space-x-2"
+                onClick={() => {
+                  playUISound('click');
+                  setShowBotPanel(!showBotPanel);
+                }}
+                onMouseEnter={() => playUISound('hover')}
+                className="px-4 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 hover:scale-105 transition-all duration-200 transform active:scale-95 flex items-center space-x-2"
               >
                 <span>🤖</span>
                 <span>Bot Manager</span>
@@ -318,7 +354,24 @@ export const EnhancedModernLobby: React.FC = () => {
               
               <LanguageSwitcher />
               
-              <button className="px-4 py-2 backdrop-blur-md bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 font-semibold">
+              {/* Audio Toggle */}
+              <button 
+                onClick={() => {
+                  setAudioEnabled(!audioEnabled);
+                  playUISound('click');
+                }}
+                onMouseEnter={() => playUISound('hover')}
+                className="px-3 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 hover:scale-105 transition-all duration-200 transform active:scale-95"
+                title={audioEnabled ? "Mute sounds" : "Enable sounds"}
+              >
+                {audioEnabled ? '🔊' : '🔇'}
+              </button>
+              
+              <button 
+                onMouseEnter={() => playUISound('hover')}
+                onClick={() => playUISound('click')}
+                className="px-4 py-2 backdrop-blur-md bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-orange-500/25 hover:scale-105 transition-all duration-200 transform active:scale-95 font-semibold"
+              >
                 👤 Profile
               </button>
             </nav>
@@ -393,19 +446,29 @@ export const EnhancedModernLobby: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button 
-                onClick={() => setShowCreateModal(true)}
-                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 font-bold text-lg"
+                onClick={() => {
+                  playUISound('click');
+                  setShowCreateModal(true);
+                }}
+                onMouseEnter={() => playUISound('hover')}
+                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/25 hover:scale-105 transition-all duration-200 transform active:scale-95 font-bold text-lg relative overflow-hidden group"
                 data-testid="create-room-btn"
               >
-                ➕ Create Room
+                <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                <span className="relative z-10">➕ Create Room</span>
               </button>
               
               <button 
-                onClick={quickJoinWithBots}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-200 font-bold text-lg"
+                onClick={() => {
+                  playUISound('success');
+                  quickJoinWithBots();
+                }}
+                onMouseEnter={() => playUISound('hover')}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 transition-all duration-200 transform active:scale-95 font-bold text-lg relative overflow-hidden group"
                 data-testid="quick-join-btn"
               >
-                🎮 Quick Play (with Bots)
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                <span className="relative z-10">🎮 Quick Play (with Bots)</span>
               </button>
               
               <button className="px-6 py-3 backdrop-blur-md bg-white/10 border border-white/20 rounded-xl text-white hover:bg-white/20 transition-all duration-200 font-semibold">
@@ -452,12 +515,43 @@ export const EnhancedModernLobby: React.FC = () => {
           </div>
         </div>
 
-        {/* Data refresh indicator */}
+        {/* Enhanced loading states */}
         {isRefreshing && (
-          <div className="fixed top-4 left-4 z-30 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg px-3 py-2">
-            <div className="flex items-center space-x-2 text-white">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm">Refreshing rooms...</span>
+          <div className="fixed top-4 left-4 z-30 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg px-4 py-3 shadow-2xl">
+            <div className="flex items-center space-x-3 text-white">
+              <div className="relative">
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="absolute top-0 left-0 w-5 h-5 border-2 border-transparent border-t-blue-400 rounded-full animate-spin" style={{ animationDuration: '1.5s' }} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold">Refreshing rooms...</div>
+                <div className="text-xs text-white/60">Finding the best matches</div>
+              </div>
+              {/* Audio visualization bars */}
+              {audioEnabled && (
+                <div className="flex items-end space-x-1">
+                  <div className="w-1 bg-green-400 rounded-full animate-pulse" style={{ height: '8px', animationDelay: '0ms' }} />
+                  <div className="w-1 bg-green-400 rounded-full animate-pulse" style={{ height: '12px', animationDelay: '100ms' }} />
+                  <div className="w-1 bg-green-400 rounded-full animate-pulse" style={{ height: '6px', animationDelay: '200ms' }} />
+                  <div className="w-1 bg-green-400 rounded-full animate-pulse" style={{ height: '10px', animationDelay: '300ms' }} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Connection status with sound indicator */}
+        {!isConnected && (
+          <div className="fixed top-4 right-4 z-30 backdrop-blur-md bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3 shadow-2xl">
+            <div className="flex items-center space-x-3 text-white">
+              <div className="relative">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-ping" />
+                <div className="absolute top-0 left-0 w-3 h-3 bg-red-400 rounded-full" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-red-200">Connection Lost</div>
+                <div className="text-xs text-red-300">Reconnecting...</div>
+              </div>
             </div>
           </div>
         )}
@@ -470,9 +564,10 @@ export const EnhancedModernLobby: React.FC = () => {
             {filteredRooms.map((room) => (
               <div
                 key={room.id}
-                className="text-left backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-6 hover:bg-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer transform hover:scale-105"
+                className="text-left backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-6 hover:bg-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.3)] relative overflow-hidden group"
                 onClick={() => {
                   if (isJoiningRoom !== room.id) {
+                    playUISound('click');
                     setIsJoiningRoom(room.id);
                     notifyGameAction('joining', `Joining ${room.name}...`, 'info');
                     navigateToRoom(room.id);
@@ -480,15 +575,24 @@ export const EnhancedModernLobby: React.FC = () => {
                 }}
                 onKeyDown={(e) => { 
                   if ((e.key === 'Enter' || e.key === ' ') && isJoiningRoom !== room.id) {
+                    playUISound('click');
                     setIsJoiningRoom(room.id);
                     notifyGameAction('joining', `Joining ${room.name}...`, 'info');
                     navigateToRoom(room.id);
                   }
                 }}
+                onMouseEnter={() => playUISound('hover')}
                 tabIndex={0}
                 role="button"
                 aria-label={`Join room ${room.name}`}
               >
+                {/* Animated background glow on hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                {/* Status indicator pulse */}
+                {room.status === 'waiting' && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-ping opacity-75" />
+                )}
               {/* Room Header */}
               <div className="flex items-start justify-between mb-4">
                 <div>

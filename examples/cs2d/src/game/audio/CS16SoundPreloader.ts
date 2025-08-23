@@ -225,30 +225,80 @@ export class CS16SoundPreloader {
   }
 
   /**
-   * Load sound directly
+   * Load sound directly with fallback system
    */
   private async loadSoundDirect(soundPath: string): Promise<HTMLAudioElement> {
     return new Promise((resolve, reject) => {
       const audio = new Audio();
-      const timeout = setTimeout(() => {
-        reject(new Error(`Load timeout: ${soundPath}`));
-      }, this.options.timeout!);
+      let attemptCount = 0;
+      const maxAttempts = 3;
+      
+      const sources = [
+        `/cstrike/sound/${soundPath}`,
+        `/sounds/fallback/${this.getFallbackSound(soundPath)}`,
+        `/sounds/ui/click.wav` // Ultimate fallback
+      ];
+      
+      const tryNextSource = () => {
+        if (attemptCount >= sources.length) {
+          reject(new Error(`All sources failed for: ${soundPath}`));
+          return;
+        }
+        
+        const timeout = setTimeout(() => {
+          clearTimeout(timeout);
+          attemptCount++;
+          tryNextSource();
+        }, this.options.timeout! / sources.length);
 
-      audio.addEventListener('canplaythrough', () => {
-        clearTimeout(timeout);
-        resolve(audio);
-      }, { once: true });
+        const onLoad = () => {
+          clearTimeout(timeout);
+          audio.removeEventListener('canplaythrough', onLoad);
+          audio.removeEventListener('error', onError);
+          console.log(`✅ Loaded sound: ${soundPath} from ${sources[attemptCount]}`);
+          resolve(audio);
+        };
 
-      audio.addEventListener('error', () => {
-        clearTimeout(timeout);
-        reject(new Error(`Load error: ${soundPath}`));
-      }, { once: true });
+        const onError = () => {
+          clearTimeout(timeout);
+          audio.removeEventListener('canplaythrough', onLoad);
+          audio.removeEventListener('error', onError);
+          console.warn(`⚠️ Failed to load: ${sources[attemptCount]}, trying next...`);
+          attemptCount++;
+          tryNextSource();
+        };
 
-      // Set source and start loading
-      audio.src = `/cstrike/sound/${soundPath}`;
-      audio.preload = 'auto';
-      audio.load();
+        audio.addEventListener('canplaythrough', onLoad, { once: true });
+        audio.addEventListener('error', onError, { once: true });
+
+        // Set source and start loading
+        audio.src = sources[attemptCount];
+        audio.preload = 'auto';
+        audio.load();
+      };
+      
+      tryNextSource();
     });
+  }
+  
+  /**
+   * Get fallback sound for a given sound path
+   */
+  private getFallbackSound(soundPath: string): string {
+    // Categorize sounds and provide appropriate fallbacks
+    if (soundPath.includes('weapon')) {
+      return 'weapon_generic.wav';
+    } else if (soundPath.includes('footstep') || soundPath.includes('step')) {
+      return 'step_generic.wav';
+    } else if (soundPath.includes('reload')) {
+      return 'reload_generic.wav';
+    } else if (soundPath.includes('radio')) {
+      return 'radio_beep.wav';
+    } else if (soundPath.includes('ambient')) {
+      return 'ambient_generic.wav';
+    } else {
+      return 'click.wav'; // Generic fallback
+    }
   }
 
   /**

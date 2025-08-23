@@ -1,5 +1,4 @@
 /* 像素风格设计系统 */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 /* 像素字体 */
 .pixel-font {
@@ -48,7 +47,17 @@
 
 /* 像素按钮 */
 .pixel-button {
-  @apply pixel-font pixel-art;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.5;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   background: linear-gradient(145deg, #5a9fd4 0%, #306998 100%);
   border: 3px solid;
   border-color: #7bb3e0 #1e4b66 #1e4b66 #7bb3e0;
@@ -80,7 +89,17 @@
 
 /* 像素输入框 */
 .pixel-input {
-  @apply pixel-font pixel-art;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.5;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   background: #000;
   border: 3px solid;
   border-color: #333 #666 #666 #333;
@@ -101,14 +120,20 @@
 
 /* 像素面板 */
 .pixel-panel {
-  @apply pixel-box;
   background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 100%);
+  border: 3px solid;
+  border-color: #666 #333 #333 #666;
+  position: relative;
   padding: 16px;
 }
 
 /* 像素标题 */
 .pixel-title {
-  @apply pixel-font;
+  font-family: 'Press Start 2P', monospace;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
   color: #ffffff;
   text-shadow: 2px 2px 0px #000;
   font-size: 16px;
@@ -116,7 +141,11 @@
 }
 
 .pixel-subtitle {
-  @apply pixel-font;
+  font-family: 'Press Start 2P', monospace;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
   color: #cccccc;
   text-shadow: 1px 1px 0px #000;
   font-size: 12px;
@@ -124,7 +153,11 @@
 }
 
 .pixel-text {
-  @apply pixel-font;
+  font-family: 'Press Start 2P', monospace;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
   color: #ffffff;
   font-size: 8px;
   letter-spacing: 1px;
@@ -209,7 +242,9 @@
 
 /* 像素模态框 */
 .pixel-modal {
-  @apply pixel-panel;
+  background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 100%);
+  border: 3px solid;
+  border-color: #666 #333 #333 #666;
   position: fixed;
   top: 50%;
   left: 50%;
@@ -218,4 +253,5 @@
   max-width: 90vw;
   max-height: 90vh;
   overflow: auto;
+  padding: 16px;
 }
