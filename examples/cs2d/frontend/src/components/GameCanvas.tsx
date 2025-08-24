@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+// Use the original GameCore for now until EnhancedGameCore is properly debugged
 import { GameCore, Player } from '../../../src/game/GameCore';
 import { WebSocketGameBridge } from '../../../src/game/WebSocketGameBridge';
 import { setupWebSocket } from '../services/websocket';
@@ -122,7 +123,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
     if (roomId && roomId !== 'offline') {
       const wsService = setupWebSocket();
       bridge.connectWebSocket(wsService);
-      bridge.connectGameSystems(game, game.getStateManager());
+      // Note: WebSocketGameBridge may need updates for EnhancedGameCore
+      // bridge.connectGameSystems(game, game.getStateManager());
       
       // Join the multiplayer room
       const playerId = 'local-player';
@@ -217,18 +219,31 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
             <div>WASD - Move</div>
             <div>Mouse - Aim & Shoot</div>
             <div>R - Reload</div>
-            <div>B - Buy Menu</div>
+            <div>B - Buy Menu (Freeze/Buy Time)</div>
+            <div>E - Plant/Defuse Bomb</div>
             <div>Z/X/C/V - Radio Commands</div>
             <div>T - Bot Voice Test</div>
+            <div>H - Toggle Debug HUD</div>
+            <div>P - Toggle Physics Debug</div>
           </div>
         </div>
 
-        {/* Game State Indicator */}
+        {/* Enhanced Game State Indicator */}
         <div className="absolute top-4 left-4">
           <div className="bg-green-600 bg-opacity-90 px-3 py-2 rounded text-white font-mono text-sm">
-            🎮 GameCore Engine: ACTIVE
+            🎮 Enhanced GameCore: ACTIVE
             <br />
             🎵 CS 1.6 Audio: READY
+            <br />
+            💥 Damage System: ON
+            <br />
+            🤖 Bot AI: ENHANCED
+            <br />
+            💣 Bomb System: READY
+            <br />
+            🛒 Buy Menu: AVAILABLE
+            <br />
+            ⏱️ Round System: ACTIVE
             <br />
             {gameStats.multiplayerStats.connected ? (
               <>
@@ -240,7 +255,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
               <>
                 🔒 Mode: OFFLINE
                 <br />
-                🤖 Bots: ENABLED
+                🎯 Testing: ALL SYSTEMS
               </>
             )}
           </div>

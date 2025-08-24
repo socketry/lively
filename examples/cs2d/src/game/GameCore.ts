@@ -739,27 +739,6 @@ export class GameCore {
       case 'wood':
         player.currentSurface = { material: 'wood', volume: 1.1 };
         break;
-      case 'dirt':
-        player.currentSurface = { material: 'dirt', volume: 0.8 };
-        break;
-      case 'grass':
-        player.currentSurface = { material: 'grass', volume: 0.6 };
-        break;
-      case 'gravel':
-        player.currentSurface = { material: 'gravel', volume: 1.3 };
-        break;
-      case 'sand':
-        player.currentSurface = { material: 'sand', volume: 0.7 };
-        break;
-      case 'metalgrate':
-        player.currentSurface = { material: 'metalgrate', volume: 1.4 };
-        break;
-      case 'chainlink':
-        player.currentSurface = { material: 'chainlink', volume: 1.5 };
-        break;
-      case 'mud':
-        player.currentSurface = { material: 'mud', volume: 1.0 };
-        break;
       case 'water':
         player.currentSurface = { material: 'water', volume: 1.6 };
         break;
