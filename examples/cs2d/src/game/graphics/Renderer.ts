@@ -1,4 +1,6 @@
 import { Vector2D } from '../physics/PhysicsEngine';
+import { ObjectPool } from '../utils/ObjectPool';
+import { GAME_CONSTANTS } from '../config/gameConstants';
 
 export interface Camera {
   x: number;
@@ -52,6 +54,7 @@ export class Renderer {
   private sprites: Map<string, Sprite> = new Map();
   private particleEffects: Map<string, ParticleEffect> = new Map();
   private layers: Map<number, Set<string>> = new Map();
+  private particlePool: ObjectPool<Particle>;
   private shadowCanvas: HTMLCanvasElement;
   private shadowCtx: CanvasRenderingContext2D;
   private lightSources: Map<string, LightSource> = new Map();
@@ -75,6 +78,23 @@ export class Renderer {
       screenHeight: canvas.height,
       smoothing: 0.1
     };
+    
+    // Initialize particle pool for performance
+    this.particlePool = new ObjectPool<Particle>(
+      () => ({
+        x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 1,
+        size: 1, color: '#ffffff', opacity: 1
+      }),
+      (particle) => {
+        particle.x = 0; particle.y = 0;
+        particle.vx = 0; particle.vy = 0;
+        particle.life = 0; particle.maxLife = 1;
+        particle.size = 1; particle.color = '#ffffff';
+        particle.opacity = 1;
+      },
+      200, // Initial pool size
+      GAME_CONSTANTS.RENDERING.MAX_PARTICLES
+    );
     
     this.initLayers();
   }
@@ -145,53 +165,66 @@ export class Renderer {
   private generateParticleEffect(type: ParticleEffect['type'], x: number, y: number): ParticleEffect {
     const particles: Particle[] = [];
     
+    // Limit particle count based on type for performance
+    const maxParticles = {
+      explosion: 50,
+      smoke: 20,
+      blood: GAME_CONSTANTS.RENDERING.BLOOD_PARTICLE_COUNT,
+      spark: GAME_CONSTANTS.RENDERING.SPARK_PARTICLE_COUNT,
+      muzzleFlash: 10,
+      bulletTrail: 5
+    };
+    
     switch (type) {
       case 'explosion':
-        for (let i = 0; i < 50; i++) {
-          const angle = (Math.PI * 2 * i) / 50;
+        for (let i = 0; i < maxParticles.explosion; i++) {
+          const angle = (Math.PI * 2 * i) / maxParticles.explosion;
           const speed = 100 + Math.random() * 200;
-          particles.push({
-            x, y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 1,
-            maxLife: 1,
-            size: 3 + Math.random() * 4,
-            color: `hsl(${Math.random() * 60}, 100%, 50%)`,
-            opacity: 1
-          });
+          const particle = this.particlePool.acquire();
+          particle.x = x;
+          particle.y = y;
+          particle.vx = Math.cos(angle) * speed;
+          particle.vy = Math.sin(angle) * speed;
+          particle.life = 1;
+          particle.maxLife = 1;
+          particle.size = 3 + Math.random() * 4;
+          particle.color = `hsl(${Math.random() * 60}, 100%, 50%)`;
+          particle.opacity = 1;
+          particles.push(particle);
         }
         break;
         
       case 'smoke':
-        for (let i = 0; i < 20; i++) {
-          particles.push({
-            x: x + (Math.random() - 0.5) * 10,
-            y: y + (Math.random() - 0.5) * 10,
-            vx: (Math.random() - 0.5) * 20,
-            vy: -20 - Math.random() * 30,
-            life: 2,
-            maxLife: 2,
-            size: 10 + Math.random() * 10,
-            color: '#666666',
-            opacity: 0.5
-          });
+        for (let i = 0; i < maxParticles.smoke; i++) {
+          const particle = this.particlePool.acquire();
+          particle.x = x + (Math.random() - 0.5) * 10;
+          particle.y = y + (Math.random() - 0.5) * 10;
+          particle.vx = (Math.random() - 0.5) * 20;
+          particle.vy = -20 - Math.random() * 30;
+          particle.life = 2;
+          particle.maxLife = 2;
+          particle.size = 10 + Math.random() * 10;
+          particle.color = '#666666';
+          particle.opacity = 0.5;
+          particles.push(particle);
         }
         break;
         
       case 'blood':
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < maxParticles.blood; i++) {
           const angle = Math.random() * Math.PI * 2;
           const speed = 50 + Math.random() * 100;
-          particles.push({
-            x, y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed + 50,
-            life: 0.5,
-            maxLife: 0.5,
-            size: 2 + Math.random() * 3,
-            color: '#8B0000',
-            opacity: 0.8
+          const particle = this.particlePool.acquire();
+          particle.x = x;
+          particle.y = y;
+          particle.vx = Math.cos(angle) * speed;
+          particle.vy = Math.sin(angle) * speed + 50;
+          particle.life = 0.5;
+          particle.maxLife = 0.5;
+          particle.size = 2 + Math.random() * 3;
+          particle.color = '#8B0000';
+          particle.opacity = 0.8;
+          particles.push(particle);
           });
         }
         break;
@@ -266,7 +299,9 @@ export class Renderer {
         return;
       }
       
-      effect.particles = effect.particles.filter(particle => {
+      // Update particles and release dead ones back to pool
+      const aliveParticles: Particle[] = [];
+      effect.particles.forEach(particle => {
         particle.x += particle.vx * deltaTime;
         particle.y += particle.vy * deltaTime;
         particle.vy += 200 * deltaTime;
@@ -275,8 +310,14 @@ export class Renderer {
         particle.life -= deltaTime;
         particle.opacity = particle.life / particle.maxLife;
         
-        return particle.life > 0;
+        if (particle.life > 0) {
+          aliveParticles.push(particle);
+        } else {
+          // Release dead particle back to pool
+          this.particlePool.release(particle);
+        }
       });
+      effect.particles = aliveParticles;
     });
   }
   

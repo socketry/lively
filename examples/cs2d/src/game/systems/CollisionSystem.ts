@@ -4,6 +4,8 @@
  */
 
 import { Vector2D } from '../physics/PhysicsEngine';
+import { SpatialGrid, SpatialEntity } from '../utils/SpatialGrid';
+import { GAME_CONSTANTS } from '../config/gameConstants';
 import { Player } from '../GameCore';
 import { Bullet } from '../weapons/WeaponSystem';
 import { CS16AudioManager } from '../audio/CS16AudioManager';
@@ -63,9 +65,23 @@ export interface CollisionDependencies {
  */
 export class CollisionSystem {
   private dependencies: CollisionDependencies;
+  private playerGrid: SpatialGrid<Player & SpatialEntity>;
+  private bulletGrid: SpatialGrid<Bullet & SpatialEntity>;
   
   constructor(dependencies: CollisionDependencies) {
     this.dependencies = dependencies;
+    
+    // Initialize spatial grids for optimization
+    this.playerGrid = new SpatialGrid(
+      GAME_CONSTANTS.COLLISION.SPATIAL_GRID_SIZE,
+      4096, // Max world width
+      4096  // Max world height
+    );
+    this.bulletGrid = new SpatialGrid(
+      GAME_CONSTANTS.COLLISION.SPATIAL_GRID_SIZE,
+      4096,
+      4096
+    );
   }
 
   /**
@@ -75,9 +91,18 @@ export class CollisionSystem {
   checkBulletCollisions(bullets: Bullet[], players: Map<string, Player>): CollisionResult[] {
     const results: CollisionResult[] = [];
     
+    // Update spatial grids for optimization
+    this.updateSpatialGrids(bullets, players);
+    
     bullets.forEach(bullet => {
-      // Check collision with players first (higher priority)
-      const playerCollision = this.checkPlayerCollisions(bullet, players);
+      // Use spatial grid to find nearby players (massive performance improvement)
+      const nearbyPlayers = this.playerGrid.queryNearby(
+        bullet.position,
+        GAME_CONSTANTS.COLLISION.PLAYER_RADIUS * 2
+      );
+      
+      // Check collision with nearby players only
+      const playerCollision = this.checkNearbyPlayerCollisions(bullet, nearbyPlayers);
       if (playerCollision) {
         results.push(playerCollision);
         this.processPlayerCollision(playerCollision, players);
@@ -96,7 +121,61 @@ export class CollisionSystem {
   }
 
   /**
-   * Check collision between bullet and all players
+   * Update spatial grids with current entity positions
+   */
+  private updateSpatialGrids(bullets: Bullet[], players: Map<string, Player>): void {
+    // Clear and repopulate player grid
+    this.playerGrid.clear();
+    players.forEach(player => {
+      if (player.isAlive) {
+        const spatialPlayer = player as Player & SpatialEntity;
+        spatialPlayer.radius = GAME_CONSTANTS.COLLISION.PLAYER_RADIUS;
+        this.playerGrid.insert(spatialPlayer);
+      }
+    });
+    
+    // Clear and repopulate bullet grid
+    this.bulletGrid.clear();
+    bullets.forEach(bullet => {
+      const spatialBullet = bullet as Bullet & SpatialEntity;
+      spatialBullet.radius = GAME_CONSTANTS.COLLISION.BULLET_RADIUS;
+      this.bulletGrid.insert(spatialBullet);
+    });
+  }
+  
+  /**
+   * Check collision with nearby players only (optimized)
+   */
+  private checkNearbyPlayerCollisions(bullet: Bullet, nearbyPlayers: (Player & SpatialEntity)[]): PlayerCollisionResult | null {
+    for (const player of nearbyPlayers) {
+      // Skip bullet owner and dead players
+      if (player.id === bullet.owner || !player.isAlive) continue;
+      
+      // Check actual collision
+      const distance = Math.sqrt(
+        Math.pow(bullet.position.x - player.position.x, 2) +
+        Math.pow(bullet.position.y - player.position.y, 2)
+      );
+      
+      if (distance < GAME_CONSTANTS.COLLISION.PLAYER_RADIUS) {
+        const isHeadshot = Math.random() < 0.2; // 20% chance for headshot
+        
+        return {
+          type: 'player',
+          bulletId: bullet.id,
+          playerId: player.id,
+          position: { ...bullet.position },
+          damage: bullet.damage * (isHeadshot ? GAME_CONSTANTS.COMBAT.HEADSHOT_MULTIPLIER : 1),
+          isHeadshot
+        };
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Check collision between bullet and all players (legacy method - kept for compatibility)
    */
   private checkPlayerCollisions(bullet: Bullet, players: Map<string, Player>): PlayerCollisionResult | null {
     for (const [, player] of players) {

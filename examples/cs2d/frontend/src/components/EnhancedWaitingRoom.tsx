@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { useNavigate } from 'react-router-dom';
 import { setupWebSocket } from '@/services/websocket';
 import { TeamSectionSkeleton, ChatSkeleton, RoomSettingsSkeleton } from './common/SkeletonLoader';
@@ -56,6 +57,15 @@ interface ChatMessage {
   timestamp: Date;
   team?: 'ct' | 't' | 'all';
 }
+
+// Sanitization helper to prevent XSS attacks
+const sanitizeUserInput = (input: string): string => {
+  return DOMPurify.sanitize(input, { 
+    ALLOWED_TAGS: [], // No HTML tags allowed in chat
+    ALLOWED_ATTR: [],
+    KEEP_CONTENT: true // Keep text content only
+  });
+};
 
 export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) => {
   const navigate = useNavigate();
@@ -221,17 +231,18 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
 
   const sendMessage = () => {
     if (chatInput.trim()) {
+      const sanitizedMessage = sanitizeUserInput(chatInput);
       const newMessage: ChatMessage = {
         id: Date.now().toString(),
         playerId: '1',
         playerName: 'Player1',
-        message: chatInput,
+        message: sanitizedMessage,
         timestamp: new Date(),
         team: chatMode
       };
       setChatMessages([...chatMessages, newMessage]);
       if (wsRef.current?.isConnected) {
-        wsRef.current.emit('chat:message', { sender: newMessage.playerName, team: newMessage.team, text: newMessage.message, roomId })
+        wsRef.current.emit('chat:message', { sender: newMessage.playerName, team: newMessage.team, text: sanitizedMessage, roomId })
       }
       setChatInput('');
     }
@@ -315,8 +326,8 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
             setChatMessages(prev => [...prev, { 
               id: String(Date.now()), 
               playerId: 'remote', 
-              playerName: m.sender, 
-              message: m.text, 
+              playerName: sanitizeUserInput(m.sender), 
+              message: sanitizeUserInput(m.text), 
               timestamp: new Date(), 
               team: m.team 
             }].slice(-100));

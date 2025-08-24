@@ -1,4 +1,5 @@
 import { Vector2D } from '../physics/PhysicsEngine';
+import { GAME_CONSTANTS } from '../config/gameConstants';
 
 export interface InputState {
   keys: Set<string>;
@@ -312,8 +313,9 @@ export class InputSystem {
   /**
    * Get movement input and return acceleration vector
    */
-  public getMovementInput(speed: number = 200, isWalking: boolean = false, isDucking: boolean = false): Vector2D {
-    const actualSpeed = isWalking ? speed * 0.5 : isDucking ? speed * 0.25 : speed;
+  public getMovementInput(speed: number = GAME_CONSTANTS.MOVEMENT.BASE_SPEED, isWalking: boolean = false, isDucking: boolean = false): Vector2D {
+    const actualSpeed = isWalking ? speed * GAME_CONSTANTS.MOVEMENT.WALK_SPEED_MULTIPLIER : 
+                       isDucking ? speed * GAME_CONSTANTS.MOVEMENT.DUCK_SPEED_MULTIPLIER : speed;
     const acceleration = { x: 0, y: 0 };
     
     // Movement input

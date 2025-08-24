@@ -14,6 +14,7 @@ import { HUD, HUDElements } from './ui/HUD';
 import { BombSystem, BombSite, C4Bomb } from './systems/BombSystem';
 import { InputSystem, InputCallbacks } from './systems/InputSystem';
 import { CollisionSystem, CollisionDependencies, CollisionEffects } from './systems/CollisionSystem';
+import { GAME_CONSTANTS } from './config/gameConstants';
 
 export interface Player {
   id: string;
@@ -36,6 +37,11 @@ export interface Player {
   isWalking: boolean;
   isScoped: boolean;
   lastShotTime: number;
+  // Rendering optimization - track when visual properties change
+  lastRenderedHealth?: number;
+  lastRenderedTeam?: 'ct' | 't';
+  lastRenderedAlive?: boolean;
+  lastRenderedOrientation?: number;
   lastStepTime: number;
   lastPosition: Vector2D;
   currentSurface: SurfaceType;
@@ -97,14 +103,14 @@ export class GameCore {
     // Initialize game state FIRST before other systems that depend on it
     this.gameState = {
       roundNumber: 1,
-      roundTime: 115,
-      freezeTime: 15,
+      roundTime: GAME_CONSTANTS.ROUND.DEFAULT_ROUND_TIME,
+      freezeTime: GAME_CONSTANTS.ROUND.FREEZE_TIME,
       bombPlanted: false,
-      bombTimer: 40,
+      bombTimer: GAME_CONSTANTS.ROUND.BOMB_TIMER,
       ctScore: 0,
       tScore: 0,
       gameMode: 'competitive',
-      maxRounds: 30
+      maxRounds: GAME_CONSTANTS.ROUND.MAX_ROUNDS
     };
     
     // Initialize systems
@@ -497,65 +503,139 @@ export class GameCore {
   }
   
   /**
-   * Create visual sprite for a player
+   * Create visual sprite for a player with improved 3D appearance
    */
   private createPlayerSprite(player: Player): any {
-    // Create a simple colored canvas as texture
+    // Create a larger canvas for better detail
     const canvas = document.createElement('canvas');
-    canvas.width = 32;
-    canvas.height = 32;
+    canvas.width = 40;
+    canvas.height = 40;
     const ctx = canvas.getContext('2d')!;
     
-    // Choose color based on team
-    const teamColor = player.team === 'ct' ? '#4169E1' : '#DC143C'; // Blue for CT, Red for T
-    const outlineColor = '#000000';
+    // Center point
+    const cx = 20;
+    const cy = 20;
     
-    // Draw player as a circle with team colors
-    ctx.fillStyle = teamColor;
+    // Team colors with depth
+    const isAlive = player.isAlive;
+    const teamColor = player.team === 'ct' ? '#4169E1' : '#DC143C'; // Blue for CT, Red for T
+    const darkTeamColor = player.team === 'ct' ? '#1E3A8A' : '#8B0000'; // Darker shades
+    const lightTeamColor = player.team === 'ct' ? '#6495ED' : '#FF6347'; // Lighter shades
+    
+    // Draw shadow to lift player off ground
+    if (isAlive) {
+      const shadowGradient = ctx.createRadialGradient(cx, cy + 3, 0, cx, cy + 3, 14);
+      shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
+      shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = shadowGradient;
+      ctx.fillRect(0, 0, 40, 40);
+    }
+    
+    // Draw main body with gradient for 3D effect
+    const bodyGradient = ctx.createRadialGradient(cx - 4, cy - 4, 2, cx, cy, 14);
+    bodyGradient.addColorStop(0, lightTeamColor);
+    bodyGradient.addColorStop(0.5, teamColor);
+    bodyGradient.addColorStop(1, darkTeamColor);
+    
+    ctx.fillStyle = bodyGradient;
     ctx.beginPath();
-    ctx.arc(16, 16, 12, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
     ctx.fill();
     
-    // Add outline
-    ctx.strokeStyle = outlineColor;
+    // Add inner highlight for depth
+    const highlightGradient = ctx.createRadialGradient(cx - 3, cy - 3, 0, cx - 3, cy - 3, 8);
+    highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+    highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = highlightGradient;
+    ctx.beginPath();
+    ctx.arc(cx - 3, cy - 3, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add dark outline for definition
+    ctx.strokeStyle = darkTeamColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(16, 16, 12, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
     ctx.stroke();
     
-    // Add direction indicator (triangle pointing forward)
+    // Draw directional indicator with 3D arrow
     ctx.save();
-    ctx.translate(16, 16);
-    ctx.fillStyle = '#FFFFFF';
+    ctx.translate(cx, cy);
+    
+    // Arrow body with gradient
+    const arrowGradient = ctx.createLinearGradient(0, 0, 10, 0);
+    arrowGradient.addColorStop(0, '#FFFFFF');
+    arrowGradient.addColorStop(1, '#CCCCCC');
+    ctx.fillStyle = arrowGradient;
     ctx.beginPath();
-    ctx.moveTo(8, 0);  // Point of triangle
-    ctx.lineTo(0, -4); // Left side
-    ctx.lineTo(0, 4);  // Right side
+    ctx.moveTo(12, 0);  // Arrow tip
+    ctx.lineTo(4, -5);  // Top left
+    ctx.lineTo(4, -2);  // Inner top
+    ctx.lineTo(0, -2);  // Base top
+    ctx.lineTo(0, 2);   // Base bottom
+    ctx.lineTo(4, 2);   // Inner bottom
+    ctx.lineTo(4, 5);   // Bottom left
     ctx.closePath();
     ctx.fill();
     
-    // Add small outline to direction indicator
-    ctx.strokeStyle = '#000000';
+    // Arrow outline
+    ctx.strokeStyle = '#333333';
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
     
-    // Add center dot for aiming reference
-    ctx.fillStyle = '#FFFF00'; // Yellow for visibility
-    ctx.beginPath();
-    ctx.arc(16, 16, 2, 0, Math.PI * 2);
-    ctx.fill();
+    // Add weapon indicator dot
+    if (player.currentWeapon && player.currentWeapon !== 'knife') {
+      ctx.fillStyle = '#FFD700'; // Gold for armed
+      ctx.strokeStyle = '#B8860B';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx + 8, cy - 8, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    
+    // Add health indicator bar
+    if (isAlive) {
+      const healthPercent = player.health / 100;
+      const barWidth = 24;
+      const barHeight = 3;
+      const barX = cx - barWidth / 2;
+      const barY = cy + 16;
+      
+      // Health bar background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+      
+      // Health bar fill
+      const healthColor = healthPercent > 0.6 ? '#00FF00' : 
+                         healthPercent > 0.3 ? '#FFFF00' : '#FF0000';
+      ctx.fillStyle = healthColor;
+      ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+      
+      // Health bar border
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, barY, barWidth, barHeight);
+    }
+    
+    // Apply death effect
+    if (!isAlive) {
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = 'rgba(128, 128, 128, 0.5)';
+      ctx.fillRect(0, 0, 40, 40);
+    }
     
     // Use the canvas directly as the image source
     return {
       image: canvas, // Use canvas directly
       x: player.position.x,
       y: player.position.y,
-      width: 32,
-      height: 32,
+      width: 40,
+      height: 40,
       rotation: player.orientation || 0, // Use player orientation for rotation
       scale: 1,
-      opacity: player.isAlive ? 1 : 0.5
+      opacity: isAlive ? 1 : 0.6
     };
   }
   
@@ -568,21 +648,43 @@ export class GameCore {
     player.orientation = 0;
     player.lastVoiceTime = 0;
     
-    // Initialize bot-specific properties
+    // Initialize rendering optimization properties
+    player.lastRenderedHealth = player.health;
+    player.lastRenderedTeam = player.team;
+    player.lastRenderedAlive = player.isAlive;
+    player.lastRenderedOrientation = player.orientation;
+    
+    // Initialize bot-specific properties with more randomization
     if (player.isBot) {
+      // Randomize personality traits more significantly
       player.botPersonality = {
-        aggressiveness: 0.3 + Math.random() * 0.4,
-        chattiness: 0.4 + Math.random() * 0.3,
-        helpfulness: 0.5 + Math.random() * 0.3,
-        responseFrequency: 0.6 + Math.random() * 0.4
+        aggressiveness: 0.2 + Math.random() * 0.6,  // 0.2-0.8 range
+        chattiness: 0.3 + Math.random() * 0.5,      // 0.3-0.8 range
+        helpfulness: 0.4 + Math.random() * 0.4,     // 0.4-0.8 range
+        responseFrequency: 0.5 + Math.random() * 0.5 // 0.5-1.0 range
       };
       
-      // Create BotAI instance for bot players
-      const difficulty: BotDifficulty = Math.random() > 0.5 ? 'normal' : 'easy';
+      // Add random initial orientation offset to prevent synchronized movement
+      player.orientation = (player.orientation || 0) + (Math.random() - 0.5) * Math.PI / 4;
+      
+      // Randomize initial velocity slightly to break symmetry
+      player.velocity.x += (Math.random() - 0.5) * 20;
+      player.velocity.y += (Math.random() - 0.5) * 20;
+      
+      // Create BotAI instance with varied difficulty distribution
+      const difficultyRoll = Math.random();
+      const difficulty: BotDifficulty = difficultyRoll > 0.7 ? 'hard' : 
+                                        difficultyRoll > 0.3 ? 'normal' : 'easy';
       const botAI = new BotAI(player, this.weapons, difficulty, this.botVoice);
+      
+      // Add random decision delay to desynchronize bot actions
+      (botAI as any).decisionDelay = Math.random() * 0.5; // 0-0.5 second random delay
+      
       this.botAIs.set(player.id, botAI);
       
-      console.log('🤖 Created BotAI for player:', player.id, 'with difficulty:', difficulty);
+      console.log('🤖 Created BotAI for player:', player.id, 
+                  'with difficulty:', difficulty,
+                  'and personality:', player.botPersonality);
     }
     
     this.players.set(player.id, player);
@@ -770,12 +872,31 @@ export class GameCore {
       player.position = { ...physicsBody.position };
       player.velocity = { ...physicsBody.velocity };
       
-      // Update player sprite position and rotation
-      this.renderer.updateSprite(`player_sprite_${player.id}`, {
-        x: player.position.x,
-        y: player.position.y,
-        rotation: player.orientation || 0
-      });
+      // Only recreate sprite if visual properties changed (massive performance improvement)
+      const needsSpriteRecreation = 
+        player.lastRenderedHealth !== player.health ||
+        player.lastRenderedTeam !== player.team ||
+        player.lastRenderedAlive !== player.isAlive ||
+        Math.abs((player.lastRenderedOrientation || 0) - player.orientation) > 0.1;
+      
+      if (needsSpriteRecreation) {
+        // Visual properties changed, recreate sprite
+        const updatedSprite = this.createPlayerSprite(player);
+        this.renderer.updateSprite(`player_sprite_${player.id}`, updatedSprite);
+        
+        // Update tracked properties
+        player.lastRenderedHealth = player.health;
+        player.lastRenderedTeam = player.team;
+        player.lastRenderedAlive = player.isAlive;
+        player.lastRenderedOrientation = player.orientation;
+      } else {
+        // Only update position and rotation (fast path)
+        this.renderer.updateSprite(`player_sprite_${player.id}`, {
+          x: player.position.x,
+          y: player.position.y,
+          rotation: player.orientation
+        });
+      }
     } else {
       // Fallback to old movement system if physics body not found
       // Apply movement
@@ -1121,9 +1242,9 @@ export class GameCore {
       team: team,
       position: { ...spawnPosition },
       velocity: { x: 0, y: 0 },
-      health: 100,
-      armor: 0,
-      money: 800,
+      health: GAME_CONSTANTS.PLAYER.SPAWN_HEALTH,
+      armor: GAME_CONSTANTS.PLAYER.SPAWN_ARMOR,
+      money: GAME_CONSTANTS.PLAYER.SPAWN_MONEY,
       score: 0,
       kills: 0,
       deaths: 0,
@@ -1159,10 +1280,20 @@ export class GameCore {
       if (player.id === this.localPlayerId) {
         this.updatePlayer(player, deltaTime);
       } else if (player.isBot) {
-        // Update bot AI
+        // Update bot AI with random decision timing
         const botAI = this.botAIs.get(player.id);
         if (botAI) {
-          botAI.update(deltaTime, this.gameState, this.players);
+          // Add random micro-delays to bot decisions to prevent synchronization
+          const decisionDelay = (botAI as any).decisionDelay || 0;
+          if (Math.random() < 1 - decisionDelay) {
+            botAI.update(deltaTime, this.gameState, this.players);
+          }
+          
+          // Add small random perturbations to bot movement
+          if (Math.random() < 0.1) { // 10% chance per frame
+            player.velocity.x += (Math.random() - 0.5) * 10;
+            player.velocity.y += (Math.random() - 0.5) * 10;
+          }
         }
         // Still need to update bot player physics
         this.updatePlayer(player, deltaTime);
