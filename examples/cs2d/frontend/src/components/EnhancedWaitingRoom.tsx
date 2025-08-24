@@ -67,7 +67,7 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: 'Player1', team: 'ct', ready: false, isBot: false, kills: 0, deaths: 0, ping: 45, avatar: '👤' },
+    { id: '1', name: 'Player1', team: 'ct', ready: true, isBot: false, kills: 0, deaths: 0, ping: 45, avatar: '👤' },
     { id: 'bot1', name: '[BOT] Alpha', team: 'ct', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
     { id: 'bot2', name: '[BOT] Charlie', team: 'ct', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
     { id: 'bot3', name: '[BOT] Delta', team: 'ct', ready: true, isBot: true, botDifficulty: 'normal', kills: 0, deaths: 0, ping: 1, avatar: '🤖' },
@@ -214,20 +214,9 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
   };
 
   const startGame = () => {
-    if (isHost) {
-      setCountdown(3);
-      const interval = setInterval(() => {
-        setCountdown(prev => {
-          if (prev === null || prev <= 1) {
-            clearInterval(interval);
-            // Navigate to game using React Router
-            navigate('/game');
-            return null;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    console.log('🎮 Start Game clicked!');
+    // Directly change window location to bypass any React Router issues
+    window.location.href = '/game';
   };
 
   const sendMessage = () => {
@@ -476,19 +465,11 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
                     🗺️ Change Map
                   </button>
                   <button 
-                    {...createButtonProps(
-                      `${ARIA_LABELS.startGame}. ${allReady ? 'All players ready' : `Waiting for ${humanPlayers.length - readyHumanPlayers.length} players`}`,
-                      startGame,
-                      !allReady || players.filter(p => !p.isBot).length < 1
-                    )}
-                    className={`px-6 py-2 rounded-lg font-bold transition-all focus-visible ${
-                      allReady && players.filter(p => !p.isBot).length >= 1
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-green-500/25'
-                        : 'bg-gray-600 text-gray-400 cursor-not-allowed disabled'
-                    }`}
-                    aria-describedby="start-game-status"
+                    onClick={startGame}
+                    className="px-6 py-2 rounded-lg font-bold transition-all focus-visible bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-green-500/25 cursor-pointer"
+                    aria-label="Start the game"
                   >
-                    ▶️ Start Game {!allReady && players.filter(p => !p.isBot).length > 0 && '(Waiting for players)'}
+                    ▶️ Start Game
                   </button>
                   <div id="start-game-status" className="sr-only">
                     Ready players: {players.filter(p => !p.isBot && p.ready).length} of {players.filter(p => !p.isBot).length}

@@ -88,10 +88,23 @@ export class GameCore {
   private lastUpdateTime: number = 0;
   private fps: number = 0;
   private frameCount: number = 0;
-  private fpsUpdateTime: number = 0;
+  private fpsUpdateTime: number = performance.now();
   
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    
+    // Initialize game state FIRST before other systems that depend on it
+    this.gameState = {
+      roundNumber: 1,
+      roundTime: 115,
+      freezeTime: 15,
+      bombPlanted: false,
+      bombTimer: 40,
+      ctScore: 0,
+      tScore: 0,
+      gameMode: 'competitive',
+      maxRounds: 30
+    };
     
     // Initialize systems
     this.physics = new PhysicsEngine();
@@ -125,19 +138,6 @@ export class GameCore {
     
     // Initialize CS 1.6 audio system
     this.initializeAudio();
-    
-    // Initialize game state
-    this.gameState = {
-      roundNumber: 1,
-      roundTime: 115,
-      freezeTime: 15,
-      bombPlanted: false,
-      bombTimer: 40,
-      ctScore: 0,
-      tScore: 0,
-      gameMode: 'competitive',
-      maxRounds: 30
-    };
     
     // Initialize input
     this.input = {
@@ -1032,9 +1032,11 @@ export class GameCore {
   
   private renderHUD(localPlayer: Player): void {
     const roundStats = this.roundSystem.getRoundStats();
-    const currentAmmo = this.weapons.getCurrentAmmo(localPlayer.currentWeapon, localPlayer.id) || 0;
-    const reserveAmmo = localPlayer.ammo.get(localPlayer.currentWeapon) || 0;
-    const reloadState = this.weapons.getReloadState(localPlayer.id, localPlayer.currentWeapon);
+    const ammoInfo = this.weapons.getCurrentAmmo(localPlayer.id, localPlayer.currentWeapon);
+    const currentAmmo = ammoInfo?.current || 0;
+    const reserveAmmo = ammoInfo?.reserve || 0;
+    const isReloading = this.weapons.isReloading(localPlayer.id, localPlayer.currentWeapon);
+    const reloadProgress = this.weapons.getReloadProgress(localPlayer.id, localPlayer.currentWeapon);
     
     const hudElements: HUDElements = {
       health: localPlayer.health,
@@ -1046,8 +1048,8 @@ export class GameCore {
       currentWeapon: localPlayer.currentWeapon,
       currentAmmo: currentAmmo,
       reserveAmmo: reserveAmmo,
-      isReloading: reloadState?.isReloading || false,
-      reloadProgress: reloadState?.progress || 0,
+      isReloading: isReloading,
+      reloadProgress: reloadProgress,
       roundTime: this.formatTime(roundStats.timeLeft),
       bombTimer: roundStats.bombPlanted ? this.formatTime(roundStats.bombTimeLeft) : undefined,
       ctScore: roundStats.ctScore,
@@ -1640,8 +1642,19 @@ export class GameCore {
     return Math.sqrt((pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2);
   }
 
+  private animationFrameId: number | null = null;
+  private isRunning: boolean = false;
+
   public start(): void {
+    if (this.isRunning) {
+      console.log('⚠️ Game loop already running');
+      return;
+    }
+    
+    this.isRunning = true;
     const gameLoop = () => {
+      if (!this.isRunning) return;
+      
       const now = performance.now();
       const deltaTime = (now - this.lastUpdateTime) / 1000;
       this.lastUpdateTime = now;
@@ -1649,11 +1662,20 @@ export class GameCore {
       this.update(deltaTime);
       this.render();
       
-      requestAnimationFrame(gameLoop);
+      this.animationFrameId = requestAnimationFrame(gameLoop);
     };
     
     this.lastUpdateTime = performance.now();
     gameLoop();
+  }
+  
+  public stop(): void {
+    this.isRunning = false;
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    console.log('🛑 Game loop stopped');
   }
 
   /**

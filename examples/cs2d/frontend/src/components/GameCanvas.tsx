@@ -34,6 +34,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
 
   useEffect(() => {
     if (!canvasRef.current) return;
+    
+    // Prevent double initialization in React StrictMode
+    if (gameRef.current) {
+      console.log('⚠️ Game already initialized, skipping...');
+      return;
+    }
 
     console.log('🎮 Initializing GameCore engine...');
     
@@ -56,8 +62,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
       deaths: 0,
       assists: 0,
       currentWeapon: 'ak47',
-      weapons: ['knife', 'usp', 'ak47'],
-      ammo: new Map([['ak47', 30], ['usp', 12]]),
+      weapons: ['knife', 'usps', 'ak47'],
+      ammo: new Map([['ak47', 30], ['usps', 12]]),
       isAlive: true,
       isDucking: false,
       isWalking: false,
@@ -165,13 +171,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
     // Cleanup
     return () => {
       clearInterval(statsInterval);
+      // Stop game loop
+      if (gameRef.current) {
+        gameRef.current.stop();
+        gameRef.current = null;
+      }
       // Cleanup multiplayer bridge
       bridgeRef.current?.disconnect();
       bridgeRef.current = null;
-      // GameCore doesn't have explicit cleanup method yet, but we'll add it
-      gameRef.current = null;
     };
-  }, []);
+  }, [roomId]);
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">

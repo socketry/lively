@@ -139,7 +139,7 @@ export const createButtonProps = (
   'aria-label': label,
   role: 'button',
   tabIndex: disabled ? -1 : 0,
-  onClick,
+  onClick: disabled ? undefined : onClick,
   onKeyDown: (event: React.KeyboardEvent) => {
     if (isActionKey(event)) {
       event.preventDefault();

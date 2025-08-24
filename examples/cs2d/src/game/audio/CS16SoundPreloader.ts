@@ -233,8 +233,13 @@ export class CS16SoundPreloader {
       let attemptCount = 0;
       const maxAttempts = 3;
       
+      // Check if soundPath already contains the base path
+      const normalizedPath = soundPath.startsWith('/cstrike/sound/') 
+        ? soundPath 
+        : `/cstrike/sound/${soundPath}`;
+      
       const sources = [
-        `/cstrike/sound/${soundPath}`,
+        normalizedPath,
         `/sounds/fallback/${this.getFallbackSound(soundPath)}`,
         `/sounds/ui/click.wav` // Ultimate fallback
       ];

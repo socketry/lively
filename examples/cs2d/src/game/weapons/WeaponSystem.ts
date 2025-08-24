@@ -301,6 +301,27 @@ export class WeaponSystem {
         armorPenetration: 0.75,
         weaponSlot: 'primary',
         soundId: 'm249'
+      },
+      {
+        name: 'Knife',
+        type: 'pistol', // Treat as melee
+        damage: 65,
+        fireRate: 120,
+        reloadTime: 0,
+        magazineSize: 1,
+        reserveAmmo: 0,
+        spread: 0,
+        recoil: 0,
+        bulletSpeed: 500,
+        bulletPenetration: 0,
+        range: 50,
+        movementSpeed: 1.2,
+        price: 0,
+        killReward: 1500,
+        headshotMultiplier: 1.0,
+        armorPenetration: 0.85,
+        weaponSlot: 'melee',
+        soundId: 'knife'
       }
     ];
     
