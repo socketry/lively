@@ -6,6 +6,12 @@ import { CS16BotVoiceSystem, BotPersonality } from './audio/CS16BotVoiceSystem';
 import { CS16AmbientSystem } from './audio/CS16AmbientSystem';
 import { MapSystem } from './maps/MapSystem';
 import { GameStateManager } from './GameStateManager';
+import { DamageSystem } from './systems/DamageSystem';
+import { BotAI, BotDifficulty } from './ai/BotAI';
+import { BuyMenuSystem, BuyMenuState } from './systems/BuyMenuSystem';
+import { RoundSystem, RoundStats } from './systems/RoundSystem';
+import { HUD, HUDElements } from './ui/HUD';
+import { BombSystem, BombSite, C4Bomb } from './systems/BombSystem';
 
 export interface Player {
   id: string;
@@ -63,6 +69,12 @@ export class GameCore {
   private ambient: CS16AmbientSystem;
   private maps: MapSystem;
   private stateManager: GameStateManager;
+  private damageSystem: DamageSystem;
+  private buyMenuSystem: BuyMenuSystem;
+  private roundSystem: RoundSystem;
+  private hud: HUD;
+  private bombSystem: BombSystem;
+  private botAIs: Map<string, BotAI> = new Map();
   
   private players: Map<string, Player> = new Map();
   private localPlayerId: string = '';
@@ -90,6 +102,22 @@ export class GameCore {
     this.weapons = new WeaponSystem(this.audio);
     this.maps = new MapSystem();
     this.stateManager = new GameStateManager();
+    this.damageSystem = new DamageSystem(this.audio);
+    this.buyMenuSystem = new BuyMenuSystem(this.weapons, this.audio);
+    this.roundSystem = new RoundSystem(this.gameState, this.players, this.audio);
+    this.hud = new HUD(canvas, this.weapons);
+    this.bombSystem = new BombSystem(this.audio);
+    
+    // Setup bomb system event listeners
+    this.setupBombSystemEvents();
+    
+    console.log('💥 DamageSystem initialized and integrated into GameCore');
+    console.log('🤖 BotAI system ready for bot players');
+    console.log('💰 BuyMenuSystem initialized and integrated into GameCore');
+    console.log('🔄 RoundSystem initialized and integrated into GameCore');
+    console.log('🖥️ HUD system initialized and integrated into GameCore');
+    console.log('💣 BombSystem initialized and integrated into GameCore');
+    console.log('🧪 Testing: Press H to damage, J to heal, K to add bot player, B to open buy menu, N for new round, E for bomb actions, M for C4, F1 for debug');
     
     // Connect state manager to core systems
     this.stateManager.connectGameCore(this);
@@ -464,6 +492,13 @@ export class GameCore {
         helpfulness: 0.5 + Math.random() * 0.3,
         responseFrequency: 0.6 + Math.random() * 0.4
       };
+      
+      // Create BotAI instance for bot players
+      const difficulty: BotDifficulty = Math.random() > 0.5 ? 'normal' : 'easy';
+      const botAI = new BotAI(player, this.weapons, difficulty, this.botVoice);
+      this.botAIs.set(player.id, botAI);
+      
+      console.log('🤖 Created BotAI for player:', player.id, 'with difficulty:', difficulty);
     }
     
     this.players.set(player.id, player);
@@ -504,9 +539,7 @@ export class GameCore {
     switch (key) {
       case 'KeyB':
         // Open buy menu
-        if (this.gameState.freezeTime > 0 || this.gameState.roundTime > 105) {
-          this.openBuyMenu();
-        }
+        this.handleBuyMenuToggle(player);
         break;
       
       case 'KeyR':
@@ -571,14 +604,78 @@ export class GameCore {
         console.log('Physics debug:', (window as any).DEBUG_PHYSICS ? 'ON' : 'OFF');
         break;
       
+      case 'KeyH':
+        // Test damage system - damage local player
+        if (player) {
+          console.log('🧪 Testing DamageSystem - applying 20 damage to local player');
+          const damageEvent = this.damageSystem.applyDamage(player, {
+            amount: 20,
+            source: 'test',
+            position: player.position,
+            weapon: 'test_weapon'
+          });
+          console.log('💥 Damage test result:', damageEvent);
+        }
+        break;
+      
+      case 'KeyJ':
+        // Test healing system - heal local player
+        if (player) {
+          console.log('🧪 Testing DamageSystem - healing local player by 25');
+          const healEvent = this.damageSystem.healPlayer(player, 25);
+          console.log('💚 Heal test result:', healEvent);
+        }
+        break;
+      
+      case 'KeyK':
+        // Add test bot player
+        this.addTestBot();
+        break;
+      
       case 'Digit1':
       case 'Digit2':
       case 'Digit3':
       case 'Digit4':
       case 'Digit5':
-        // Switch weapon
+        // Handle buy menu category selection or weapon switching
         const slot = parseInt(key.replace('Digit', ''));
-        this.switchWeapon(player, slot);
+        this.handleDigitKey(player, slot);
+        break;
+      
+      case 'Enter':
+        // Buy selected item in buy menu
+        this.handleBuyMenuPurchase(player);
+        break;
+      
+      case 'Escape':
+        // Close buy menu
+        const menuState = this.buyMenuSystem.getBuyMenuState(player.id);
+        if (menuState?.isOpen) {
+          this.buyMenuSystem.closeBuyMenu(player.id);
+        }
+        break;
+      
+      case 'KeyN':
+        // Force new round (testing)
+        this.roundSystem.forceNewRound();
+        break;
+      
+      case 'KeyE':
+        // Plant/defuse bomb
+        this.handleBombAction(player);
+        break;
+      
+      case 'F1':
+        // Toggle debug info
+        this.hud.toggleDebugInfo();
+        break;
+      
+      case 'KeyM':
+        // Give C4 to local player (testing)
+        if (player.team === 't' && !player.weapons.includes('c4')) {
+          player.weapons.push('c4');
+          console.log('💣 C4 given to player:', player.id);
+        }
         break;
     }
   }
@@ -851,8 +948,231 @@ export class GameCore {
     // Implement scope logic
   }
   
-  private openBuyMenu(): void {
-    // Implement buy menu UI
+  private handleBuyMenuToggle(player: Player): void {
+    const currentState = this.buyMenuSystem.getBuyMenuState(player.id);
+    
+    if (currentState?.isOpen) {
+      this.buyMenuSystem.closeBuyMenu(player.id);
+    } else {
+      const canBuy = this.buyMenuSystem.canPlayerBuy(player, this.gameState);
+      if (canBuy) {
+        const timeLeft = Math.min(15, this.gameState.freezeTime > 0 ? this.gameState.freezeTime : Math.max(0, this.gameState.roundTime - 105));
+        this.buyMenuSystem.openBuyMenu(player.id, canBuy, timeLeft);
+      } else {
+        console.log('❌ Cannot buy - not in buy zone or buy time expired');
+      }
+    }
+  }
+  
+  private handleDigitKey(player: Player, digit: number): void {
+    const menuState = this.buyMenuSystem.getBuyMenuState(player.id);
+    
+    if (menuState?.isOpen) {
+      // Handle buy menu category selection
+      const categories = this.buyMenuSystem.getCategories();
+      if (digit >= 1 && digit <= categories.length) {
+        const category = categories[digit - 1];
+        this.buyMenuSystem.selectCategory(player.id, category);
+        console.log('🛒 Selected category:', category);
+        
+        // Auto-select first item in category for quick buying
+        const items = this.buyMenuSystem.getItemsForCategory(category, player.team);
+        if (items.length > 0) {
+          this.buyMenuSystem.selectItem(player.id, items[0].id);
+          console.log('🛒 Auto-selected item:', items[0].name);
+        }
+      }
+    } else {
+      // Handle weapon switching
+      this.switchWeapon(player, digit);
+    }
+  }
+  
+  private handleBuyMenuPurchase(player: Player): void {
+    const menuState = this.buyMenuSystem.getBuyMenuState(player.id);
+    
+    if (menuState?.isOpen && menuState.selectedItem) {
+      const success = this.buyMenuSystem.buyItem(player, menuState.selectedItem);
+      if (success) {
+        const item = this.buyMenuSystem.getItem(menuState.selectedItem);
+        console.log('✅ Purchase successful:', item?.name, '| Money remaining:', player.money);
+      } else {
+        console.log('❌ Purchase failed');
+      }
+    }
+  }
+  
+  private handleBombAction(player: Player): void {
+    if (!player.isAlive || !player) return;
+    
+    if (player.team === 't') {
+      // Try to plant bomb
+      const plantCheck = this.bombSystem.canPlantBomb(player);
+      if (plantCheck.canPlant) {
+        const success = this.bombSystem.startPlantBomb(player);
+        if (success) {
+          console.log('💣 Bomb plant started by:', player.id);
+        }
+      } else {
+        console.log('❌ Cannot plant bomb:', plantCheck.reason);
+      }
+    } else if (player.team === 'ct') {
+      // Try to defuse bomb
+      const defuseCheck = this.bombSystem.canDefuseBomb(player);
+      if (defuseCheck.canDefuse) {
+        const success = this.bombSystem.startDefuseBomb(player);
+        if (success) {
+          console.log('🛠️ Defuse started by:', player.id);
+        }
+      } else {
+        console.log('❌ Cannot defuse bomb:', defuseCheck.reason);
+      }
+    }
+  }
+  
+  private renderHUD(localPlayer: Player): void {
+    const roundStats = this.roundSystem.getRoundStats();
+    const currentAmmo = this.weapons.getCurrentAmmo(localPlayer.currentWeapon, localPlayer.id) || 0;
+    const reserveAmmo = localPlayer.ammo.get(localPlayer.currentWeapon) || 0;
+    const reloadState = this.weapons.getReloadState(localPlayer.id, localPlayer.currentWeapon);
+    
+    const hudElements: HUDElements = {
+      health: localPlayer.health,
+      armor: localPlayer.armor,
+      money: localPlayer.money,
+      kills: localPlayer.kills,
+      deaths: localPlayer.deaths,
+      assists: localPlayer.assists,
+      currentWeapon: localPlayer.currentWeapon,
+      currentAmmo: currentAmmo,
+      reserveAmmo: reserveAmmo,
+      isReloading: reloadState?.isReloading || false,
+      reloadProgress: reloadState?.progress || 0,
+      roundTime: this.formatTime(roundStats.timeLeft),
+      bombTimer: roundStats.bombPlanted ? this.formatTime(roundStats.bombTimeLeft) : undefined,
+      ctScore: roundStats.ctScore,
+      tScore: roundStats.tScore,
+      playersAlive: { ct: roundStats.ctAlive, t: roundStats.tAlive },
+      gameMode: this.gameState.gameMode,
+      fps: this.fps
+    };
+    
+    this.hud.render(localPlayer, this.gameState, hudElements);
+  }
+  
+  private formatTime(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+  
+  private setupBombSystemEvents(): void {
+    // Handle bomb explosion
+    this.bombSystem.onEvent('bomb_exploded', (data: any) => {
+      console.log('💥 Bomb exploded! Handling explosion damage...');
+      
+      // Create explosion effect
+      this.renderer.createParticleEffect('explosion', data.position.x, data.position.y);
+      
+      // Apply explosion damage to all players
+      this.players.forEach(player => {
+        if (!player.isAlive) return;
+        
+        const damage = this.bombSystem.calculateExplosionDamage(data.position, player.position);
+        if (damage > 0) {
+          const damageEvent = this.damageSystem.applyDamage(player, {
+            amount: damage,
+            source: data.planterId,
+            position: data.position,
+            weapon: 'c4',
+            headshot: false,
+            armorPiercing: true // C4 ignores armor
+          });
+          
+          if (damageEvent.type === 'death') {
+            // Add kill feed entry for bomb kill
+            const planter = this.players.get(data.planterId);
+            if (planter) {
+              this.hud.addKillFeedEntry(
+                planter.name,
+                player.name,
+                'C4',
+                false
+              );
+            }
+            this.handlePlayerDeathReward(player, data.planterId);
+          }
+        }
+      });
+    });
+    
+    // Handle bomb planted
+    this.bombSystem.onEvent('bomb_planted', (data: any) => {
+      console.log('💣 Bomb planted event received');
+      // Update game state
+      this.gameState.bombPlanted = true;
+      this.gameState.bombPosition = data.position;
+    });
+    
+    // Handle bomb defused
+    this.bombSystem.onEvent('bomb_defused', (data: any) => {
+      console.log('✅ Bomb defused event received');
+      // Award money to defuser
+      const defuser = this.players.get(data.playerId);
+      if (defuser) {
+        defuser.money += 3500; // CS 1.6 defuse reward
+      }
+    });
+  }
+  
+  /**
+   * Add a test bot for testing BotAI integration
+   */
+  private addTestBot(): void {
+    const botId = `bot_${Date.now()}`;
+    const team = Math.random() > 0.5 ? 'ct' : 't';
+    
+    // Find a spawn point
+    const spawnPoints = this.maps.getSpawnPoints(team);
+    let spawnPosition = { x: 300, y: 300 }; // Default position
+    if (spawnPoints.length > 0) {
+      const spawn = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+      spawnPosition = spawn.position;
+    }
+    
+    const testBot: Player = {
+      id: botId,
+      name: `Bot${Math.floor(Math.random() * 1000)}`,
+      team: team,
+      position: { ...spawnPosition },
+      velocity: { x: 0, y: 0 },
+      health: 100,
+      armor: 0,
+      money: 800,
+      score: 0,
+      kills: 0,
+      deaths: 0,
+      assists: 0,
+      currentWeapon: 'glock',
+      weapons: ['glock'],
+      ammo: new Map([['glock', 20]]),
+      isAlive: true,
+      isDucking: false,
+      isWalking: false,
+      isScoped: false,
+      lastShotTime: 0,
+      lastStepTime: 0,
+      lastPosition: { ...spawnPosition },
+      currentSurface: { material: 'concrete', volume: 1.0 },
+      lastDamageTime: 0,
+      isInPain: false,
+      orientation: 0,
+      isBot: true,
+      lastVoiceTime: 0
+    };
+    
+    this.addPlayer(testBot);
+    console.log('🤖 Added test bot:', botId, 'on team:', team, 'at position:', spawnPosition);
   }
   
   public update(deltaTime: number): void {
@@ -862,6 +1182,14 @@ export class GameCore {
     // Update players
     this.players.forEach(player => {
       if (player.id === this.localPlayerId) {
+        this.updatePlayer(player, deltaTime);
+      } else if (player.isBot) {
+        // Update bot AI
+        const botAI = this.botAIs.get(player.id);
+        if (botAI) {
+          botAI.update(deltaTime, this.gameState, this.players);
+        }
+        // Still need to update bot player physics
         this.updatePlayer(player, deltaTime);
       }
     });
@@ -875,8 +1203,19 @@ export class GameCore {
     // Update particles
     this.renderer.updateParticles(deltaTime);
     
-    // Update game state
-    this.updateGameState(deltaTime);
+    // Update round system
+    this.roundSystem.update(deltaTime);
+    
+    // Update bomb system
+    this.bombSystem.update(deltaTime);
+    
+    // Update buy menus
+    this.players.forEach(player => {
+      this.buyMenuSystem.updateBuyMenu(player.id, deltaTime);
+    });
+    
+    // Update game state (now managed by RoundSystem)
+    // this.updateGameState(deltaTime); // Replaced by RoundSystem
     
     // Process network events for multiplayer
     this.stateManager.processNetworkQueue();
@@ -900,41 +1239,50 @@ export class GameCore {
         
         if (distance < 16) {
           // Hit!
-          const damage = this.weapons.handleBulletHit(bullet.id, player.armor);
+          const baseDamage = this.weapons.handleBulletHit(bullet.id, player.armor);
           const wasHeadshot = Math.random() > 0.8; // 20% headshot chance
           
-          // Apply damage
-          const finalDamage = wasHeadshot ? damage * 2 : damage;
-          player.health -= finalDamage;
-          
-          // Mark player as in pain for audio behavior
-          player.isInPain = true;
-          player.lastDamageTime = Date.now();
+          // Use DamageSystem to apply damage with proper CS 1.6 mechanics
+          const damageEvent = this.damageSystem.applyDamage(player, {
+            amount: baseDamage,
+            source: bullet.owner,
+            position: bullet.position,
+            weapon: bullet.weapon,
+            headshot: wasHeadshot,
+            armorPiercing: false // Most weapons don't pierce armor
+          });
           
           // Emit damage event for multiplayer synchronization
           this.stateManager.emit({
-            type: 'player_damage',
+            type: damageEvent.type === 'death' ? 'player_death' : 'player_damage',
             playerId: player.id,
-            data: { damage: finalDamage, headshot: wasHeadshot, armor: player.armor > 0 },
-            timestamp: Date.now(),
+            data: { 
+              damage: damageEvent.damage, 
+              headshot: damageEvent.headshot, 
+              armor: player.armor > 0,
+              killerId: damageEvent.type === 'death' ? damageEvent.source : undefined
+            },
+            timestamp: damageEvent.timestamp,
             position: player.position,
             team: player.team
           });
           
-          // Play authentic CS 1.6 hit sounds
-          if (wasHeadshot) {
-            this.audio.playPlayerSound('headshot', player.position);
-          } else if (player.armor > 0) {
-            this.audio.playPlayerSound('kevlar', player.position);
-          } else {
-            this.audio.playPlayerSound('damage', player.position);
-          }
-          
           // Create blood effect
           this.renderer.createParticleEffect('blood', player.position.x, player.position.y);
           
-          if (player.health <= 0) {
-            this.handlePlayerDeath(player, bullet.owner);
+          // Handle death if needed
+          if (damageEvent.type === 'death') {
+            // Add kill feed entry
+            const killer = this.players.get(bullet.owner);
+            if (killer) {
+              this.hud.addKillFeedEntry(
+                killer.name,
+                player.name,
+                bullet.weapon,
+                damageEvent.headshot
+              );
+            }
+            this.handlePlayerDeathReward(player, bullet.owner);
           }
         }
       });
@@ -979,6 +1327,35 @@ export class GameCore {
     this.audio.play('weapons/debris1.wav', position, { category: 'weapons' });
   }
   
+  /**
+   * Handle post-death rewards and game logic (called after DamageSystem handles death)
+   */
+  private handlePlayerDeathReward(player: Player, killerId?: string): void {
+    // Award kill to killer
+    if (killerId) {
+      const killer = this.players.get(killerId);
+      if (killer) {
+        killer.kills++;
+        killer.score += 1;
+        // Add money reward based on weapon used
+        killer.money += 300; // Base kill reward
+        
+        console.log('💰 Kill reward given to:', killer.id, 'for killing:', player.id);
+      }
+    }
+    
+    // Remove physics body
+    this.physics.removeBody(`player_${player.id}`);
+    
+    // Update player sprite to show death state
+    this.renderer.updateSprite(`player_sprite_${player.id}`, {
+      opacity: 0.5 // Make dead player semi-transparent
+    });
+    
+    // Check round end conditions
+    this.checkRoundEnd();
+  }
+
   private handlePlayerDeath(player: Player, killerId?: string): void {
     player.isAlive = false;
     player.deaths++;
@@ -1018,27 +1395,8 @@ export class GameCore {
     this.checkRoundEnd();
   }
   
-  private updateGameState(deltaTime: number): void {
-    if (this.gameState.freezeTime > 0) {
-      this.gameState.freezeTime -= deltaTime;
-      if (this.gameState.freezeTime <= 0) {
-        this.audio.play('round_start');
-      }
-    } else {
-      this.gameState.roundTime -= deltaTime;
-      
-      if (this.gameState.bombPlanted) {
-        this.gameState.bombTimer -= deltaTime;
-        if (this.gameState.bombTimer <= 0) {
-          this.handleBombExplosion();
-        }
-      }
-      
-      if (this.gameState.roundTime <= 0) {
-        this.endRound('time');
-      }
-    }
-  }
+  // Game state is now managed by RoundSystem
+  // private updateGameState method removed - replaced by RoundSystem.update()
   
   private handleBombExplosion(): void {
     if (this.gameState.bombPosition) {
@@ -1109,11 +1467,10 @@ export class GameCore {
     this.gameState.bombPlanted = false;
     this.gameState.bombTimer = 40;
     
-    // Respawn players
+    // Respawn players using DamageSystem reset
     this.players.forEach(player => {
-      player.isAlive = true;
-      player.health = 100;
-      player.armor = 0;
+      // Reset player health, armor, and damage state
+      this.damageSystem.resetPlayer(player);
       
       // Reset to spawn point
       const spawnPoints = this.maps.getSpawnPoints(player.team);
@@ -1121,6 +1478,36 @@ export class GameCore {
         const spawn = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
         player.position = { ...spawn.position };
       }
+      
+      // Reset bot AI state if it's a bot
+      if (player.isBot) {
+        const botAI = this.botAIs.get(player.id);
+        if (botAI) {
+          // Bot AI will reset its state when it sees the player is alive again
+          console.log('🤖 Bot AI reset for round start:', player.id);
+        }
+      }
+      
+      // Restore player sprite visibility
+      this.renderer.updateSprite(`player_sprite_${player.id}`, {
+        x: player.position.x,
+        y: player.position.y,
+        opacity: 1 // Fully visible again
+      });
+      
+      // Re-add physics body
+      this.physics.addBody({
+        id: `player_${player.id}`,
+        position: player.position,
+        velocity: { x: 0, y: 0 },
+        acceleration: { x: 0, y: 0 },
+        mass: 80,
+        friction: 0.9,
+        restitution: 0,
+        isStatic: false,
+        collider: { x: player.position.x, y: player.position.y, radius: 16 },
+        type: 'circle'
+      });
     });
   }
   
@@ -1143,8 +1530,14 @@ export class GameCore {
       this.renderDebugPhysics();
     }
     
-    // Render FPS counter
-    this.renderFPS();
+    // Render HUD for local player
+    const localPlayer = this.players.get(this.localPlayerId);
+    if (localPlayer) {
+      this.renderHUD(localPlayer);
+    }
+    
+    // Render FPS counter (legacy - now included in HUD debug)
+    // this.renderFPS();
   }
   
   private renderFPS(): void {
@@ -1303,5 +1696,47 @@ export class GameCore {
    */
   public getStateManager(): GameStateManager {
     return this.stateManager;
+  }
+
+  /**
+   * Get damage system for testing and external access
+   */
+  public getDamageSystem(): DamageSystem {
+    return this.damageSystem;
+  }
+
+  /**
+   * Get bot AIs for testing and monitoring
+   */
+  public getBotAIs(): Map<string, BotAI> {
+    return this.botAIs;
+  }
+  
+  /**
+   * Get buy menu system for UI integration
+   */
+  public getBuyMenuSystem(): BuyMenuSystem {
+    return this.buyMenuSystem;
+  }
+  
+  /**
+   * Get round system for UI integration
+   */
+  public getRoundSystem(): RoundSystem {
+    return this.roundSystem;
+  }
+  
+  /**
+   * Get HUD system for UI integration
+   */
+  public getHUD(): HUD {
+    return this.hud;
+  }
+  
+  /**
+   * Get bomb system for UI integration
+   */
+  public getBombSystem(): BombSystem {
+    return this.bombSystem;
   }
 }
