@@ -292,6 +292,11 @@ export class Renderer {
     this.renderParticles();
     this.renderLighting();
     
+    // Debug: render collision bounds (optional)
+    if ((window as any).DEBUG_PHYSICS) {
+      this.renderDebugPhysics();
+    }
+    
     this.ctx.restore();
     
     this.renderUI();
@@ -439,6 +444,24 @@ export class Renderer {
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.ctx.fillText(text, screenPos.x, screenPos.y);
+  }
+  
+  private renderDebugPhysics(): void {
+    // This will be called from GameCore with physics bodies
+  }
+  
+  renderDebugRect(center: Vector2D, width: number, height: number, color: string = 'rgba(255, 0, 0, 0.3)'): void {
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeRect(center.x - width / 2, center.y - height / 2, width, height);
+  }
+  
+  renderDebugCircle(center: Vector2D, radius: number, color: string = 'rgba(0, 255, 0, 0.3)'): void {
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    this.ctx.stroke();
   }
 }
 

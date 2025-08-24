@@ -56,6 +56,10 @@ export class PhysicsEngine {
     return this.bodies.get(id);
   }
   
+  getBodies(): RigidBody[] {
+    return Array.from(this.bodies.values());
+  }
+  
   private updateSpatialGrid(body: RigidBody): void {
     const gridX = Math.floor(body.position.x / this.gridSize);
     const gridY = Math.floor(body.position.y / this.gridSize);
@@ -79,15 +83,16 @@ export class PhysicsEngine {
         body.position.x += body.velocity.x * deltaTime;
         body.position.y += body.velocity.y * deltaTime;
         
-        // Update collider position based on body type
+        // Update collider position to match body position (center-based for both types)
         if (body.type === 'circle') {
           const collider = body.collider as Circle;
           collider.x = body.position.x;
           collider.y = body.position.y;
         } else {
           const collider = body.collider as Rectangle;
-          collider.x = body.position.x - collider.width / 2;
-          collider.y = body.position.y - collider.height / 2;
+          // Keep rectangle x,y as center position, same as circles
+          collider.x = body.position.x;
+          collider.y = body.position.y;
         }
         
         this.updateSpatialGrid(body);
@@ -162,15 +167,32 @@ export class PhysicsEngine {
   }
   
   private rectRectCollision(a: Rectangle, b: Rectangle): boolean {
-    return a.x < b.x + b.width &&
-           a.x + a.width > b.x &&
-           a.y < b.y + b.height &&
-           a.y + a.height > b.y;
+    // Rectangle x,y is center, so calculate bounds
+    const aLeft = a.x - a.width / 2;
+    const aRight = a.x + a.width / 2;
+    const aTop = a.y - a.height / 2;
+    const aBottom = a.y + a.height / 2;
+    
+    const bLeft = b.x - b.width / 2;
+    const bRight = b.x + b.width / 2;
+    const bTop = b.y - b.height / 2;
+    const bBottom = b.y + b.height / 2;
+    
+    return aLeft < bRight &&
+           aRight > bLeft &&
+           aTop < bBottom &&
+           aBottom > bTop;
   }
   
   private circleRectCollision(circle: Circle, rect: Rectangle): boolean {
-    const closestX = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width));
-    const closestY = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+    // Rectangle x,y is center, so calculate bounds
+    const rectLeft = rect.x - rect.width / 2;
+    const rectRight = rect.x + rect.width / 2;
+    const rectTop = rect.y - rect.height / 2;
+    const rectBottom = rect.y + rect.height / 2;
+    
+    const closestX = Math.max(rectLeft, Math.min(circle.x, rectRight));
+    const closestY = Math.max(rectTop, Math.min(circle.y, rectBottom));
     
     const dx = circle.x - closestX;
     const dy = circle.y - closestY;
@@ -264,10 +286,16 @@ export class PhysicsEngine {
   private rayIntersectsRect(origin: Vector2D, direction: Vector2D, rect: Rectangle): number | null {
     const invDir = { x: 1 / direction.x, y: 1 / direction.y };
     
-    const t1 = (rect.x - origin.x) * invDir.x;
-    const t2 = ((rect.x + rect.width) - origin.x) * invDir.x;
-    const t3 = (rect.y - origin.y) * invDir.y;
-    const t4 = ((rect.y + rect.height) - origin.y) * invDir.y;
+    // Rectangle x,y is center, so calculate bounds
+    const rectLeft = rect.x - rect.width / 2;
+    const rectRight = rect.x + rect.width / 2;
+    const rectTop = rect.y - rect.height / 2;
+    const rectBottom = rect.y + rect.height / 2;
+    
+    const t1 = (rectLeft - origin.x) * invDir.x;
+    const t2 = (rectRight - origin.x) * invDir.x;
+    const t3 = (rectTop - origin.y) * invDir.y;
+    const t4 = (rectBottom - origin.y) * invDir.y;
     
     const tMin = Math.max(Math.min(t1, t2), Math.min(t3, t4));
     const tMax = Math.min(Math.max(t1, t2), Math.max(t3, t4));

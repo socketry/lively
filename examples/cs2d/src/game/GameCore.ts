@@ -199,16 +199,22 @@ export class GameCore {
           
           if (!tile.walkable) {
             // Add physics body for collision only on non-walkable tiles
+            // Collider position should match the tile's actual position
             this.physics.addBody({
               id: `tile_${tile.x}_${tile.y}`,
-              position: { x: tile.x + 16, y: tile.y + 16 },
+              position: { x: tile.x + 16, y: tile.y + 16 }, // Center of tile
               velocity: { x: 0, y: 0 },
               acceleration: { x: 0, y: 0 },
               mass: Infinity,
               friction: 0,
               restitution: 0.5,
               isStatic: true,
-              collider: { x: tile.x, y: tile.y, width: 32, height: 32 },
+              collider: { 
+                x: tile.x + 16, // Center position to match sprite
+                y: tile.y + 16,
+                width: 32, 
+                height: 32 
+              },
               type: 'rectangle'
             });
           }
@@ -232,8 +238,8 @@ export class GameCore {
           restitution: 0.2,
           isStatic: true,
           collider: {
-            x: obj.position.x - obj.size.x / 2,
-            y: obj.position.y - obj.size.y / 2,
+            x: obj.position.x, // Use center position
+            y: obj.position.y,
             width: obj.size.x,
             height: obj.size.y
           },
@@ -557,6 +563,12 @@ export class GameCore {
       case 'KeyT':
         // Team chat / voice activation
         this.triggerBotResponse(player, 'round_start');
+        break;
+      
+      case 'KeyP':
+        // Toggle physics debug
+        (window as any).DEBUG_PHYSICS = !(window as any).DEBUG_PHYSICS;
+        console.log('Physics debug:', (window as any).DEBUG_PHYSICS ? 'ON' : 'OFF');
         break;
       
       case 'Digit1':
@@ -1147,6 +1159,11 @@ export class GameCore {
   public render(): void {
     this.renderer.render();
     
+    // Render debug physics if enabled
+    if ((window as any).DEBUG_PHYSICS) {
+      this.renderDebugPhysics();
+    }
+    
     // Render FPS counter
     this.renderFPS();
   }
@@ -1160,7 +1177,32 @@ export class GameCore {
     ctx.font = '14px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(`FPS: ${this.fps}`, 10, 20);
+    if ((window as any).DEBUG_PHYSICS) {
+      ctx.fillText('Physics Debug: ON (Press P to toggle)', 10, 40);
+    }
     ctx.restore();
+  }
+  
+  private renderDebugPhysics(): void {
+    // Render physics bodies for debugging
+    this.physics.getBodies().forEach(body => {
+      if (body.type === 'circle') {
+        const circle = body.collider as any;
+        this.renderer.renderDebugCircle(
+          { x: circle.x, y: circle.y },
+          circle.radius,
+          body.isStatic ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'
+        );
+      } else {
+        const rect = body.collider as any;
+        this.renderer.renderDebugRect(
+          { x: rect.x, y: rect.y },
+          rect.width,
+          rect.height,
+          body.isStatic ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'
+        );
+      }
+    });
   }
   
   /**
