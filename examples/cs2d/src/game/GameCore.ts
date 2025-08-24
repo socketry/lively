@@ -12,6 +12,8 @@ import { BuyMenuSystem, BuyMenuState } from './systems/BuyMenuSystem';
 import { RoundSystem, RoundStats } from './systems/RoundSystem';
 import { HUD, HUDElements } from './ui/HUD';
 import { BombSystem, BombSite, C4Bomb } from './systems/BombSystem';
+import { InputSystem, InputCallbacks } from './systems/InputSystem';
+import { CollisionSystem, CollisionDependencies, CollisionEffects } from './systems/CollisionSystem';
 
 export interface Player {
   id: string;
@@ -74,16 +76,15 @@ export class GameCore {
   private roundSystem: RoundSystem;
   private hud: HUD;
   private bombSystem: BombSystem;
+  private inputSystem: InputSystem;
+  private collisionSystem: CollisionSystem;
   private botAIs: Map<string, BotAI> = new Map();
   
   private players: Map<string, Player> = new Map();
   private localPlayerId: string = '';
   private gameState: GameState;
   
-  private input: {
-    keys: Set<string>;
-    mouse: { x: number; y: number; buttons: number };
-  };
+  // Input handling now managed by InputSystem
   
   private lastUpdateTime: number = 0;
   private fps: number = 0;
@@ -120,6 +121,10 @@ export class GameCore {
     this.roundSystem = new RoundSystem(this.gameState, this.players, this.audio);
     this.hud = new HUD(canvas, this.weapons);
     this.bombSystem = new BombSystem(this.audio);
+    this.inputSystem = new InputSystem(canvas);
+    
+    // Initialize CollisionSystem with required dependencies
+    this.collisionSystem = new CollisionSystem(this.createCollisionDependencies());
     
     // Setup bomb system event listeners
     this.setupBombSystemEvents();
@@ -130,6 +135,7 @@ export class GameCore {
     console.log('🔄 RoundSystem initialized and integrated into GameCore');
     console.log('🖥️ HUD system initialized and integrated into GameCore');
     console.log('💣 BombSystem initialized and integrated into GameCore');
+    console.log('🎯 CollisionSystem initialized - extracted 100+ lines from GameCore');
     console.log('🧪 Testing: Press H to damage, J to heal, K to add bot player, B to open buy menu, N for new round, E for bomb actions, M for C4, F1 for debug');
     
     // Connect state manager to core systems
@@ -139,13 +145,8 @@ export class GameCore {
     // Initialize CS 1.6 audio system
     this.initializeAudio();
     
-    // Initialize input
-    this.input = {
-      keys: new Set(),
-      mouse: { x: 0, y: 0, buttons: 0 }
-    };
-    
-    this.setupEventListeners();
+    // Initialize and setup InputSystem
+    this.setupInputSystem();
     this.loadDefaultMap();
   }
   
@@ -163,54 +164,127 @@ export class GameCore {
     }
   }
   
-  private setupEventListeners(): void {
-    console.log('🎮 Setting up event listeners on canvas');
+  private setupInputSystem(): void {
+    console.log('🎮 Setting up InputSystem with callbacks');
     
-    // Make canvas focusable and focus it
-    this.canvas.setAttribute('tabindex', '0');
-    this.canvas.focus();
+    // Set up input callbacks
+    const inputCallbacks: InputCallbacks = {
+      onMovementInput: (playerId, acceleration) => {
+        // Movement is handled in updatePlayer via getMovementInput
+      },
+      onWeaponFire: (playerId, direction) => {
+        const player = this.players.get(playerId);
+        if (player && player.isAlive) {
+          this.fireWeapon(player, direction);
+        }
+      },
+      onWeaponReload: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.reloadWeapon(player);
+        }
+      },
+      onWeaponSwitch: (playerId, slot) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.switchWeapon(player, slot);
+        }
+      },
+      onJump: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.playerJump(player);
+        }
+      },
+      onDuck: (playerId, isDucking) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.isDucking = isDucking;
+        }
+      },
+      onWalk: (playerId, isWalking) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.isWalking = isWalking;
+        }
+      },
+      onRadioCommand: (playerId, command) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleRadioCommand(player, command);
+        }
+      },
+      onBuyMenuToggle: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleBuyMenuToggle(player);
+        }
+      },
+      onBuyMenuPurchase: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleBuyMenuPurchase(player);
+        }
+      },
+      onBombAction: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleBombAction(player);
+        }
+      },
+      onDigitKey: (playerId, digit) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleDigitKey(player, digit);
+        }
+      },
+      onTestAction: (playerId, action) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleTestAction(player, action);
+        }
+      },
+      onDebugToggle: (key) => {
+        this.handleDebugToggle(key);
+      }
+    };
     
-    // Keyboard events
-    window.addEventListener('keydown', (e) => {
-      this.input.keys.add(e.code);
-      this.handleKeyPress(e.code);
-      e.preventDefault(); // Prevent browser shortcuts
-    });
+    // Initialize InputSystem and set callbacks
+    this.inputSystem.initialize();
+    this.inputSystem.setCallbacks(inputCallbacks);
     
-    window.addEventListener('keyup', (e) => {
-      this.input.keys.delete(e.code);
-      e.preventDefault();
-    });
-    
-    // Mouse events
-    this.canvas.addEventListener('mousemove', (e) => {
-      const rect = this.canvas.getBoundingClientRect();
-      this.input.mouse.x = e.clientX - rect.left;
-      this.input.mouse.y = e.clientY - rect.top;
-    });
-    
-    this.canvas.addEventListener('mousedown', (e) => {
-      this.canvas.focus(); // Ensure focus on click
-      this.input.mouse.buttons = e.buttons;
-      this.handleMouseDown(e.button);
-      e.preventDefault();
-    });
-    
-    this.canvas.addEventListener('mouseup', (e) => {
-      this.input.mouse.buttons = e.buttons;
-      e.preventDefault();
-    });
-    
-    this.canvas.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
-    
-    // Prevent text selection and ensure game styling
-    this.canvas.style.userSelect = 'none';
-    this.canvas.style.outline = 'none';
-    this.canvas.style.border = 'none';
-    
-    console.log('✅ Event listeners setup complete');
+    console.log('✅ InputSystem setup complete');
+  }
+
+  /**
+   * Create collision system dependencies with proper separation of concerns
+   */
+  private createCollisionDependencies(): CollisionDependencies {
+    // Create collision effects interface to handle visual/audio effects
+    const effects: CollisionEffects = {
+      createBloodEffect: (position: Vector2D) => {
+        this.renderer.createParticleEffect('blood', position.x, position.y);
+      },
+      createSparkEffect: (position: Vector2D) => {
+        this.renderer.createParticleEffect('spark', position.x, position.y);
+      },
+      addKillFeedEntry: (killerName: string, victimName: string, weapon: string, headshot: boolean) => {
+        this.hud.addKillFeedEntry(killerName, victimName, weapon, headshot);
+      },
+      handlePlayerDeathReward: (player: Player, killerId?: string) => {
+        this.handlePlayerDeathReward(player, killerId);
+      }
+    };
+
+    return {
+      audio: this.audio,
+      damageSystem: this.damageSystem,
+      effects: effects,
+      getTileAt: (position: Vector2D) => this.maps.getTileAt(position),
+      clearBullet: (bulletId: string) => this.weapons.clearBullet(bulletId),
+      handleBulletHit: (bulletId: string, armor: number) => this.weapons.handleBulletHit(bulletId, armor),
+      emitNetworkEvent: (event: any) => this.stateManager.emit(event)
+    };
   }
   
   private loadDefaultMap(): void {
@@ -529,170 +603,128 @@ export class GameCore {
       this.renderer.followTarget(player.position);
       this.audio.setListenerPosition(player.position, player.orientation);
     }
+    // Also update InputSystem
+    this.inputSystem.setLocalPlayer(playerId);
   }
   
-  private handleKeyPress(key: string): void {
-    const player = this.players.get(this.localPlayerId);
-    console.log('⌨️ Key pressed:', key, 'Player exists:', !!player);
-    if (!player) return;
-    
-    switch (key) {
-      case 'KeyB':
-        // Open buy menu
-        this.handleBuyMenuToggle(player);
-        break;
-      
-      case 'KeyR':
-        // Reload weapon
-        this.reloadWeapon(player);
-        break;
-      
-      case 'KeyG':
-        // Drop weapon
-        this.dropWeapon(player);
-        break;
-      
-      case 'Space':
-        // Jump
-        this.playerJump(player);
-        break;
-      
-      case 'ControlLeft':
-        // Duck/Crouch
-        player.isDucking = true;
-        break;
-      
-      case 'ShiftLeft':
-        // Walk silently
-        player.isWalking = true;
-        break;
-      
-      // CS 1.6 Radio Commands
-      case 'KeyZ':
-        // Standard radio menu 1
-        this.handleRadioCommand(player, 'roger');
-        break;
-      
-      case 'KeyX':
-        // Standard radio menu 2
-        this.handleRadioCommand(player, 'enemyspotted');
-        break;
-      
-      case 'KeyC':
-        // Standard radio menu 3
-        this.handleRadioCommand(player, 'needbackup');
-        break;
-      
-      case 'KeyV':
-        // Additional radio command
-        this.handleRadioCommand(player, 'followme');
-        break;
-      
-      case 'KeyF':
-        // Fire in the hole
-        this.handleRadioCommand(player, 'fireinhole');
-        break;
-      
-      case 'KeyT':
-        // Team chat / voice activation
+  /**
+   * Handle test actions from InputSystem
+   */
+  private handleTestAction(player: Player, action: string): void {
+    switch (action) {
+      case 'trigger_bot_response':
         this.triggerBotResponse(player, 'round_start');
         break;
-      
-      case 'KeyP':
-        // Toggle physics debug
-        (window as any).DEBUG_PHYSICS = !(window as any).DEBUG_PHYSICS;
-        console.log('Physics debug:', (window as any).DEBUG_PHYSICS ? 'ON' : 'OFF');
+      case 'damage':
+        console.log('🧪 Testing DamageSystem - applying 20 damage to local player');
+        const damageEvent = this.damageSystem.applyDamage(player, {
+          amount: 20,
+          source: 'test',
+          position: player.position,
+          weapon: 'test_weapon'
+        });
+        console.log('💥 Damage test result:', damageEvent);
         break;
-      
-      case 'KeyH':
-        // Test damage system - damage local player
-        if (player) {
-          console.log('🧪 Testing DamageSystem - applying 20 damage to local player');
-          const damageEvent = this.damageSystem.applyDamage(player, {
-            amount: 20,
-            source: 'test',
-            position: player.position,
-            weapon: 'test_weapon'
-          });
-          console.log('💥 Damage test result:', damageEvent);
-        }
+      case 'heal':
+        console.log('🧪 Testing DamageSystem - healing local player by 25');
+        const healEvent = this.damageSystem.healPlayer(player, 25);
+        console.log('💚 Heal test result:', healEvent);
         break;
-      
-      case 'KeyJ':
-        // Test healing system - heal local player
-        if (player) {
-          console.log('🧪 Testing DamageSystem - healing local player by 25');
-          const healEvent = this.damageSystem.healPlayer(player, 25);
-          console.log('💚 Heal test result:', healEvent);
-        }
-        break;
-      
-      case 'KeyK':
-        // Add test bot player
+      case 'add_bot':
         this.addTestBot();
         break;
-      
-      case 'Digit1':
-      case 'Digit2':
-      case 'Digit3':
-      case 'Digit4':
-      case 'Digit5':
-        // Handle buy menu category selection or weapon switching
-        const slot = parseInt(key.replace('Digit', ''));
-        this.handleDigitKey(player, slot);
+      case 'new_round':
+        this.roundSystem.forceNewRound();
         break;
-      
-      case 'Enter':
-        // Buy selected item in buy menu
-        this.handleBuyMenuPurchase(player);
+      case 'give_c4':
+        if (player.team === 't' && !player.weapons.includes('c4')) {
+          player.weapons.push('c4');
+          console.log('💣 C4 given to player:', player.id);
+        }
         break;
-      
-      case 'Escape':
+      case 'escape_key':
         // Close buy menu
         const menuState = this.buyMenuSystem.getBuyMenuState(player.id);
         if (menuState?.isOpen) {
           this.buyMenuSystem.closeBuyMenu(player.id);
         }
         break;
-      
-      case 'KeyN':
-        // Force new round (testing)
-        this.roundSystem.forceNewRound();
+    }
+  }
+  
+  /**
+   * Handle debug toggle actions from InputSystem
+   */
+  private handleDebugToggle(key: string): void {
+    switch (key) {
+      case 'physics':
+        (window as any).DEBUG_PHYSICS = !(window as any).DEBUG_PHYSICS;
+        console.log('Physics debug:', (window as any).DEBUG_PHYSICS ? 'ON' : 'OFF');
         break;
-      
-      case 'KeyE':
-        // Plant/defuse bomb
-        this.handleBombAction(player);
-        break;
-      
-      case 'F1':
-        // Toggle debug info
+      case 'debug_info':
         this.hud.toggleDebugInfo();
-        break;
-      
-      case 'KeyM':
-        // Give C4 to local player (testing)
-        if (player.team === 't' && !player.weapons.includes('c4')) {
-          player.weapons.push('c4');
-          console.log('💣 C4 given to player:', player.id);
-        }
         break;
     }
   }
   
-  private handleMouseDown(button: number): void {
-    const player = this.players.get(this.localPlayerId);
-    console.log('🖱️ Mouse click detected:', { button, playerId: this.localPlayerId, playerExists: !!player, isAlive: player?.isAlive });
+  /**
+   * Handle weapon firing with direction from InputSystem
+   */
+  private fireWeapon(player: Player, worldMousePos?: Vector2D): void {
+    let direction: Vector2D;
     
-    if (!player || !player.isAlive) return;
+    if (worldMousePos) {
+      // Use direction provided by InputSystem
+      direction = {
+        x: worldMousePos.x - player.position.x,
+        y: worldMousePos.y - player.position.y
+      };
+    } else {
+      // Fallback to old calculation (should not happen with InputSystem)
+      const mousePos = this.inputSystem.getMousePosition();
+      const worldPos = {
+        x: (mousePos.x / this.canvas.width) * 1920,
+        y: (mousePos.y / this.canvas.height) * 1080
+      };
+      
+      direction = {
+        x: worldPos.x - player.position.x,
+        y: worldPos.y - player.position.y
+      };
+    }
     
-    if (button === 0) {
-      // Left click - Fire weapon
-      console.log('🔫 Attempting to fire weapon:', player.currentWeapon);
-      this.fireWeapon(player);
-    } else if (button === 2) {
-      // Right click - Aim/Scope
-      this.toggleScope(player);
+    const mag = Math.sqrt(direction.x ** 2 + direction.y ** 2);
+    if (mag > 0) {
+      direction.x /= mag;
+      direction.y /= mag;
+    } else {
+      // Default direction if mouse is at player position
+      direction.x = 1;
+      direction.y = 0;
+    }
+    
+    const bullets = this.weapons.fire(
+      player.currentWeapon,
+      player.position,
+      direction,
+      player.id
+    );
+    
+    if (bullets) {
+      // Emit weapon fire event for multiplayer synchronization
+      this.stateManager.emit({
+        type: 'weapon_fire',
+        playerId: player.id,
+        data: { weaponId: player.currentWeapon, direction },
+        position: player.position
+      });
+      
+      // Create muzzle flash effect
+      this.renderer.createParticleEffect('muzzleFlash', player.position.x, player.position.y);
+      
+      // Apply recoil
+      const recoilOffset = this.weapons.getRecoilOffset(player.id, player.currentWeapon);
+      // Apply recoil to camera or crosshair
     }
   }
   
@@ -705,27 +737,17 @@ export class GameCore {
     const speed = player.isWalking ? 100 : player.isDucking ? 50 : 200;
     const acceleration = { x: 0, y: 0 };
     
-    // Movement input
-    if (this.input.keys.has('KeyW')) acceleration.y -= speed;
-    if (this.input.keys.has('KeyS')) acceleration.y += speed;
-    if (this.input.keys.has('KeyA')) acceleration.x -= speed;
-    if (this.input.keys.has('KeyD')) acceleration.x += speed;
+    // Get movement input from InputSystem
+    const acceleration = this.inputSystem.getMovementInput(speed, player.isWalking, player.isDucking);
     
     // Debug: Log movement input occasionally
     if (Math.random() < 0.01 && (acceleration.x !== 0 || acceleration.y !== 0)) {
-      console.log('🎮 Movement input:', { keys: Array.from(this.input.keys), acceleration, position: player.position });
+      console.log('🎮 Movement input:', { acceleration, position: player.position, hasInput: this.inputSystem.hasMovementInput() });
     }
     
     // Calculate orientation for 3D audio
     if (acceleration.x !== 0 || acceleration.y !== 0) {
       player.orientation = Math.atan2(acceleration.y, acceleration.x);
-    }
-    
-    // Normalize diagonal movement
-    const mag = Math.sqrt(acceleration.x ** 2 + acceleration.y ** 2);
-    if (mag > 0) {
-      acceleration.x = (acceleration.x / mag) * speed;
-      acceleration.y = (acceleration.y / mag) * speed;
     }
     
     // Get physics body and apply acceleration to it
@@ -798,9 +820,7 @@ export class GameCore {
             type: 'footstep',
             playerId: player.id,
             data: { surface: player.currentSurface },
-            timestamp: now,
-            position: player.position,
-            team: player.team
+            position: player.position
           });
         }
       }
@@ -845,61 +865,6 @@ export class GameCore {
     }
   }
   
-  private fireWeapon(player: Player): void {
-    // Calculate direction from player to mouse cursor
-    // Get canvas bounds for proper coordinate calculation
-    const rect = this.canvas.getBoundingClientRect();
-    const canvasX = this.input.mouse.x;
-    const canvasY = this.input.mouse.y;
-    
-    // Convert canvas coordinates to world coordinates
-    // For a simple 2D game, we can use direct mapping
-    const worldPos = {
-      x: (canvasX / this.canvas.width) * 1920, // Assuming 1920x1080 world
-      y: (canvasY / this.canvas.height) * 1080
-    };
-    
-    const direction = {
-      x: worldPos.x - player.position.x,
-      y: worldPos.y - player.position.y
-    };
-    
-    const mag = Math.sqrt(direction.x ** 2 + direction.y ** 2);
-    if (mag > 0) {
-      direction.x /= mag;
-      direction.y /= mag;
-    } else {
-      // Default direction if mouse is at player position
-      direction.x = 1;
-      direction.y = 0;
-    }
-    
-    const bullets = this.weapons.fire(
-      player.currentWeapon,
-      player.position,
-      direction,
-      player.id
-    );
-    
-    if (bullets) {
-      // Emit weapon fire event for multiplayer synchronization
-      this.stateManager.emit({
-        type: 'weapon_fire',
-        playerId: player.id,
-        data: { weaponId: player.currentWeapon, direction },
-        timestamp: Date.now(),
-        position: player.position,
-        team: player.team
-      });
-      
-      // Create muzzle flash effect
-      this.renderer.createParticleEffect('muzzleFlash', player.position.x, player.position.y);
-      
-      // Apply recoil
-      const recoilOffset = this.weapons.getRecoilOffset(player.id, player.currentWeapon);
-      // Apply recoil to camera or crosshair
-    }
-  }
   
   private reloadWeapon(player: Player): void {
     console.log('🔄 Attempting to reload weapon:', player.currentWeapon);
@@ -913,9 +878,7 @@ export class GameCore {
         type: 'weapon_reload',
         playerId: player.id,
         data: { weaponId: player.currentWeapon },
-        timestamp: Date.now(),
-        position: player.position,
-        team: player.team
+        position: player.position
       });
     } else {
       console.log('❌ Reload failed or not needed');
@@ -1219,114 +1182,22 @@ export class GameCore {
     // Update game state (now managed by RoundSystem)
     // this.updateGameState(deltaTime); // Replaced by RoundSystem
     
-    // Process network events for multiplayer
-    this.stateManager.processNetworkQueue();
+    // Network events are now processed immediately
     
     // Update FPS
     this.updateFPS();
   }
   
+  /**
+   * Check bullet collisions using the dedicated CollisionSystem
+   * This method replaces the previous 100+ line implementation
+   */
   private checkBulletCollisions(): void {
     const bullets = this.weapons.getBullets();
     
-    bullets.forEach(bullet => {
-      // Check collision with players
-      this.players.forEach(player => {
-        if (player.id === bullet.owner || !player.isAlive) return;
-        
-        const distance = Math.sqrt(
-          (bullet.position.x - player.position.x) ** 2 +
-          (bullet.position.y - player.position.y) ** 2
-        );
-        
-        if (distance < 16) {
-          // Hit!
-          const baseDamage = this.weapons.handleBulletHit(bullet.id, player.armor);
-          const wasHeadshot = Math.random() > 0.8; // 20% headshot chance
-          
-          // Use DamageSystem to apply damage with proper CS 1.6 mechanics
-          const damageEvent = this.damageSystem.applyDamage(player, {
-            amount: baseDamage,
-            source: bullet.owner,
-            position: bullet.position,
-            weapon: bullet.weapon,
-            headshot: wasHeadshot,
-            armorPiercing: false // Most weapons don't pierce armor
-          });
-          
-          // Emit damage event for multiplayer synchronization
-          this.stateManager.emit({
-            type: damageEvent.type === 'death' ? 'player_death' : 'player_damage',
-            playerId: player.id,
-            data: { 
-              damage: damageEvent.damage, 
-              headshot: damageEvent.headshot, 
-              armor: player.armor > 0,
-              killerId: damageEvent.type === 'death' ? damageEvent.source : undefined
-            },
-            timestamp: damageEvent.timestamp,
-            position: player.position,
-            team: player.team
-          });
-          
-          // Create blood effect
-          this.renderer.createParticleEffect('blood', player.position.x, player.position.y);
-          
-          // Handle death if needed
-          if (damageEvent.type === 'death') {
-            // Add kill feed entry
-            const killer = this.players.get(bullet.owner);
-            if (killer) {
-              this.hud.addKillFeedEntry(
-                killer.name,
-                player.name,
-                bullet.weapon,
-                damageEvent.headshot
-              );
-            }
-            this.handlePlayerDeathReward(player, bullet.owner);
-          }
-        }
-      });
-      
-      // Check collision with map
-      const tile = this.maps.getTileAt(bullet.position);
-      if (tile && !tile.walkable && !tile.bulletPenetrable) {
-        this.weapons.clearBullet(bullet.id);
-        this.renderer.createParticleEffect('spark', bullet.position.x, bullet.position.y);
-        
-        // Play bullet impact sound based on surface
-        this.playBulletImpactSound(tile.type || 'concrete', bullet.position);
-      }
-    });
-  }
-  
-  /**
-   * Play bullet impact sounds based on surface material
-   */
-  private playBulletImpactSound(surfaceType: string, position: Vector2D): void {
-    // Use CS 1.6 physics sounds for bullet impacts
-    let impactSound = 'hit_wall'; // Default
-    
-    switch (surfaceType) {
-      case 'metal':
-      case 'metalgrate':
-        impactSound = 'metal_impact';
-        break;
-      case 'wood':
-        impactSound = 'wood_impact';
-        break;
-      case 'glass':
-        impactSound = 'glass_impact';
-        break;
-      case 'concrete':
-      default:
-        impactSound = 'concrete_impact';
-        break;
-    }
-    
-    // Note: CS 1.6 uses generic debris sounds, so we'll use those
-    this.audio.play('weapons/debris1.wav', position, { category: 'weapons' });
+    // Delegate collision detection and processing to CollisionSystem
+    // This maintains all existing behavior while improving code organization
+    this.collisionSystem.checkBulletCollisions(bullets, this.players);
   }
   
   /**
@@ -1379,9 +1250,7 @@ export class GameCore {
       type: 'player_death',
       playerId: player.id,
       data: { killerId },
-      timestamp: Date.now(),
-      position: player.position,
-      team: player.team
+      position: player.position
     });
     
     // Play authentic CS 1.6 death sound
@@ -1760,5 +1629,12 @@ export class GameCore {
    */
   public getBombSystem(): BombSystem {
     return this.bombSystem;
+  }
+  
+  /**
+   * Get input system for debugging and external access
+   */
+  public getInputSystem(): InputSystem {
+    return this.inputSystem;
   }
 }

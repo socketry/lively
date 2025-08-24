@@ -120,8 +120,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
     const bridge = new WebSocketGameBridge({
       enableVoiceChat: true,
       enablePositionalAudio: true,
-      maxPlayersPerRoom: 10,
-      tickRate: 64
+      maxPlayersPerRoom: 10
     });
     bridgeRef.current = bridge;
 
@@ -135,12 +134,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
       // Join the multiplayer room
       const playerId = 'local-player';
       const isHost = roomId === 'host'; // Simple host detection
-      bridge.joinRoom(roomId, playerId, isHost);
+      bridge.joinRoom(roomId, playerId);
       
       console.log('🌐 Multiplayer enabled for room:', roomId);
     } else {
-      // Offline mode
-      game.getStateManager().setOfflineMode(true);
+      // Offline mode - no special setup needed for simplified version
       console.log('🔒 Offline mode enabled');
     }
 
@@ -153,8 +151,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
     const statsInterval = setInterval(() => {
       const gameState = game.getState();
       const players = game.getPlayers();
-      const networkStats = game.getStateManager().getNetworkStats();
-      const multiplayerStats = bridge.getMultiplayerStats();
+      const connectionStatus = bridge.getConnectionStatus();
       
       setGameStats({
         fps: game.getFPS(),
@@ -163,8 +160,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
         bombPlanted: gameState.bombPlanted,
         ctScore: gameState.ctScore,
         tScore: gameState.tScore,
-        networkStats,
-        multiplayerStats
+        networkStats: {
+          queueSize: 0,
+          latency: 0,
+          playersConnected: players.length
+        },
+        multiplayerStats: {
+          roomId: connectionStatus.roomId,
+          connected: connectionStatus.connected,
+          isHost: false,
+          playersInRoom: players.length
+        }
       });
     }, 100);
 

@@ -14,6 +14,7 @@ import { RoundSystem } from './systems/RoundSystem';
 import { BombSystem } from './systems/BombSystem';
 import { BotAI } from './ai/BotAI';
 import { HUD, HUDElements } from './ui/HUD';
+import { CollisionSystem, CollisionDependencies, CollisionEffects } from './systems/CollisionSystem';
 
 // Import and re-export interfaces
 import { Player, GameState } from './GameCore';
@@ -36,6 +37,7 @@ export class EnhancedGameCore {
   private roundSystem: RoundSystem;
   private bombSystem: BombSystem;
   private hud: HUD;
+  private collisionSystem: CollisionSystem;
   private botAI: Map<string, BotAI> = new Map();
   
   private players: Map<string, Player> = new Map();
@@ -84,6 +86,9 @@ export class EnhancedGameCore {
     this.roundSystem = new RoundSystem(this.gameState, this.players, this.audio);
     this.bombSystem = new BombSystem(this.audio);
     this.hud = new HUD(canvas, this.weapons);
+    
+    // Initialize CollisionSystem with required dependencies
+    this.collisionSystem = new CollisionSystem(this.createCollisionDependencies());
     
     // Connect systems
     this.stateManager.connectGameCore(this);
@@ -167,6 +172,37 @@ export class EnhancedGameCore {
       // Update HUD
       this.hud.addKillFeedEntry('BOMB', 'EXPLODED', 'C4');
     });
+  }
+
+  /**
+   * Create collision system dependencies with proper separation of concerns
+   */
+  private createCollisionDependencies(): CollisionDependencies {
+    // Create collision effects interface to handle visual/audio effects
+    const effects: CollisionEffects = {
+      createBloodEffect: (position: Vector2D) => {
+        this.renderer.createParticleEffect('blood', position.x, position.y);
+      },
+      createSparkEffect: (position: Vector2D) => {
+        this.renderer.createParticleEffect('spark', position.x, position.y);
+      },
+      addKillFeedEntry: (killerName: string, victimName: string, weapon: string, headshot: boolean) => {
+        this.hud.addKillFeedEntry(killerName, victimName, weapon, headshot);
+      },
+      handlePlayerDeathReward: (player: Player, killerId?: string) => {
+        this.handlePlayerDeathReward(player, killerId);
+      }
+    };
+
+    return {
+      audio: this.audio,
+      damageSystem: this.damageSystem,
+      effects: effects,
+      getTileAt: (position: Vector2D) => this.maps.getTileAt(position),
+      clearBullet: (bulletId: string) => this.weapons.clearBullet(bulletId),
+      handleBulletHit: (bulletId: string, armor: number) => this.weapons.handleBulletHit(bulletId, armor),
+      emitNetworkEvent: (event: any) => this.stateManager.emit(event)
+    };
   }
   
   private async initializeAudio(): Promise<void> {
@@ -509,69 +545,41 @@ export class EnhancedGameCore {
     this.updateFPS();
   }
   
+  /**
+   * Check bullet collisions using the dedicated CollisionSystem
+   * This method replaces the previous 50+ line implementation
+   */
   private checkBulletCollisions(): void {
     const bullets = this.weapons.getBullets();
     
-    bullets.forEach(bullet => {
-      // Check collision with players
-      this.players.forEach(player => {
-        if (player.id === bullet.owner || !player.isAlive) return;
-        
-        const distance = Math.sqrt(
-          (bullet.position.x - player.position.x) ** 2 +
-          (bullet.position.y - player.position.y) ** 2
-        );
-        
-        if (distance < 16) {
-          // Enhanced hit calculation
-          const weaponDamage = this.weapons.handleBulletHit(bullet.id, player.armor);
-          const wasHeadshot = Math.random() > 0.8;
-          
-          const damageInfo: DamageInfo = {
-            amount: weaponDamage,
-            source: bullet.owner,
-            position: bullet.position,
-            weapon: bullet.weapon,
-            headshot: wasHeadshot,
-            armorPiercing: false
-          };
-          
-          const damageEvent = this.damageSystem.applyDamage(player, damageInfo);
-          
-          // Update HUD kill feed
-          if (damageEvent.type === 'death') {
-            const killer = this.players.get(bullet.owner);
-            this.hud.addKillFeedEntry(
-              killer?.name || 'Unknown',
-              player.name,
-              bullet.weapon,
-              wasHeadshot
-            );
-            
-            // Award kill to killer
-            if (killer) {
-              killer.kills++;
-              killer.score += 1;
-              killer.money += 300;
-            }
-          }
-          
-          this.renderer.createParticleEffect('blood', player.position.x, player.position.y);
-        }
-      });
-      
-      // Check collision with map
-      const tile = this.maps.getTileAt(bullet.position);
-      if (tile && !tile.walkable && !tile.bulletPenetrable) {
-        this.weapons.clearBullet(bullet.id);
-        this.renderer.createParticleEffect('spark', bullet.position.x, bullet.position.y);
-        this.playBulletImpactSound(tile.type || 'concrete', bullet.position);
-      }
-    });
+    // Delegate collision detection and processing to CollisionSystem
+    // This maintains all existing behavior while improving code organization
+    this.collisionSystem.checkBulletCollisions(bullets, this.players);
   }
-  
-  private playBulletImpactSound(surfaceType: string, position: Vector2D): void {
-    this.audio.play('weapons/debris1.wav', position, { category: 'weapons' });
+
+  /**
+   * Handle post-death rewards and game logic (called after DamageSystem handles death)
+   */
+  private handlePlayerDeathReward(player: Player, killerId?: string): void {
+    // Award kill to killer
+    if (killerId) {
+      const killer = this.players.get(killerId);
+      if (killer) {
+        killer.kills++;
+        killer.score += 1;
+        killer.money += 300; // CS 1.6 style kill reward
+      }
+    }
+    
+    // Check if round should end due to elimination
+    const ctPlayers = Array.from(this.players.values()).filter(p => p.team === 'ct' && p.isAlive);
+    const tPlayers = Array.from(this.players.values()).filter(p => p.team === 't' && p.isAlive);
+    
+    if (ctPlayers.length === 0) {
+      this.endRound('elimination', 't');
+    } else if (tPlayers.length === 0) {
+      this.endRound('elimination', 'ct');
+    }
   }
   
   private endRound(condition: string, winner: 'ct' | 't'): void {

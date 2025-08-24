@@ -440,24 +440,16 @@ export class CS16AmbientSystem {
     try {
       const volume = this.calculateVolume(config.volume, category);
       
-      if (config.spatialEnabled && config.position) {
-        // Use spatial audio for positioned sounds
-        this.audioManager.play3D(
-          config.soundPath,
-          config.position,
-          { x: 400, y: 300 }, // Default listener position
-          0, // Default rotation
+      // Use simplified audio manager
+      this.audioManager.play(
+        config.soundPath,
+        config.position,
+        {
           volume,
-          config.loop
-        );
-      } else {
-        // Use regular 2D audio
-        this.audioManager.playWithVolume(
-          config.soundPath,
-          volume,
-          config.loop
-        );
-      }
+          loop: config.loop,
+          category: category
+        }
+      );
 
       console.log(`🔊 Playing ambient sound: ${config.name} (${config.soundPath})`);
     } catch (error) {

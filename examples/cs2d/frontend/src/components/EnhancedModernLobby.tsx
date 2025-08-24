@@ -1,77 +1,29 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { LobbySkeletonGrid } from './common/SkeletonLoader';
-import { setupWebSocket } from '@/services/websocket';
+import { RoomList } from './RoomList';
+import { useWebSocketConnection } from '../hooks/useWebSocketConnection';
+import { useAudioControls } from '../hooks/useAudioControls';
 import {
-  ARIA_LABELS,
   KEYBOARD_KEYS,
-  isActionKey,
-  handleEscapeKey,
-  createButtonProps,
-  createListProps,
-  createListItemProps,
   focusUtils,
   announceToScreenReader
 } from '@/utils/accessibility';
 
-interface Room {
-  id: string;
-  name: string;
-  players: number;
-  maxPlayers: number;
-  mode: string;
-  map: string;
-  status: 'waiting' | 'playing';
-  ping: number;
-  hasPassword: boolean;
-  bots: number;
-  botDifficulty: 'easy' | 'normal' | 'hard' | 'expert';
-}
 
 
 export const EnhancedModernLobby: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const wsRef = useRef<ReturnType<typeof setupWebSocket> | null>(null)
-  const [rooms, setRooms] = useState<Room[]>([
-    { 
-      id: '1', 
-      name: 'Dust2 Classic - Bots Enabled', 
-      players: 3, 
-      maxPlayers: 10, 
-      mode: 'deathmatch', 
-      map: 'de_dust2', 
-      status: 'waiting', 
-      ping: 32,
-      hasPassword: false,
-      bots: 4,
-      botDifficulty: 'normal'
-    },
-    { 
-      id: '2', 
-      name: 'Aim Training - Expert Bots', 
-      players: 2, 
-      maxPlayers: 8, 
-      mode: 'freeForAll', 
-      map: 'aim_map', 
-      status: 'playing', 
-      ping: 45,
-      hasPassword: true,
-      bots: 6,
-      botDifficulty: 'expert'
-    },
-  ]);
+  const { wsRef, isConnected, rooms, createRoom } = useWebSocketConnection();
+  const { audioEnabled, setAudioEnabled, playUISound, notifyGameAction } = useAudioControls();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBotPanel, setShowBotPanel] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState<string | null>(null);
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [soundEffect] = useState(new Audio('/sounds/ui/click.wav')); // Fallback UI sound
   
   const [roomConfig, setRoomConfig] = useState({
     name: '',
@@ -92,58 +44,12 @@ export const EnhancedModernLobby: React.FC = () => {
   const [filterMode, setFilterMode] = useState('all');
   const [showOnlyWithBots, setShowOnlyWithBots] = useState(false);
 
-  const difficultyColors = {
-    easy: 'text-green-400',
-    normal: 'text-yellow-400',
-    hard: 'text-orange-400',
-    expert: 'text-red-400'
+
+  const handleCreateRoom = () => {
+    createRoom(roomConfig, t);
+    setShowCreateModal(false);
   };
 
-  const difficultyIcons = {
-    easy: '🟢',
-    normal: '🟡',
-    hard: '🟠',
-    expert: '🔴'
-  };
-
-  const createRoom = () => {
-    const newRoom: Room = {
-      id: Date.now().toString(),
-      name: roomConfig.name || t('lobby.roomName'),
-      players: 1,
-      maxPlayers: roomConfig.maxPlayers,
-      mode: roomConfig.mode,
-      map: roomConfig.map,
-      status: 'waiting',
-      ping: Math.floor(Math.random() * 50) + 10,
-      hasPassword: roomConfig.password !== '',
-      bots: roomConfig.botConfig.enabled ? roomConfig.botConfig.count : 0,
-      botDifficulty: roomConfig.botConfig.difficulty
-    };
-    // Try server create, fall back to local
-    if (wsRef.current?.isConnected) {
-      wsRef.current.emit('room:create', {
-        name: roomConfig.name || t('lobby.roomName'),
-        mode: roomConfig.mode,
-        map: roomConfig.map,
-        maxPlayers: roomConfig.maxPlayers,
-        password: roomConfig.password || undefined,
-        bots: roomConfig.botConfig
-      })
-      setShowCreateModal(false)
-    } else {
-      setRooms([...rooms, newRoom]);
-      setShowCreateModal(false);
-      window.location.href = `/room/${newRoom.id}`;
-    }
-  };
-
-  const filteredRooms = rooms.filter(room => {
-    const matchesSearch = room.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesMode = filterMode === 'all' || room.mode === filterMode;
-    const matchesBotFilter = !showOnlyWithBots || room.bots > 0;
-    return matchesSearch && matchesMode && matchesBotFilter;
-  });
 
   const quickJoinWithBots = () => {
     const availableRooms = rooms.filter(r => 
@@ -160,68 +66,14 @@ export const EnhancedModernLobby: React.FC = () => {
   };
 
   const navigateToRoom = (roomId: string) => {
+    setIsJoiningRoom(roomId);
     // Navigate to the game with the room ID
     setTimeout(() => {
       navigate(`/game/${roomId}`);
     }, 500);
   };
 
-  const playUISound = (soundType: 'click' | 'hover' | 'success' | 'error' = 'click') => {
-    if (!audioEnabled) return;
-    
-    try {
-      soundEffect.currentTime = 0;
-      soundEffect.volume = 0.3;
-      soundEffect.play().catch(() => {
-        // Fallback: visual feedback only
-        console.log(`UI Sound: ${soundType}`);
-      });
-    } catch (e) {
-      // Silent fail for audio
-    }
-  };
 
-  const notifyGameAction = (action: string, message: string, type: 'info' | 'success' | 'error' = 'info') => {
-    // Play corresponding UI sound
-    playUISound(type === 'success' ? 'success' : type === 'error' ? 'error' : 'click');
-    
-    // Simple console notification for now
-    console.log(`[${type.toUpperCase()}] ${action}: ${message}`);
-    // Could add toast notification here in the future
-  };
-
-  // WebSocket: connect and listen for room updates
-  useEffect(() => {
-    const ws = setupWebSocket()
-    wsRef.current = ws
-    ws.connect().then(() => setIsConnected(true)).catch(() => setIsConnected(false))
-    const offCreated = ws.on('room:created', (data: any) => {
-      const id = (data && (data.id || data.roomId)) || String(Date.now())
-      window.location.href = `/room/${id}`
-    })
-    const offUpdated = ws.on('room:updated', (data: any) => {
-      // Accept either { rooms: [...] } or array
-      const list = Array.isArray(data) ? data : (data?.rooms || [])
-      if (Array.isArray(list) && list.length) {
-        // Normalize minimal fields
-        const mapped: Room[] = list.map((r: any) => ({
-          id: String(r.id || r.roomId || Date.now()),
-          name: r.name || 'Room',
-          players: (r.players && (r.players.length || r.players)) || 0,
-          maxPlayers: r.maxPlayers || 10,
-          mode: r.mode || 'deathmatch',
-          map: r.map || 'de_dust2',
-          status: r.status || 'waiting',
-          ping: 32,
-          hasPassword: !!r.hasPassword,
-          bots: r.bots || 0,
-          botDifficulty: r.botDifficulty || 'normal'
-        }))
-        setRooms(mapped)
-      }
-    })
-    return () => { offCreated(); offUpdated() }
-  }, [])
 
   // Handle global keyboard shortcuts
   const handleGlobalKeyDown = (event: React.KeyboardEvent) => {
@@ -440,7 +292,7 @@ export const EnhancedModernLobby: React.FC = () => {
       )}
 
       {/* Main Content Area */}
-      <div className="relative max-w-7xl mx-auto px-6 py-8">
+      <main id="main-content" className="relative max-w-7xl mx-auto px-6 py-8">
         {/* Enhanced Controls Section */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-6 mb-8">
           <div className="flex items-center justify-between">
@@ -557,156 +409,19 @@ export const EnhancedModernLobby: React.FC = () => {
         )}
 
         {/* Enhanced Room List */}
-        {isInitialLoading ? (
-          <LobbySkeletonGrid count={6} />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="room-list">
-            {filteredRooms.map((room) => (
-              <div
-                key={room.id}
-                className="text-left backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-6 hover:bg-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.3)] relative overflow-hidden group"
-                onClick={() => {
-                  if (isJoiningRoom !== room.id) {
-                    playUISound('click');
-                    setIsJoiningRoom(room.id);
-                    notifyGameAction('joining', `Joining ${room.name}...`, 'info');
-                    navigateToRoom(room.id);
-                  }
-                }}
-                onKeyDown={(e) => { 
-                  if ((e.key === 'Enter' || e.key === ' ') && isJoiningRoom !== room.id) {
-                    playUISound('click');
-                    setIsJoiningRoom(room.id);
-                    notifyGameAction('joining', `Joining ${room.name}...`, 'info');
-                    navigateToRoom(room.id);
-                  }
-                }}
-                onMouseEnter={() => playUISound('hover')}
-                tabIndex={0}
-                role="button"
-                aria-label={`Join room ${room.name}`}
-              >
-                {/* Animated background glow on hover */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                {/* Status indicator pulse */}
-                {room.status === 'waiting' && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-ping opacity-75" />
-                )}
-              {/* Room Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-1">{room.name}</h3>
-                  <div className="flex items-center space-x-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      room.status === 'waiting' 
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    }`}>
-                      {room.status === 'waiting' ? '⏳ Waiting' : '🎮 In Game'}
-                    </span>
-                    {room.hasPassword && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                        🔒 Private
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-white/60 text-sm">Ping</div>
-                  <div className={`font-bold ${
-                    room.ping < 30 ? 'text-green-400' : 
-                    room.ping < 60 ? 'text-yellow-400' : 'text-red-400'
-                  }`}>
-                    {room.ping}ms
-                  </div>
-                </div>
-              </div>
-
-              {/* Room Info */}
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-white/60">Map</span>
-                  <span className="text-white font-semibold">{room.map}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/60">Mode</span>
-                  <span className="text-white font-semibold">{room.mode}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/60">Players</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-white font-semibold">
-                      👥 {room.players}/{room.maxPlayers}
-                    </span>
-                    {room.bots > 0 && (
-                      <span className={`font-semibold ${difficultyColors[room.botDifficulty]}`}>
-                        {difficultyIcons[room.botDifficulty]} {room.bots} Bots
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Player Bar Visualization */}
-              <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                <div className="h-full flex">
-                  <div 
-                    className="bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-300"
-                    style={{ width: `${(room.players / room.maxPlayers) * 100}%` }}
-                  />
-                  {room.bots > 0 && (
-                    <div 
-                      className="bg-gradient-to-r from-purple-400 to-pink-500 transition-all duration-300"
-                      style={{ width: `${(room.bots / room.maxPlayers) * 100}%` }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Join Button */}
-              <div 
-                className={`w-full mt-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-200 font-semibold text-center ${
-                  isJoiningRoom === room.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isJoiningRoom !== room.id) {
-                    setIsJoiningRoom(room.id);
-                    notifyGameAction('joining', `Joining ${room.name}...`, 'info');
-                    navigateToRoom(room.id);
-                  }
-                }}
-              >
-                {isJoiningRoom === room.id ? (
-                  <span className="flex items-center justify-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Joining...</span>
-                  </span>
-                ) : (
-                  'Join Room'
-                )}
-              </div>
-            </div>
-          ))}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {filteredRooms.length === 0 && (
-          <div className="backdrop-blur-xl bg-white/5 border border-white/20 rounded-2xl shadow-2xl p-12 text-center">
-            <div className="text-6xl mb-4">🎮</div>
-            <h3 className="text-2xl font-bold text-white mb-2">No Rooms Found</h3>
-            <p className="text-white/60 mb-6">Try adjusting your filters or create a new room</p>
-            <button 
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 font-bold"
-            >
-              Create First Room
-            </button>
-          </div>
-        )}
-      </div>
+        <RoomList
+          rooms={rooms}
+          isInitialLoading={isInitialLoading}
+          isJoiningRoom={isJoiningRoom}
+          searchQuery={searchQuery}
+          filterMode={filterMode}
+          showOnlyWithBots={showOnlyWithBots}
+          onJoinRoom={navigateToRoom}
+          onPlayUISound={playUISound}
+          onNotifyGameAction={notifyGameAction}
+          onShowCreateModal={() => setShowCreateModal(true)}
+        />
+      </main>
 
       {/* Enhanced Create Room Modal */}
       {showCreateModal && (
@@ -883,7 +598,7 @@ export const EnhancedModernLobby: React.FC = () => {
                 Cancel
               </button>
               <button 
-                onClick={createRoom}
+                onClick={handleCreateRoom}
                 className="px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 font-semibold"
               >
                 Create Room

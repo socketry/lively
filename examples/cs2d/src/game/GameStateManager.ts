@@ -1,41 +1,25 @@
 /**
- * GameStateManager - Manages game state synchronization between client and server
- * Handles multiplayer game state updates and audio event broadcasting
+ * GameStateManager - Simplified game state management for SPA
+ * Handles audio event broadcasting and local event management
  */
 
 import { GameCore, Player, GameState } from './GameCore';
 import { CS16AudioManager } from './audio/CS16AudioManager';
 
-export interface NetworkGameEvent {
-  type: 'player_move' | 'weapon_fire' | 'player_damage' | 'player_death' | 
-        'radio_command' | 'bomb_plant' | 'bomb_defuse' | 'round_start' | 'round_end' |
-        'weapon_reload' | 'weapon_switch' | 'footstep' | 'grenade_throw';
+export interface GameEvent {
+  type: 'weapon_fire' | 'weapon_reload' | 'player_damage' | 'player_death' | 
+        'radio_command' | 'footstep' | 'bomb_plant' | 'bomb_defuse';
   playerId: string;
   data: any;
-  timestamp: number;
   position?: { x: number; y: number };
-  team?: 'ct' | 't';
 }
 
-export interface GameStateSnapshot {
-  gameState: GameState;
-  players: Player[];
-  timestamp: number;
-  roundNumber: number;
-}
-
-export type GameEventHandler = (event: NetworkGameEvent) => void;
+export type GameEventHandler = (event: GameEvent) => void;
 
 export class GameStateManager {
   private gameCore: GameCore | null = null;
   private audioManager: CS16AudioManager | null = null;
   private eventHandlers: Map<string, GameEventHandler[]> = new Map();
-  private networkQueue: NetworkGameEvent[] = [];
-  private lastStateSnapshot: GameStateSnapshot | null = null;
-  
-  // Network simulation for offline testing
-  private isOfflineMode: boolean = true;
-  private simulatedLatency: number = 50; // ms
   
   constructor() {
     console.log('🌐 GameStateManager initialized');
@@ -81,54 +65,29 @@ export class GameStateManager {
   }
 
   /**
-   * Emit game event to network and local handlers
+   * Emit game event and handle locally
    */
-  emit(event: NetworkGameEvent): void {
-    // Add to network queue for multiplayer broadcasting
-    this.networkQueue.push(event);
-    
-    // Handle locally immediately
-    this.handleLocalEvent(event);
-    
-    // In real multiplayer, this would broadcast to server/other clients
-    if (!this.isOfflineMode) {
-      this.broadcastToNetwork(event);
-    } else {
-      // Simulate network delay for testing
-      setTimeout(() => {
-        this.handleNetworkEvent(event);
-      }, this.simulatedLatency);
-    }
+  emit(event: GameEvent): void {
+    this.handleEvent(event);
   }
 
   /**
-   * Handle event locally (immediate response)
+   * Handle game event
    */
-  handleLocalEvent(event: NetworkGameEvent): void {
+  private handleEvent(event: GameEvent): void {
     const handlers = this.eventHandlers.get(event.type);
     if (handlers) {
       handlers.forEach(handler => handler(event));
     }
 
-    // Handle audio events immediately for responsive feedback
+    // Handle audio events for responsive feedback
     this.handleAudioEvent(event);
-  }
-
-  /**
-   * Handle event from network (delayed response)
-   */
-  private handleNetworkEvent(event: NetworkGameEvent): void {
-    // Simulate receiving event from other players
-    if (event.playerId !== this.getLocalPlayerId()) {
-      console.log(`📡 Received network event: ${event.type} from ${event.playerId}`);
-      this.handleAudioEvent(event);
-    }
   }
 
   /**
    * Handle audio-specific events
    */
-  private handleAudioEvent(event: NetworkGameEvent): void {
+  private handleAudioEvent(event: GameEvent): void {
     if (!this.audioManager || !event.position) return;
 
     switch (event.type) {
@@ -136,8 +95,7 @@ export class GameStateManager {
         this.audioManager.playWeaponSound(
           event.data.weaponId, 
           'fire', 
-          event.position,
-          { playerId: event.playerId }
+          event.position
         );
         break;
 
@@ -145,8 +103,7 @@ export class GameStateManager {
         this.audioManager.playWeaponSound(
           event.data.weaponId, 
           'reload', 
-          event.position,
-          { playerId: event.playerId }
+          event.position
         );
         break;
 
@@ -169,7 +126,8 @@ export class GameStateManager {
         break;
 
       case 'radio_command':
-        this.audioManager.playRadioCommand(event.data.command, event.position);
+        // Radio commands not implemented in simplified version
+        console.log('📻 Radio command:', event.data.command);
         break;
 
       case 'bomb_plant':
@@ -179,43 +137,7 @@ export class GameStateManager {
       case 'bomb_defuse':
         this.audioManager.play('bomb_defuse', event.position, { category: 'bomb' });
         break;
-
-      case 'grenade_throw':
-        this.audioManager.play('grenade_throw', event.position, { category: 'weapons' });
-        break;
     }
-  }
-
-  /**
-   * Create game state snapshot
-   */
-  createSnapshot(): GameStateSnapshot | null {
-    if (!this.gameCore) return null;
-
-    const snapshot: GameStateSnapshot = {
-      gameState: this.gameCore.getState(),
-      players: this.gameCore.getPlayers(),
-      timestamp: Date.now(),
-      roundNumber: this.gameCore.getState().roundNumber
-    };
-
-    this.lastStateSnapshot = snapshot;
-    return snapshot;
-  }
-
-  /**
-   * Apply game state snapshot (for multiplayer sync)
-   */
-  applySnapshot(snapshot: GameStateSnapshot): void {
-    if (!this.gameCore) return;
-
-    // In a real implementation, this would carefully merge the snapshot
-    // with current state to avoid conflicts
-    console.log('📋 Applying game state snapshot:', snapshot.roundNumber);
-    
-    // This would update the GameCore with network state
-    // For now, just log the synchronization
-    this.lastStateSnapshot = snapshot;
   }
 
   /**
@@ -223,58 +145,5 @@ export class GameStateManager {
    */
   private getLocalPlayerId(): string {
     return this.gameCore?.getLocalPlayer()?.id || '';
-  }
-
-  /**
-   * Broadcast to network (placeholder for real networking)
-   */
-  private broadcastToNetwork(event: NetworkGameEvent): void {
-    // In real implementation, this would send to WebSocket server
-    console.log('📡 Broadcasting event to network:', event.type);
-  }
-
-  /**
-   * Process network queue (for batch processing)
-   */
-  processNetworkQueue(): void {
-    if (this.networkQueue.length === 0) return;
-
-    // Process all queued events
-    const events = [...this.networkQueue];
-    this.networkQueue = [];
-
-    console.log(`📦 Processing ${events.length} network events`);
-    
-    // In real implementation, this would batch send to server
-    events.forEach(event => {
-      if (!this.isOfflineMode) {
-        this.broadcastToNetwork(event);
-      }
-    });
-  }
-
-  /**
-   * Get network statistics
-   */
-  getNetworkStats(): {
-    queueSize: number;
-    lastSnapshot: number;
-    playersConnected: number;
-    latency: number;
-  } {
-    return {
-      queueSize: this.networkQueue.length,
-      lastSnapshot: this.lastStateSnapshot?.timestamp || 0,
-      playersConnected: this.gameCore?.getPlayers().length || 0,
-      latency: this.simulatedLatency
-    };
-  }
-
-  /**
-   * Enable/disable offline mode for testing
-   */
-  setOfflineMode(offline: boolean): void {
-    this.isOfflineMode = offline;
-    console.log(`🔌 Network mode: ${offline ? 'OFFLINE' : 'ONLINE'}`);
   }
 }
