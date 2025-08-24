@@ -52,7 +52,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
       id: 'local-player',
       name: 'Player',
       team: 'ct',
-      position: { x: 400, y: 300 },
+      position: { x: 300, y: 300 },  // Centered CT spawn
       velocity: { x: 0, y: 0 },
       health: 100,
       armor: 0,
@@ -70,22 +70,39 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
       isScoped: false,
       lastShotTime: 0,
       lastStepTime: 0,
-      lastPosition: { x: 400, y: 300 },
+      lastPosition: { x: 300, y: 300 },
       currentSurface: { material: 'concrete', volume: 1.0 },
       lastDamageTime: 0,
       isInPain: false,
-      orientation: 0,
+      orientation: 0,  // Will be updated based on mouse position
       isBot: false,
       lastVoiceTime: 0
     };
 
-    // Add some test bots
+    // Generate spawn positions to prevent overlap
+    const getSpawnPosition = (index: number, team: 'ct' | 't') => {
+      // CT spawns on left side, T spawns on right side
+      const baseX = team === 'ct' ? 200 : 800;
+      const baseY = 300;
+      
+      // Add offset to prevent players from spawning on top of each other
+      const offsetX = (index % 3) * 100 - 100;  // -100, 0, 100
+      const offsetY = Math.floor(index / 3) * 100;  // 0, 100, 200
+      
+      return {
+        x: baseX + offsetX,
+        y: baseY + offsetY
+      };
+    };
+
+    // Add some test bots with different spawn positions
     const bot1: Player = {
       ...localPlayer,
       id: 'bot-1',
       name: 'Bot_Alpha',
       team: 't',
-      position: { x: 800, y: 600 },
+      position: getSpawnPosition(1, 't'),
+      orientation: Math.PI, // Face left (towards CT spawn)
       isBot: true,
       botPersonality: {
         aggressiveness: 0.7,
@@ -100,7 +117,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
       id: 'bot-2', 
       name: 'Bot_Bravo',
       team: 'ct',
-      position: { x: 200, y: 400 },
+      position: getSpawnPosition(1, 'ct'),
+      orientation: 0, // Face right (towards T spawn)
       isBot: true,
       botPersonality: {
         aggressiveness: 0.4,

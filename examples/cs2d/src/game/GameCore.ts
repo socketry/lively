@@ -523,18 +523,28 @@ export class GameCore {
     ctx.arc(16, 16, 12, 0, Math.PI * 2);
     ctx.stroke();
     
-    // Add player indicator (dot in center)
+    // Add direction indicator (triangle pointing forward)
+    ctx.save();
+    ctx.translate(16, 16);
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(16, 16, 4, 0, Math.PI * 2);
+    ctx.moveTo(8, 0);  // Point of triangle
+    ctx.lineTo(0, -4); // Left side
+    ctx.lineTo(0, 4);  // Right side
+    ctx.closePath();
     ctx.fill();
     
-    // Add team label
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '8px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(player.team.toUpperCase(), 16, 26);
+    // Add small outline to direction indicator
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    
+    // Add center dot for aiming reference
+    ctx.fillStyle = '#FFFF00'; // Yellow for visibility
+    ctx.beginPath();
+    ctx.arc(16, 16, 2, 0, Math.PI * 2);
+    ctx.fill();
     
     // Use the canvas directly as the image source
     return {
@@ -543,7 +553,7 @@ export class GameCore {
       y: player.position.y,
       width: 32,
       height: 32,
-      rotation: 0,
+      rotation: player.orientation || 0, // Use player orientation for rotation
       scale: 1,
       opacity: player.isAlive ? 1 : 0.5
     };
@@ -735,7 +745,6 @@ export class GameCore {
     player.lastPosition = { ...player.position };
     
     const speed = player.isWalking ? 100 : player.isDucking ? 50 : 200;
-    const acceleration = { x: 0, y: 0 };
     
     // Get movement input from InputSystem
     const acceleration = this.inputSystem.getMovementInput(speed, player.isWalking, player.isDucking);
@@ -761,10 +770,11 @@ export class GameCore {
       player.position = { ...physicsBody.position };
       player.velocity = { ...physicsBody.velocity };
       
-      // Update player sprite position
+      // Update player sprite position and rotation
       this.renderer.updateSprite(`player_sprite_${player.id}`, {
         x: player.position.x,
-        y: player.position.y
+        y: player.position.y,
+        rotation: player.orientation || 0
       });
     } else {
       // Fallback to old movement system if physics body not found
