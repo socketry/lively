@@ -51,6 +51,10 @@ export class PhysicsEngine {
   removeBody(id: string): void {
     this.bodies.delete(id);
   }
+
+  getBody(id: string): RigidBody | undefined {
+    return this.bodies.get(id);
+  }
   
   private updateSpatialGrid(body: RigidBody): void {
     const gridX = Math.floor(body.position.x / this.gridSize);
@@ -74,6 +78,17 @@ export class PhysicsEngine {
         
         body.position.x += body.velocity.x * deltaTime;
         body.position.y += body.velocity.y * deltaTime;
+        
+        // Update collider position based on body type
+        if (body.type === 'circle') {
+          const collider = body.collider as Circle;
+          collider.x = body.position.x;
+          collider.y = body.position.y;
+        } else {
+          const collider = body.collider as Rectangle;
+          collider.x = body.position.x - collider.width / 2;
+          collider.y = body.position.y - collider.height / 2;
+        }
         
         this.updateSpatialGrid(body);
       }

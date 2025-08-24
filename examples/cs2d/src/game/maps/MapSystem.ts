@@ -81,7 +81,8 @@ export class MapSystem {
   
   private loadDefaultMaps(): void {
     // Load CS2D classic maps
-    this.createDustMap();
+    const dustMap = this.createDustMap();
+    this.loadMap(dustMap);
   }
   
   private createDustMap(): MapData {

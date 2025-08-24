@@ -342,8 +342,13 @@ export class WeaponSystem {
     direction: Vector2D,
     playerId: string
   ): Bullet[] | null {
+    console.log('🔫 WeaponSystem.fire called:', { weaponId, playerId, direction, availableWeapons: Array.from(this.weapons.keys()) });
     const weapon = this.weapons.get(weaponId);
-    if (!weapon) return null;
+    if (!weapon) {
+      console.warn('❌ Weapon not found:', weaponId);
+      return null;
+    }
+    console.log('✅ Weapon found:', weapon.name);
     
     // Check weapon state and ammo
     const weaponState = this.getWeaponState(playerId, weaponId);

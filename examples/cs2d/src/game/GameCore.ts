@@ -136,14 +136,22 @@ export class GameCore {
   }
   
   private setupEventListeners(): void {
+    console.log('🎮 Setting up event listeners on canvas');
+    
+    // Make canvas focusable and focus it
+    this.canvas.setAttribute('tabindex', '0');
+    this.canvas.focus();
+    
     // Keyboard events
     window.addEventListener('keydown', (e) => {
       this.input.keys.add(e.code);
       this.handleKeyPress(e.code);
+      e.preventDefault(); // Prevent browser shortcuts
     });
     
     window.addEventListener('keyup', (e) => {
       this.input.keys.delete(e.code);
+      e.preventDefault();
     });
     
     // Mouse events
@@ -154,20 +162,27 @@ export class GameCore {
     });
     
     this.canvas.addEventListener('mousedown', (e) => {
+      this.canvas.focus(); // Ensure focus on click
       this.input.mouse.buttons = e.buttons;
       this.handleMouseDown(e.button);
+      e.preventDefault();
     });
     
     this.canvas.addEventListener('mouseup', (e) => {
       this.input.mouse.buttons = e.buttons;
+      e.preventDefault();
     });
     
     this.canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();
     });
     
-    // Prevent text selection
+    // Prevent text selection and ensure game styling
     this.canvas.style.userSelect = 'none';
+    this.canvas.style.outline = 'none';
+    this.canvas.style.border = 'none';
+    
+    console.log('✅ Event listeners setup complete');
   }
   
   private loadDefaultMap(): void {
@@ -175,10 +190,15 @@ export class GameCore {
     if (dustMap) {
       this.maps.loadMap(dustMap);
       
-      // Add map collision bodies to physics
+      // Add map collision bodies to physics AND visual sprites to renderer
       dustMap.tiles.forEach(row => {
         row.forEach(tile => {
+          // Add visual sprite for ALL tiles (floors and walls)
+          const tileSprite = this.createTileSprite(tile);
+          this.renderer.addSprite(`tile_sprite_${tile.x}_${tile.y}`, tileSprite, 1); // Layer 1 for floor/walls
+          
           if (!tile.walkable) {
+            // Add physics body for collision only on non-walkable tiles
             this.physics.addBody({
               id: `tile_${tile.x}_${tile.y}`,
               position: { x: tile.x + 16, y: tile.y + 16 },
@@ -195,8 +215,13 @@ export class GameCore {
         });
       });
       
-      // Add map objects to physics
+      // Add map objects to physics AND visual sprites
       dustMap.objects.forEach(obj => {
+        // Create visual sprite for object
+        const objectSprite = this.createObjectSprite(obj);
+        this.renderer.addSprite(`object_sprite_${obj.id}`, objectSprite, 3); // Layer 3 for objects
+        
+        // Add physics body for collision
         this.physics.addBody({
           id: obj.id,
           position: obj.position,
@@ -216,6 +241,204 @@ export class GameCore {
         });
       });
     }
+  }
+  
+  /**
+   * Create visual sprite for a map tile
+   */
+  private createTileSprite(tile: any): any {
+    // Create a simple colored canvas as texture since we don't have image assets
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Choose color based on tile type
+    let color: string;
+    switch (tile.type) {
+      case 'wall':
+        color = '#8B4513'; // Brown wall
+        break;
+      case 'floor':
+        color = '#D2B48C'; // Sandy floor
+        break;
+      case 'metal':
+        color = '#708090'; // Gray metal
+        break;
+      case 'wood':
+        color = '#A0522D'; // Wood brown
+        break;
+      case 'water':
+        color = '#4682B4'; // Steel blue water
+        break;
+      case 'glass':
+        color = '#87CEEB'; // Sky blue glass
+        break;
+      default:
+        color = '#D2B48C'; // Default sandy
+    }
+    
+    // Fill the tile
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 32, 32);
+    
+    // Add border for walls
+    if (tile.type === 'wall') {
+      ctx.strokeStyle = '#654321';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, 30, 30);
+      
+      // Add some texture lines
+      ctx.strokeStyle = '#5D4037';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(8, 32);
+      ctx.moveTo(16, 0);
+      ctx.lineTo(16, 32);
+      ctx.moveTo(24, 0);
+      ctx.lineTo(24, 32);
+      ctx.stroke();
+    }
+    
+    // Use the canvas directly as the image source
+    // Canvas elements can be drawn directly with drawImage
+    return {
+      image: canvas, // Use canvas directly instead of converting to Image
+      x: tile.x + 16, // Center position
+      y: tile.y + 16,
+      width: 32,
+      height: 32,
+      rotation: 0,
+      scale: 1,
+      opacity: 1
+    };
+  }
+  
+  /**
+   * Create visual sprite for a map object
+   */
+  private createObjectSprite(obj: any): any {
+    // Create a simple colored canvas as texture
+    const canvas = document.createElement('canvas');
+    canvas.width = obj.size.x;
+    canvas.height = obj.size.y;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Choose color based on object type
+    let color: string;
+    switch (obj.type) {
+      case 'crate':
+        color = '#A0522D'; // Wood brown
+        break;
+      case 'barrel':
+        color = '#8B0000'; // Dark red
+        break;
+      case 'car':
+        color = '#2F4F4F'; // Dark slate gray
+        break;
+      default:
+        color = '#696969'; // Dim gray
+    }
+    
+    // Fill the object
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, obj.size.x, obj.size.y);
+    
+    // Add border
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, obj.size.x - 2, obj.size.y - 2);
+    
+    // Add details based on type
+    if (obj.type === 'crate') {
+      // Add wood planks
+      ctx.strokeStyle = '#654321';
+      ctx.lineWidth = 1;
+      for (let i = 8; i < obj.size.y; i += 8) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(obj.size.x, i);
+        ctx.stroke();
+      }
+    } else if (obj.type === 'barrel') {
+      // Add barrel rings
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      const rings = 3;
+      for (let i = 1; i <= rings; i++) {
+        const y = (obj.size.y / (rings + 1)) * i;
+        ctx.beginPath();
+        ctx.moveTo(2, y);
+        ctx.lineTo(obj.size.x - 2, y);
+        ctx.stroke();
+      }
+    }
+    
+    // Use the canvas directly as the image source
+    return {
+      image: canvas, // Use canvas directly
+      x: obj.position.x,
+      y: obj.position.y,
+      width: obj.size.x,
+      height: obj.size.y,
+      rotation: obj.rotation || 0,
+      scale: 1,
+      opacity: 1
+    };
+  }
+  
+  /**
+   * Create visual sprite for a player
+   */
+  private createPlayerSprite(player: Player): any {
+    // Create a simple colored canvas as texture
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Choose color based on team
+    const teamColor = player.team === 'ct' ? '#4169E1' : '#DC143C'; // Blue for CT, Red for T
+    const outlineColor = '#000000';
+    
+    // Draw player as a circle with team colors
+    ctx.fillStyle = teamColor;
+    ctx.beginPath();
+    ctx.arc(16, 16, 12, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add outline
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(16, 16, 12, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Add player indicator (dot in center)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(16, 16, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add team label
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(player.team.toUpperCase(), 16, 26);
+    
+    // Use the canvas directly as the image source
+    return {
+      image: canvas, // Use canvas directly
+      x: player.position.x,
+      y: player.position.y,
+      width: 32,
+      height: 32,
+      rotation: 0,
+      scale: 1,
+      opacity: player.isAlive ? 1 : 0.5
+    };
   }
   
   public addPlayer(player: Player): void {
@@ -238,6 +461,10 @@ export class GameCore {
     }
     
     this.players.set(player.id, player);
+    
+    // Create visual sprite for player
+    const playerSprite = this.createPlayerSprite(player);
+    this.renderer.addSprite(`player_sprite_${player.id}`, playerSprite, 5); // Layer 5 for players
     
     // Add player physics body
     this.physics.addBody({
@@ -265,6 +492,7 @@ export class GameCore {
   
   private handleKeyPress(key: string): void {
     const player = this.players.get(this.localPlayerId);
+    console.log('⌨️ Key pressed:', key, 'Player exists:', !!player);
     if (!player) return;
     
     switch (key) {
@@ -345,10 +573,13 @@ export class GameCore {
   
   private handleMouseDown(button: number): void {
     const player = this.players.get(this.localPlayerId);
+    console.log('🖱️ Mouse click detected:', { button, playerId: this.localPlayerId, playerExists: !!player, isAlive: player?.isAlive });
+    
     if (!player || !player.isAlive) return;
     
     if (button === 0) {
       // Left click - Fire weapon
+      console.log('🔫 Attempting to fire weapon:', player.currentWeapon);
       this.fireWeapon(player);
     } else if (button === 2) {
       // Right click - Aim/Scope
@@ -371,6 +602,11 @@ export class GameCore {
     if (this.input.keys.has('KeyA')) acceleration.x -= speed;
     if (this.input.keys.has('KeyD')) acceleration.x += speed;
     
+    // Debug: Log movement input occasionally
+    if (Math.random() < 0.01 && (acceleration.x !== 0 || acceleration.y !== 0)) {
+      console.log('🎮 Movement input:', { keys: Array.from(this.input.keys), acceleration, position: player.position });
+    }
+    
     // Calculate orientation for 3D audio
     if (acceleration.x !== 0 || acceleration.y !== 0) {
       player.orientation = Math.atan2(acceleration.y, acceleration.x);
@@ -383,25 +619,50 @@ export class GameCore {
       acceleration.y = (acceleration.y / mag) * speed;
     }
     
-    // Apply movement
-    player.velocity.x += acceleration.x * deltaTime;
-    player.velocity.y += acceleration.y * deltaTime;
-    
-    // Apply friction
-    player.velocity.x *= 0.85;
-    player.velocity.y *= 0.85;
-    
-    // Update position
-    const newPosition = {
-      x: player.position.x + player.velocity.x * deltaTime,
-      y: player.position.y + player.velocity.y * deltaTime
-    };
-    
-    // Check map collision
-    if (this.maps.isPositionWalkable(newPosition)) {
-      player.position = newPosition;
+    // Get physics body and apply acceleration to it
+    const physicsBody = this.physics.getBody(`player_${player.id}`);
+    if (physicsBody) {
+      // Apply movement through physics system
+      physicsBody.acceleration.x = acceleration.x;
+      physicsBody.acceleration.y = acceleration.y;
+      
+      // Update player position from physics body (after physics update)
+      player.position = { ...physicsBody.position };
+      player.velocity = { ...physicsBody.velocity };
+      
+      // Update player sprite position
+      this.renderer.updateSprite(`player_sprite_${player.id}`, {
+        x: player.position.x,
+        y: player.position.y
+      });
     } else {
-      player.velocity = { x: 0, y: 0 };
+      // Fallback to old movement system if physics body not found
+      // Apply movement
+      player.velocity.x += acceleration.x * deltaTime;
+      player.velocity.y += acceleration.y * deltaTime;
+      
+      // Apply friction
+      player.velocity.x *= 0.85;
+      player.velocity.y *= 0.85;
+      
+      // Update position
+      const newPosition = {
+        x: player.position.x + player.velocity.x * deltaTime,
+        y: player.position.y + player.velocity.y * deltaTime
+      };
+      
+      // Check map collision
+      if (this.maps.isPositionWalkable(newPosition)) {
+        player.position = newPosition;
+        
+        // Update player sprite position
+        this.renderer.updateSprite(`player_sprite_${player.id}`, {
+          x: player.position.x,
+          y: player.position.y
+        });
+      } else {
+        player.velocity = { x: 0, y: 0 };
+      }
     }
     
     // Update surface type for footstep sounds
@@ -497,15 +758,33 @@ export class GameCore {
   }
   
   private fireWeapon(player: Player): void {
-    const worldPos = this.renderer.screenToWorld(this.input.mouse.x, this.input.mouse.y);
+    // Calculate direction from player to mouse cursor
+    // Get canvas bounds for proper coordinate calculation
+    const rect = this.canvas.getBoundingClientRect();
+    const canvasX = this.input.mouse.x;
+    const canvasY = this.input.mouse.y;
+    
+    // Convert canvas coordinates to world coordinates
+    // For a simple 2D game, we can use direct mapping
+    const worldPos = {
+      x: (canvasX / this.canvas.width) * 1920, // Assuming 1920x1080 world
+      y: (canvasY / this.canvas.height) * 1080
+    };
+    
     const direction = {
       x: worldPos.x - player.position.x,
       y: worldPos.y - player.position.y
     };
     
     const mag = Math.sqrt(direction.x ** 2 + direction.y ** 2);
-    direction.x /= mag;
-    direction.y /= mag;
+    if (mag > 0) {
+      direction.x /= mag;
+      direction.y /= mag;
+    } else {
+      // Default direction if mouse is at player position
+      direction.x = 1;
+      direction.y = 0;
+    }
     
     const bullets = this.weapons.fire(
       player.currentWeapon,
@@ -535,10 +814,12 @@ export class GameCore {
   }
   
   private reloadWeapon(player: Player): void {
+    console.log('🔄 Attempting to reload weapon:', player.currentWeapon);
     // Use enhanced weapon system with CS 1.6 sounds
     const reloaded = this.weapons.reload(player.currentWeapon, player.id, player.position);
     
     if (reloaded) {
+      console.log('✅ Reload started successfully');
       // Emit reload event for multiplayer synchronization
       this.stateManager.emit({
         type: 'weapon_reload',
@@ -548,6 +829,8 @@ export class GameCore {
         position: player.position,
         team: player.team
       });
+    } else {
+      console.log('❌ Reload failed or not needed');
     }
   }
   

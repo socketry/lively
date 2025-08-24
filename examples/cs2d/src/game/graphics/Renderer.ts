@@ -12,7 +12,7 @@ export interface Camera {
 }
 
 export interface Sprite {
-  image: HTMLImageElement;
+  image: HTMLImageElement | HTMLCanvasElement; // Accept both Image and Canvas
   x: number;
   y: number;
   width: number;
@@ -125,6 +125,13 @@ export class Renderer {
   removeSprite(id: string): void {
     this.sprites.delete(id);
     this.layers.forEach(layer => layer.delete(id));
+  }
+  
+  updateSprite(id: string, updates: Partial<Sprite>): void {
+    const sprite = this.sprites.get(id);
+    if (sprite) {
+      Object.assign(sprite, updates);
+    }
   }
   
   createParticleEffect(type: ParticleEffect['type'], x: number, y: number): string {
@@ -324,13 +331,21 @@ export class Renderer {
       this.ctx.globalCompositeOperation = 'destination-atop';
     }
     
-    this.ctx.drawImage(
-      sprite.image,
-      -sprite.width / 2,
-      -sprite.height / 2,
-      sprite.width,
-      sprite.height
-    );
+    // Check if the image is ready (for HTMLImageElement) or just draw it (for HTMLCanvasElement)
+    if (sprite.image instanceof HTMLCanvasElement || 
+        (sprite.image instanceof HTMLImageElement && sprite.image.complete)) {
+      this.ctx.drawImage(
+        sprite.image,
+        -sprite.width / 2,
+        -sprite.height / 2,
+        sprite.width,
+        sprite.height
+      );
+    } else {
+      // Fallback: draw a colored rectangle if image not ready
+      this.ctx.fillStyle = '#808080';
+      this.ctx.fillRect(-sprite.width / 2, -sprite.height / 2, sprite.width, sprite.height);
+    }
     
     this.ctx.restore();
   }
