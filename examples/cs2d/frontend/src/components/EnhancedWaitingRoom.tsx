@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { setupWebSocket } from '@/services/websocket';
 import { TeamSectionSkeleton, ChatSkeleton, RoomSettingsSkeleton } from './common/SkeletonLoader';
 import { ConnectionStatus } from './common/ConnectionStatus';
@@ -57,6 +58,7 @@ interface ChatMessage {
 }
 
 export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) => {
+  const navigate = useNavigate();
   const wsRef = useRef<ReturnType<typeof setupWebSocket> | null>(null)
   const { notifyPlayerReady, notifyBotAction, notifyConnectionStatus } = useGameNotifications();
   const botManagementState = useBotManagementState();
@@ -213,13 +215,13 @@ export const EnhancedWaitingRoom: React.FC<{ roomId: string }> = ({ roomId }) =>
 
   const startGame = () => {
     if (isHost) {
-      setCountdown(10);
+      setCountdown(3);
       const interval = setInterval(() => {
         setCountdown(prev => {
           if (prev === null || prev <= 1) {
             clearInterval(interval);
-            // Start game
-            window.location.href = `/game/${roomId}`;
+            // Navigate to game using React Router
+            navigate('/game');
             return null;
           }
           return prev - 1;

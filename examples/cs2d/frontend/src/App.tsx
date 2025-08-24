@@ -60,7 +60,7 @@ function App() {
             <Route path="/" element={<EnhancedModernLobby />} />
             <Route path="/lobby" element={<EnhancedModernLobby />} />
             <Route path="/room/:id" element={<EnhancedWaitingRoom roomId={window.location.pathname.split('/').pop() || '1'} />} />
-            <Route path="/game/:id" element={<GameCanvas />} />
+            <Route path="/game/:id" element={<GameCanvas roomId={window.location.pathname.split('/').pop() || undefined} />} />
             <Route path="/game" element={<GameCanvas />} />
             
             {/* Legacy Modern UI Routes */}
