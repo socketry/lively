@@ -1,0 +1,11 @@
+{
+  "name": "cs2d-backend",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "CS2D Backend Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  }
+}
