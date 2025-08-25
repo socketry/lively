@@ -52,17 +52,15 @@ export const EnhancedModernLobby: React.FC = () => {
 
 
   const quickJoinWithBots = () => {
-    const availableRooms = rooms.filter(r => 
-      r.status === 'waiting' && 
-      r.bots > 0 && 
-      r.players < r.maxPlayers && 
-      !r.hasPassword
-    );
+    // For quick play, go directly to the game with bots
+    // The game will automatically initialize with bots
+    playUISound('success');
+    notifyGameAction('Starting quick play with bots...');
     
-    if (availableRooms.length > 0) {
-      const room = availableRooms[Math.floor(Math.random() * availableRooms.length)];
-      window.location.href = `/room/${room.id}`;
-    }
+    // Navigate directly to game - GameCanvas will auto-initialize with bots
+    setTimeout(() => {
+      navigate('/game?quickplay=true');
+    }, 300);
   };
 
   const navigateToRoom = (roomId: string) => {
@@ -285,7 +283,7 @@ export const EnhancedModernLobby: React.FC = () => {
               onClick={quickJoinWithBots}
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-200 font-bold"
             >
-              ⚡ Quick Join Bot Game
+              ⚡ Start Game Now (with Bots)
             </button>
           </div>
         </div>

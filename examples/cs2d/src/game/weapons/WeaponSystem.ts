@@ -3,7 +3,7 @@ import { CS16AudioManager } from '../audio/CS16AudioManager';
 
 export interface WeaponStats {
   name: string;
-  type: 'pistol' | 'rifle' | 'smg' | 'sniper' | 'shotgun' | 'lmg';
+  type: 'pistol' | 'rifle' | 'smg' | 'sniper' | 'shotgun' | 'lmg' | 'grenade';
   damage: number;
   fireRate: number;
   reloadTime: number;
@@ -22,6 +22,12 @@ export interface WeaponStats {
   weaponSlot: 'primary' | 'secondary' | 'melee' | 'grenade' | 'equipment';
   soundId: string; // CS 1.6 sound identifier
   silencedSoundId?: string; // For weapons with silencers
+  // Weapon enhancement properties
+  canDrop?: boolean;
+  canInspect?: boolean;
+  hasScope?: boolean;
+  canToggleSilencer?: boolean;
+  wallPenetration?: number;
 }
 
 export interface WeaponState {
@@ -45,6 +51,22 @@ export interface Bullet {
   trail: Vector2D[];
 }
 
+export interface DroppedWeapon {
+  id: string;
+  weaponId: string;
+  position: Vector2D;
+  droppedTime: number;
+  ammo: number;
+  reserveAmmo: number;
+  owner?: string;
+}
+
+export interface WeaponPickup {
+  weaponId: string;
+  position: Vector2D;
+  playerId: string;
+}
+
 export interface RecoilPattern {
   vertical: number[];
   horizontal: number[];
@@ -59,7 +81,12 @@ export class WeaponSystem {
   private currentRecoilIndex: Map<string, number> = new Map();
   private lastShotTime: Map<string, number> = new Map();
   private weaponStates: Map<string, WeaponState> = new Map(); // playerId -> weapon state
+  private droppedWeapons: Map<string, DroppedWeapon> = new Map();
   private audioManager: CS16AudioManager | null = null;
+  
+  // Quick switch system
+  private lastWeapon: Map<string, string> = new Map(); // playerId -> last weapon
+  private inspectStartTime: Map<string, number> = new Map(); // playerId -> inspect start time
   
   constructor(audioManager?: CS16AudioManager) {
     this.audioManager = audioManager || null;
@@ -152,7 +179,10 @@ export class WeaponSystem {
         headshotMultiplier: 2.5,
         armorPenetration: 0.775,
         weaponSlot: 'primary',
-        soundId: 'ak47'
+        soundId: 'ak47',
+        canDrop: true,
+        canInspect: true,
+        wallPenetration: 200
       },
       {
         name: 'M4A4',
@@ -174,7 +204,11 @@ export class WeaponSystem {
         armorPenetration: 0.7,
         weaponSlot: 'primary',
         soundId: 'm4a1',
-        silencedSoundId: 'm4a1'
+        silencedSoundId: 'm4a1',
+        canDrop: true,
+        canInspect: true,
+        canToggleSilencer: true,
+        wallPenetration: 200
       },
       {
         name: 'AWP',
@@ -195,7 +229,11 @@ export class WeaponSystem {
         headshotMultiplier: 2.5,
         armorPenetration: 0.975,
         weaponSlot: 'primary',
-        soundId: 'awp'
+        soundId: 'awp',
+        canDrop: true,
+        canInspect: true,
+        hasScope: true,
+        wallPenetration: 250
       },
       {
         name: 'MP5-SD',
@@ -321,7 +359,120 @@ export class WeaponSystem {
         headshotMultiplier: 1.0,
         armorPenetration: 0.85,
         weaponSlot: 'melee',
-        soundId: 'knife'
+        soundId: 'knife',
+        canDrop: false,
+        canInspect: true
+      },
+      // Grenades
+      {
+        name: 'HE Grenade',
+        type: 'grenade',
+        damage: 98,
+        fireRate: 0,
+        reloadTime: 0,
+        magazineSize: 1,
+        reserveAmmo: 0,
+        spread: 0,
+        recoil: 0,
+        bulletSpeed: 0,
+        bulletPenetration: 0,
+        range: 1000,
+        movementSpeed: 1.0,
+        price: 300,
+        killReward: 300,
+        headshotMultiplier: 1.0,
+        armorPenetration: 1.0,
+        weaponSlot: 'grenade',
+        soundId: 'hegrenade',
+        canDrop: true
+      },
+      {
+        name: 'Flashbang',
+        type: 'grenade',
+        damage: 1,
+        fireRate: 0,
+        reloadTime: 0,
+        magazineSize: 1,
+        reserveAmmo: 1,
+        spread: 0,
+        recoil: 0,
+        bulletSpeed: 0,
+        bulletPenetration: 0,
+        range: 800,
+        movementSpeed: 1.0,
+        price: 200,
+        killReward: 0,
+        headshotMultiplier: 1.0,
+        armorPenetration: 1.0,
+        weaponSlot: 'grenade',
+        soundId: 'flashbang',
+        canDrop: true
+      },
+      {
+        name: 'Smoke Grenade',
+        type: 'grenade',
+        damage: 0,
+        fireRate: 0,
+        reloadTime: 0,
+        magazineSize: 1,
+        reserveAmmo: 0,
+        spread: 0,
+        recoil: 0,
+        bulletSpeed: 0,
+        bulletPenetration: 0,
+        range: 600,
+        movementSpeed: 1.0,
+        price: 300,
+        killReward: 0,
+        headshotMultiplier: 1.0,
+        armorPenetration: 1.0,
+        weaponSlot: 'grenade',
+        soundId: 'smoke',
+        canDrop: true
+      },
+      {
+        name: 'Molotov Cocktail',
+        type: 'grenade',
+        damage: 8,
+        fireRate: 0,
+        reloadTime: 0,
+        magazineSize: 1,
+        reserveAmmo: 0,
+        spread: 0,
+        recoil: 0,
+        bulletSpeed: 0,
+        bulletPenetration: 0,
+        range: 700,
+        movementSpeed: 1.0,
+        price: 400,
+        killReward: 300,
+        headshotMultiplier: 1.0,
+        armorPenetration: 1.0,
+        weaponSlot: 'grenade',
+        soundId: 'molotov',
+        canDrop: true
+      },
+      {
+        name: 'Incendiary Grenade',
+        type: 'grenade',
+        damage: 8,
+        fireRate: 0,
+        reloadTime: 0,
+        magazineSize: 1,
+        reserveAmmo: 0,
+        spread: 0,
+        recoil: 0,
+        bulletSpeed: 0,
+        bulletPenetration: 0,
+        range: 700,
+        movementSpeed: 1.0,
+        price: 600,
+        killReward: 300,
+        headshotMultiplier: 1.0,
+        armorPenetration: 1.0,
+        weaponSlot: 'grenade',
+        soundId: 'incendiary',
+        canDrop: true
       }
     ];
     
@@ -723,9 +874,171 @@ export class WeaponSystem {
   }
   
   /**
+   * Drop weapon at position
+   */
+  dropWeapon(
+    weaponId: string, 
+    playerId: string, 
+    position: Vector2D, 
+    currentAmmo?: number, 
+    reserveAmmo?: number
+  ): string | null {
+    const weapon = this.weapons.get(weaponId);
+    if (!weapon || !weapon.canDrop) {
+      return null;
+    }
+    
+    const weaponState = this.getWeaponState(playerId, weaponId);
+    const dropId = `drop_${weaponId}_${Date.now()}`;
+    
+    const droppedWeapon: DroppedWeapon = {
+      id: dropId,
+      weaponId: weaponId,
+      position: { ...position },
+      droppedTime: Date.now(),
+      ammo: currentAmmo ?? weaponState.currentAmmo,
+      reserveAmmo: reserveAmmo ?? weaponState.reserveAmmo,
+      owner: playerId
+    };
+    
+    this.droppedWeapons.set(dropId, droppedWeapon);
+    
+    // Play drop sound
+    this.audioManager?.play('item_pickup', position, { category: 'ui' });
+    
+    console.log('💧 Weapon dropped:', weaponId, 'at position:', position);
+    return dropId;
+  }
+  
+  /**
+   * Pick up weapon at position
+   */
+  pickupWeapon(position: Vector2D, playerId: string, pickupRadius: number = 50): WeaponPickup | null {
+    let closestDrop: DroppedWeapon | null = null;
+    let closestDistance = pickupRadius;
+    
+    // Find closest weapon within pickup radius
+    this.droppedWeapons.forEach(drop => {
+      const distance = Math.sqrt(
+        (position.x - drop.position.x) ** 2 +
+        (position.y - drop.position.y) ** 2
+      );
+      
+      if (distance < closestDistance) {
+        closestDrop = drop;
+        closestDistance = distance;
+      }
+    });
+    
+    if (!closestDrop) return null;
+    
+    // Set weapon state for player
+    const weaponState: WeaponState = {
+      currentAmmo: closestDrop.ammo,
+      reserveAmmo: closestDrop.reserveAmmo,
+      isReloading: false,
+      isSilenced: false
+    };
+    
+    this.weaponStates.set(`${playerId}_${closestDrop.weaponId}`, weaponState);
+    
+    // Remove from dropped weapons
+    this.droppedWeapons.delete(closestDrop.id);
+    
+    // Play pickup sound
+    this.audioManager?.play('item_pickup', position, { category: 'ui' });
+    
+    console.log('🔫 Weapon picked up:', closestDrop.weaponId, 'by player:', playerId);
+    
+    return {
+      weaponId: closestDrop.weaponId,
+      position: closestDrop.position,
+      playerId: playerId
+    };
+  }
+  
+  /**
+   * Quick switch to last weapon (Q key)
+   */
+  quickSwitch(playerId: string, currentWeapon: string): string | null {
+    const lastWeapon = this.lastWeapon.get(playerId);
+    
+    if (lastWeapon && lastWeapon !== currentWeapon) {
+      // Update last weapon to current
+      this.lastWeapon.set(playerId, currentWeapon);
+      return lastWeapon;
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Start weapon inspect animation
+   */
+  startInspect(weaponId: string, playerId: string, position?: Vector2D): boolean {
+    const weapon = this.weapons.get(weaponId);
+    if (!weapon || !weapon.canInspect) {
+      return false;
+    }
+    
+    this.inspectStartTime.set(playerId, Date.now());
+    
+    // Play inspect sound
+    this.audioManager?.playWeaponSound(weaponId, 'inspect', position);
+    
+    console.log('🔍 Weapon inspect started:', weaponId, 'by player:', playerId);
+    return true;
+  }
+  
+  /**
+   * Check if weapon is being inspected
+   */
+  isInspecting(playerId: string): boolean {
+    const inspectTime = this.inspectStartTime.get(playerId);
+    if (!inspectTime) return false;
+    
+    const elapsed = Date.now() - inspectTime;
+    const inspectDuration = 3000; // 3 second inspect animation
+    
+    if (elapsed >= inspectDuration) {
+      this.inspectStartTime.delete(playerId);
+      return false;
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Get all dropped weapons for rendering
+   */
+  getDroppedWeapons(): DroppedWeapon[] {
+    return Array.from(this.droppedWeapons.values());
+  }
+  
+  /**
    * Set audio manager (can be called after construction)
    */
   setAudioManager(audioManager: CS16AudioManager): void {
     this.audioManager = audioManager;
+  }
+  
+  /**
+   * Update system (call this in game loop)
+   */
+  updateSystem(deltaTime: number): void {
+    // Clean up old dropped weapons periodically
+    if (Math.random() < 0.001) { // ~0.1% chance per frame
+      const now = Date.now();
+      const maxAge = 5 * 60 * 1000; // 5 minutes
+      
+      const toRemove: string[] = [];
+      this.droppedWeapons.forEach((drop, id) => {
+        if (now - drop.droppedTime > maxAge) {
+          toRemove.push(id);
+        }
+      });
+      
+      toRemove.forEach(id => this.droppedWeapons.delete(id));
+    }
   }
 }

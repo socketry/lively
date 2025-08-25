@@ -225,7 +225,6 @@ export class Renderer {
           particle.color = '#8B0000';
           particle.opacity = 0.8;
           particles.push(particle);
-          });
         }
         break;
         

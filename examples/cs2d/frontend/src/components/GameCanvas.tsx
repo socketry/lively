@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GameCore, Player } from '../../../src/game/GameCore';
 import { WebSocketGameBridge } from '../../../src/game/WebSocketGameBridge';
 import { setupWebSocket } from '../services/websocket';
+import { GameHUD } from './game/HUD/GameHUD';
 
 interface GameCanvasProps {
   roomId?: string;
@@ -12,6 +13,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameCore | null>(null);
   const bridgeRef = useRef<WebSocketGameBridge | null>(null);
+  
+  // Check for quickplay mode from URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const isQuickPlay = urlParams.get('quickplay') === 'true';
   const [gameStats, setGameStats] = useState({
     fps: 0,
     players: 0,
@@ -31,6 +36,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
       playersInRoom: 1
     }
   });
+
+  // HUD-specific state
+  const [localPlayer, setLocalPlayer] = useState<Player | null>(null);
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [killFeed, setKillFeed] = useState<Array<{
+    id: string;
+    killer: string;
+    victim: string;
+    weapon: string;
+    headshot: boolean;
+    timestamp: number;
+    killerTeam: 'ct' | 't';
+    victimTeam: 'ct' | 't';
+  }>>([]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -95,43 +114,38 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
       };
     };
 
-    // Add some test bots with different spawn positions
-    const bot1: Player = {
-      ...localPlayer,
-      id: 'bot-1',
-      name: 'Bot_Alpha',
-      team: 't',
-      position: getSpawnPosition(1, 't'),
-      orientation: Math.PI, // Face left (towards CT spawn)
-      isBot: true,
-      botPersonality: {
-        aggressiveness: 0.7,
-        chattiness: 0.5,
-        helpfulness: 0.6,
-        responseFrequency: 0.8
-      }
-    };
-
-    const bot2: Player = {
-      ...localPlayer,
-      id: 'bot-2', 
-      name: 'Bot_Bravo',
-      team: 'ct',
-      position: getSpawnPosition(1, 'ct'),
-      orientation: 0, // Face right (towards T spawn)
-      isBot: true,
-      botPersonality: {
-        aggressiveness: 0.4,
-        chattiness: 0.8,
-        helpfulness: 0.9,
-        responseFrequency: 0.6
-      }
-    };
+    // Add bots - more for quickplay mode
+    const botNames = ['Bot_Alpha', 'Bot_Bravo', 'Bot_Charlie', 'Bot_Delta', 'Bot_Echo', 'Bot_Foxtrot'];
+    const botCount = isQuickPlay ? 5 : 2; // More bots in quickplay mode
+    
+    const bots: Player[] = [];
+    for (let i = 0; i < botCount; i++) {
+      const team = i % 2 === 0 ? 't' : 'ct';
+      const bot: Player = {
+        ...localPlayer,
+        id: `bot-${i + 1}`,
+        name: botNames[i] || `Bot_${i + 1}`,
+        team,
+        position: getSpawnPosition(Math.floor(i / 2), team),
+        orientation: team === 't' ? Math.PI : 0, // Face opposing team
+        isBot: true,
+        botPersonality: {
+          aggressiveness: 0.4 + Math.random() * 0.4, // 0.4 - 0.8
+          chattiness: Math.random() * 0.8, // 0 - 0.8  
+          helpfulness: 0.5 + Math.random() * 0.4, // 0.5 - 0.9
+          responseFrequency: 0.4 + Math.random() * 0.4 // 0.4 - 0.8
+        }
+      };
+      bots.push(bot);
+    }
 
     // Add players to game
     game.addPlayer(localPlayer);
-    game.addPlayer(bot1);
-    game.addPlayer(bot2);
+    bots.forEach(bot => game.addPlayer(bot));
+    
+    if (isQuickPlay) {
+      console.log('🎮 Quick Play Mode: Started with', botCount, 'bots');
+    }
     game.setLocalPlayer('local-player');
 
     // Initialize WebSocket multiplayer bridge
@@ -165,11 +179,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
 
     console.log('✅ GameCore engine initialized with CS 1.6 audio system');
 
-    // Update stats periodically
+    // Update stats and HUD data periodically
     const statsInterval = setInterval(() => {
       const gameState = game.getState();
       const players = game.getPlayers();
       const connectionStatus = bridge.getConnectionStatus();
+      const localPlayerData = players.find(p => p.id === 'local-player');
       
       setGameStats({
         fps: game.getFPS(),
@@ -190,6 +205,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
           playersInRoom: players.length
         }
       });
+
+      // Update HUD-specific data
+      if (localPlayerData) {
+        setLocalPlayer(localPlayerData);
+      }
+      setAllPlayers(players);
     }, 100);
 
     // Cleanup
@@ -204,7 +225,29 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
       bridgeRef.current?.disconnect();
       bridgeRef.current = null;
     };
-  }, [roomId]);
+  }, [roomId, isQuickPlay]);
+
+  // HUD Event Handlers
+  const handleWeaponSwitch = (weaponIndex: number) => {
+    if (gameRef.current) {
+      // Implement weapon switching logic
+      console.log('Switching to weapon index:', weaponIndex);
+    }
+  };
+
+  const handleBuyItem = (itemId: string) => {
+    if (gameRef.current) {
+      // Implement buy item logic
+      console.log('Buying item:', itemId);
+    }
+  };
+
+  const handleRadioCommand = (command: string) => {
+    if (gameRef.current) {
+      // Implement radio command logic
+      console.log('Radio command:', command);
+    }
+  };
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
@@ -217,83 +260,56 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ roomId }) => {
         style={{ imageRendering: 'pixelated' }}
       />
       
-      {/* HUD Overlay */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Top HUD - Round Info */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center">
-          <div className="bg-black bg-opacity-70 px-4 py-2 rounded text-white font-mono">
-            <div className="text-lg">
-              CT {gameStats.ctScore} - {gameStats.tScore} T
-            </div>
-            <div className="text-sm">
-              {Math.max(0, Math.floor(gameStats.roundTime))}:{String(Math.floor((gameStats.roundTime % 1) * 60)).padStart(2, '0')}
-              {gameStats.bombPlanted && ' | 💣 BOMB PLANTED'}
-            </div>
+      {/* New HUD System */}
+      {localPlayer && (
+        <GameHUD
+          player={localPlayer}
+          gameState={{
+            roundTime: gameStats.roundTime,
+            bombPlanted: gameStats.bombPlanted,
+            ctScore: gameStats.ctScore,
+            tScore: gameStats.tScore,
+            roundPhase: 'live' // TODO: Get from actual game state
+          }}
+          allPlayers={allPlayers}
+          killFeed={killFeed}
+          onWeaponSwitch={handleWeaponSwitch}
+          onBuyItem={handleBuyItem}
+          onRadioCommand={handleRadioCommand}
+          fps={gameStats.fps}
+          ping={gameStats.networkStats.latency}
+        />
+      )}
+      
+      {/* Quick Play Indicator */}
+      {isQuickPlay && (
+        <div className="absolute top-4 left-4 bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 rounded-lg shadow-lg">
+          <div className="text-white font-bold flex items-center space-x-2">
+            <span>🎮</span>
+            <span>Quick Play Mode</span>
           </div>
         </div>
-
-        {/* Bottom Right HUD - Performance */}
-        <div className="absolute bottom-4 right-4 text-right">
-          <div className="bg-black bg-opacity-70 px-3 py-2 rounded text-green-400 font-mono text-sm">
-            <div>FPS: {gameStats.fps}</div>
-            <div>Players: {gameStats.players}</div>
-            <div>Audio: ✅ CS 1.6</div>
-            <div className="text-blue-400 mt-1">NETWORK:</div>
-            <div>Queue: {gameStats.networkStats.queueSize}</div>
-            <div>Ping: {gameStats.networkStats.latency}ms</div>
-            <div>Connected: {gameStats.networkStats.playersConnected}</div>
-          </div>
+      )}
+      
+      {/* Development/Debug Overlay */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute top-4 right-4 bg-black bg-opacity-70 px-3 py-2 rounded text-green-400 font-mono text-xs">
+          <div className="text-white font-bold mb-1">DEBUG INFO:</div>
+          <div>New HUD: ✅ ACTIVE</div>
+          <div>FPS: {gameStats.fps}</div>
+          <div>Players: {gameStats.players}</div>
+          <div>Audio: ✅ CS 1.6</div>
+          {isQuickPlay && <div>🎮 Quick Play: ACTIVE</div>}
+          {gameStats.multiplayerStats.connected ? (
+            <>
+              <div>🌐 MP: {gameStats.multiplayerStats.isHost ? 'HOST' : 'CLIENT'}</div>
+              <div>Room: {gameStats.multiplayerStats.roomId}</div>
+            </>
+          ) : (
+            <div>🔒 Mode: OFFLINE</div>
+          )}
         </div>
-
-        {/* Bottom Left HUD - Controls */}
-        <div className="absolute bottom-4 left-4">
-          <div className="bg-black bg-opacity-70 px-3 py-2 rounded text-white font-mono text-sm">
-            <div className="text-yellow-400 mb-1">CONTROLS:</div>
-            <div>WASD - Move</div>
-            <div>Mouse - Aim & Shoot</div>
-            <div>R - Reload</div>
-            <div>B - Buy Menu (Freeze/Buy Time)</div>
-            <div>E - Plant/Defuse Bomb</div>
-            <div>Z/X/C/V - Radio Commands</div>
-            <div>T - Bot Voice Test</div>
-            <div>H - Toggle Debug HUD</div>
-            <div>P - Toggle Physics Debug</div>
-          </div>
-        </div>
-
-        {/* Enhanced Game State Indicator */}
-        <div className="absolute top-4 left-4">
-          <div className="bg-green-600 bg-opacity-90 px-3 py-2 rounded text-white font-mono text-sm">
-            🎮 Enhanced GameCore: ACTIVE
-            <br />
-            🎵 CS 1.6 Audio: READY
-            <br />
-            💥 Damage System: ON
-            <br />
-            🤖 Bot AI: ENHANCED
-            <br />
-            💣 Bomb System: READY
-            <br />
-            🛒 Buy Menu: AVAILABLE
-            <br />
-            ⏱️ Round System: ACTIVE
-            <br />
-            {gameStats.multiplayerStats.connected ? (
-              <>
-                🌐 MP: {gameStats.multiplayerStats.isHost ? 'HOST' : 'CLIENT'}
-                <br />
-                🏠 Room: {gameStats.multiplayerStats.roomId}
-              </>
-            ) : (
-              <>
-                🔒 Mode: OFFLINE
-                <br />
-                🎯 Testing: ALL SYSTEMS
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

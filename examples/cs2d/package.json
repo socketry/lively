@@ -38,7 +38,11 @@
     "multi-agent:spa": "node scripts/multi-agent-tasks.js migrateSPA",
     "multi-agent:docs": "node scripts/multi-agent-tasks.js generateAPIDocs",
     "multi-agent:sprint": "node scripts/multi-agent-tasks.js quickSprint",
-    "multi-agent": "node scripts/multi-agent-tasks.js"
+    "multi-agent": "node scripts/multi-agent-tasks.js",
+    "server": "node src/backend/server.js",
+    "server:dev": "nodemon src/backend/server.js",
+    "db:migrate": "node src/backend/database/migrate.js",
+    "db:seed": "node src/backend/database/seed.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
@@ -61,7 +65,27 @@
     "vitest": "^1.0.0"
   },
   "dependencies": {
-    "@jimmy2822/multi-agent-dev": "^1.0.0"
+    "@jimmy2822/multi-agent-dev": "^1.0.0",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "pg": "^8.11.3",
+    "redis": "^4.6.8",
+    "passport": "^0.6.0",
+    "passport-steam": "^1.0.17",
+    "passport-jwt": "^4.0.1",
+    "helmet": "^7.0.0",
+    "cors": "^2.8.5",
+    "rate-limiter-flexible": "^2.4.2",
+    "compression": "^1.7.4",
+    "dotenv": "^16.3.1",
+    "express-validator": "^7.0.1",
+    "nodemailer": "^6.9.4",
+    "uuid": "^9.0.0",
+    "ws": "^8.13.0",
+    "mongoose": "^7.5.0",
+    "ioredis": "^5.3.2"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

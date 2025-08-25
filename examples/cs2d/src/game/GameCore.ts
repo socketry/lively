@@ -14,6 +14,8 @@ import { HUD, HUDElements } from './ui/HUD';
 import { BombSystem, BombSite, C4Bomb } from './systems/BombSystem';
 import { InputSystem, InputCallbacks } from './systems/InputSystem';
 import { CollisionSystem, CollisionDependencies, CollisionEffects } from './systems/CollisionSystem';
+import { GrenadeSystem, GrenadeType, ActiveGrenade, FlashEffect } from './systems/GrenadeSystem';
+import { PlayerActionSystem, JumpState, CrouchState, DefuseKit } from './systems/PlayerActionSystem';
 import { GAME_CONSTANTS } from './config/gameConstants';
 
 export interface Player {
@@ -84,7 +86,14 @@ export class GameCore {
   private bombSystem: BombSystem;
   private inputSystem: InputSystem;
   private collisionSystem: CollisionSystem;
+  private grenadeSystem: GrenadeSystem;
+  private playerActionSystem: PlayerActionSystem;
   private botAIs: Map<string, BotAI> = new Map();
+  
+  // Enhanced input state
+  private grenadeHoldStartTime: number = 0;
+  private isHoldingGrenade: boolean = false;
+  private currentGrenadeType: GrenadeType | null = null;
   
   private players: Map<string, Player> = new Map();
   private localPlayerId: string = '';
@@ -128,6 +137,8 @@ export class GameCore {
     this.hud = new HUD(canvas, this.weapons);
     this.bombSystem = new BombSystem(this.audio);
     this.inputSystem = new InputSystem(canvas);
+    this.grenadeSystem = new GrenadeSystem(this.audio, this.renderer);
+    this.playerActionSystem = new PlayerActionSystem(this.audio);
     
     // Initialize CollisionSystem with required dependencies
     this.collisionSystem = new CollisionSystem(this.createCollisionDependencies());
@@ -142,7 +153,9 @@ export class GameCore {
     console.log('🖥️ HUD system initialized and integrated into GameCore');
     console.log('💣 BombSystem initialized and integrated into GameCore');
     console.log('🎯 CollisionSystem initialized - extracted 100+ lines from GameCore');
-    console.log('🧪 Testing: Press H to damage, J to heal, K to add bot player, B to open buy menu, N for new round, E for bomb actions, M for C4, F1 for debug');
+    console.log('🧨 GrenadeSystem initialized with HE, Flash, Smoke, and Molotov support');
+    console.log('🏃 PlayerActionSystem initialized with jumping, crouching, and defuse kit support');
+    console.log('🧪 Testing: H=damage, J=heal, K=bot, B=buy menu, N=round, E=bomb, M=C4, F1=debug, G=grenade, F=inspect, Q=quickswitch, Space=jump, Ctrl=crouch, Shift=walk');
     
     // Connect state manager to core systems
     this.stateManager.connectGameCore(this);
@@ -199,19 +212,19 @@ export class GameCore {
       onJump: (playerId) => {
         const player = this.players.get(playerId);
         if (player) {
-          this.playerJump(player);
+          this.playerActionSystem.handleJump(player);
         }
       },
       onDuck: (playerId, isDucking) => {
         const player = this.players.get(playerId);
         if (player) {
-          player.isDucking = isDucking;
+          this.playerActionSystem.setCrouch(player, isDucking);
         }
       },
       onWalk: (playerId, isWalking) => {
         const player = this.players.get(playerId);
         if (player) {
-          player.isWalking = isWalking;
+          this.playerActionSystem.setWalk(player, isWalking);
         }
       },
       onRadioCommand: (playerId, command) => {
@@ -248,6 +261,42 @@ export class GameCore {
         const player = this.players.get(playerId);
         if (player) {
           this.handleTestAction(player, action);
+        }
+      },
+      onGrenadeThrow: (playerId, grenadeType, target, force) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleGrenadeThrow(player, grenadeType as GrenadeType, target, force);
+        }
+      },
+      onGrenadeHold: (playerId, grenadeType, target) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleGrenadeHold(player, grenadeType as GrenadeType, target);
+        }
+      },
+      onGrenadeRelease: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleGrenadeRelease(player);
+        }
+      },
+      onWeaponInspect: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleWeaponInspect(player);
+        }
+      },
+      onQuickSwitch: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleQuickSwitch(player);
+        }
+      },
+      onWeaponDrop: (playerId) => {
+        const player = this.players.get(playerId);
+        if (player) {
+          this.handleWeaponDrop(player);
         }
       },
       onDebugToggle: (key) => {
@@ -648,6 +697,9 @@ export class GameCore {
     player.orientation = 0;
     player.lastVoiceTime = 0;
     
+    // Initialize enhanced player systems
+    this.playerActionSystem.initializePlayer(player.id);
+    
     // Initialize rendering optimization properties
     player.lastRenderedHealth = player.health;
     player.lastRenderedTeam = player.team;
@@ -748,6 +800,16 @@ export class GameCore {
       case 'new_round':
         this.roundSystem.forceNewRound();
         break;
+      case 'throw_grenade':
+        // Test grenade throw
+        this.grenadeSystem.throwGrenade('he', player.position, 
+          { x: player.position.x + 200, y: player.position.y - 100 }, 0.8, player.id);
+        break;
+      case 'buy_defuse_kit':
+        if (player.team === 'ct') {
+          this.playerActionSystem.purchaseDefuseKit(player);
+        }
+        break;
       case 'give_c4':
         if (player.team === 't' && !player.weapons.includes('c4')) {
           player.weapons.push('c4');
@@ -846,7 +908,13 @@ export class GameCore {
     // Store last position for orientation calculation
     player.lastPosition = { ...player.position };
     
-    const speed = player.isWalking ? 100 : player.isDucking ? 50 : 200;
+    // Update player action systems
+    this.playerActionSystem.update(player, deltaTime);
+    
+    // Get enhanced movement modifiers
+    const baseSpeed = 200;
+    const speedModifier = this.playerActionSystem.getMovementSpeedModifier(player.id);
+    const speed = baseSpeed * speedModifier;
     
     // Get movement input from InputSystem
     const acceleration = this.inputSystem.getMovementInput(speed, player.isWalking, player.isDucking);
@@ -935,14 +1003,20 @@ export class GameCore {
     if (isMoving && player.isAlive) {
       const now = Date.now();
       
-      // Adjust footstep timing based on movement type
+      // Adjust footstep timing based on movement type with enhanced system
       let stepInterval = 400; // Normal footsteps
       if (player.isWalking) stepInterval = 600; // Quieter, slower
       if (player.isDucking) stepInterval = 800; // Very slow
       
+      // Apply enhanced volume modifier
+      const volumeModifier = this.playerActionSystem.getFootstepVolumeModifier(player.id);
+      
       if (now - player.lastStepTime > stepInterval) {
-        // Use CS 1.6 surface-based footstep sounds
-        this.audio.playFootstep(player.position, player.currentSurface);
+        // Use CS 1.6 surface-based footstep sounds with volume modifier
+        this.audio.playFootstep(player.position, {
+          material: player.currentSurface.material,
+          volume: player.currentSurface.volume * volumeModifier
+        });
         player.lastStepTime = now;
         
         // Emit footstep event for multiplayer (only for local player to avoid spam)
@@ -1302,6 +1376,7 @@ export class GameCore {
     
     // Update weapons
     this.weapons.updateBullets(deltaTime);
+    this.weapons.updateSystem(deltaTime);
     
     // Check bullet collisions
     this.checkBulletCollisions();
@@ -1314,6 +1389,9 @@ export class GameCore {
     
     // Update bomb system
     this.bombSystem.update(deltaTime);
+    
+    // Update grenade system
+    this.grenadeSystem.update(deltaTime, (pos) => !this.maps.isPositionWalkable(pos));
     
     // Update buy menus
     this.players.forEach(player => {
@@ -1484,6 +1562,9 @@ export class GameCore {
       // Reset player health, armor, and damage state
       this.damageSystem.resetPlayer(player);
       
+      // Reset player action states
+      this.playerActionSystem.resetPlayer(player.id);
+      
       // Reset to spawn point
       const spawnPoints = this.maps.getSpawnPoints(player.team);
       if (spawnPoints.length > 0) {
@@ -1521,6 +1602,9 @@ export class GameCore {
         type: 'circle'
       });
     });
+    
+    // Reset grenade system
+    this.grenadeSystem.reset();
   }
   
   private updateFPS(): void {
@@ -1546,6 +1630,7 @@ export class GameCore {
     const localPlayer = this.players.get(this.localPlayerId);
     if (localPlayer) {
       this.renderHUD(localPlayer);
+      this.renderGrenadeEffects(localPlayer);
     }
     
     // Render FPS counter (legacy - now included in HUD debug)
@@ -1777,5 +1862,170 @@ export class GameCore {
    */
   public getInputSystem(): InputSystem {
     return this.inputSystem;
+  }
+  
+  /**
+   * Get grenade system for UI integration
+   */
+  public getGrenadeSystem(): GrenadeSystem {
+    return this.grenadeSystem;
+  }
+  
+  /**
+   * Get player action system for UI integration
+   */
+  public getPlayerActionSystem(): PlayerActionSystem {
+    return this.playerActionSystem;
+  }
+  
+  /**
+   * Handle grenade throw
+   */
+  private handleGrenadeThrow(player: Player, grenadeType: GrenadeType, target: Vector2D, force: number): void {
+    // Check if player has this grenade type
+    if (!player.weapons.includes(grenadeType)) {
+      console.log('❌ Player does not have grenade:', grenadeType);
+      return;
+    }
+    
+    const grenadeId = this.grenadeSystem.throwGrenade(grenadeType, player.position, target, force, player.id);
+    
+    if (grenadeId) {
+      // Remove grenade from player's inventory
+      const index = player.weapons.indexOf(grenadeType);
+      if (index > -1) {
+        player.weapons.splice(index, 1);
+      }
+      
+      // Switch to next weapon if this was current weapon
+      if (player.currentWeapon === grenadeType) {
+        const nextWeapon = player.weapons[0] || 'knife';
+        player.currentWeapon = nextWeapon;
+      }
+    }
+  }
+  
+  /**
+   * Handle grenade hold (for trajectory preview)
+   */
+  private handleGrenadeHold(player: Player, grenadeType: GrenadeType, target: Vector2D): void {
+    if (!this.isHoldingGrenade) {
+      this.isHoldingGrenade = true;
+      this.currentGrenadeType = grenadeType;
+      this.grenadeHoldStartTime = Date.now();
+    }
+    
+    // Calculate throw force based on hold time
+    const holdTime = Date.now() - this.grenadeHoldStartTime;
+    const maxHoldTime = 3000; // 3 seconds for max force
+    const throwForce = Math.min(1.0, holdTime / maxHoldTime);
+    
+    // Show trajectory preview
+    this.grenadeSystem.showTrajectoryPreview(grenadeType, player.position, target, throwForce);
+  }
+  
+  /**
+   * Handle grenade release
+   */
+  private handleGrenadeRelease(player: Player): void {
+    if (this.isHoldingGrenade && this.currentGrenadeType) {
+      const holdTime = Date.now() - this.grenadeHoldStartTime;
+      const maxHoldTime = 3000;
+      const throwForce = Math.min(1.0, holdTime / maxHoldTime);
+      
+      // Get mouse position for target
+      const mousePos = this.inputSystem.getMousePosition();
+      const target = {
+        x: (mousePos.x / this.canvas.width) * 1920,
+        y: (mousePos.y / this.canvas.height) * 1080
+      };
+      
+      this.handleGrenadeThrow(player, this.currentGrenadeType, target, throwForce);
+    }
+    
+    // Reset grenade hold state
+    this.isHoldingGrenade = false;
+    this.currentGrenadeType = null;
+    this.grenadeSystem.hideTrajectoryPreview();
+  }
+  
+  /**
+   * Handle weapon inspect
+   */
+  private handleWeaponInspect(player: Player): void {
+    if (player.currentWeapon) {
+      this.weapons.startInspect(player.currentWeapon, player.id, player.position);
+    }
+  }
+  
+  /**
+   * Handle quick weapon switch (Q key)
+   */
+  private handleQuickSwitch(player: Player): void {
+    const lastWeapon = this.weapons.quickSwitch(player.id, player.currentWeapon);
+    if (lastWeapon && player.weapons.includes(lastWeapon)) {
+      player.currentWeapon = lastWeapon;
+      this.weapons.switchWeaponEnhanced(null, lastWeapon, player.id, player.position);
+      console.log('🔄 Quick switched to:', lastWeapon);
+    }
+  }
+  
+  /**
+   * Handle weapon drop (G key)
+   */
+  private handleWeaponDrop(player: Player): void {
+    if (player.currentWeapon && player.currentWeapon !== 'knife') {
+      const dropId = this.weapons.dropWeapon(player.currentWeapon, player.id, player.position);
+      
+      if (dropId) {
+        // Remove weapon from player's inventory
+        const index = player.weapons.indexOf(player.currentWeapon);
+        if (index > -1) {
+          player.weapons.splice(index, 1);
+        }
+        
+        // Switch to knife or next weapon
+        player.currentWeapon = player.weapons[0] || 'knife';
+        console.log('💧 Weapon dropped, switched to:', player.currentWeapon);
+      }
+    }
+  }
+  
+  /**
+   * Render grenade effects and trajectory preview
+   */
+  private renderGrenadeEffects(localPlayer: Player): void {
+    const ctx = this.canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Render flash effect for local player
+    const flashEffect = this.grenadeSystem.getFlashEffect(localPlayer.id);
+    if (flashEffect && flashEffect.intensity > 0.1) {
+      ctx.save();
+      ctx.fillStyle = `rgba(255, 255, 255, ${flashEffect.intensity * 0.8})`;
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.restore();
+    }
+    
+    // Render trajectory preview
+    const trajectory = this.grenadeSystem.getTrajectoryPreview();
+    if (trajectory.length > 1) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 5]);
+      
+      ctx.beginPath();
+      ctx.moveTo(trajectory[0].x - localPlayer.position.x + this.canvas.width / 2, 
+                 trajectory[0].y - localPlayer.position.y + this.canvas.height / 2);
+      
+      for (let i = 1; i < trajectory.length; i++) {
+        ctx.lineTo(trajectory[i].x - localPlayer.position.x + this.canvas.width / 2,
+                   trajectory[i].y - localPlayer.position.y + this.canvas.height / 2);
+      }
+      
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }

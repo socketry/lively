@@ -32,6 +32,13 @@ export interface InputCallbacks {
   onDigitKey: (playerId: string, digit: number) => void;
   onTestAction: (playerId: string, action: string) => void;
   onDebugToggle: (key: string) => void;
+  // Enhanced input callbacks
+  onGrenadeThrow: (playerId: string, grenadeType: string, target: Vector2D, force: number) => void;
+  onGrenadeHold: (playerId: string, grenadeType: string, target: Vector2D) => void;
+  onGrenadeRelease: (playerId: string) => void;
+  onWeaponInspect: (playerId: string) => void;
+  onQuickSwitch: (playerId: string) => void;
+  onWeaponDrop: (playerId: string) => void;
 }
 
 export class InputSystem {
@@ -247,6 +254,32 @@ export class InputSystem {
       
       case 'KeyM':
         this.callbacks.onTestAction?.(this.localPlayerId, 'give_c4');
+        break;
+      
+      // Enhanced controls
+      case 'KeyF':
+        // Weapon inspect
+        this.callbacks.onWeaponInspect?.(this.localPlayerId);
+        break;
+      
+      case 'KeyQ':
+        // Quick weapon switch
+        this.callbacks.onQuickSwitch?.(this.localPlayerId);
+        break;
+      
+      case 'KeyG':
+        // Drop weapon
+        this.callbacks.onWeaponDrop?.(this.localPlayerId);
+        break;
+      
+      case 'KeyY':
+        // Test grenade throw
+        this.callbacks.onTestAction?.(this.localPlayerId, 'throw_grenade');
+        break;
+      
+      case 'KeyU':
+        // Buy defuse kit (CT only)
+        this.callbacks.onTestAction?.(this.localPlayerId, 'buy_defuse_kit');
         break;
     }
   }
