@@ -1,0 +1,120 @@
+{
+  "name": "cs2d-frontend",
+  "version": "0.2.0",
+  "description": "CS2D React Frontend with WebSocket integration",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port=5174",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:e2e": "START_BACKENDS=0 playwright test",
+    "test:e2e:chromium": "START_BACKENDS=0 playwright test --project=chromium",
+    "test:e2e:ui": "START_BACKENDS=0 playwright test --ui",
+    "test:e2e:ui:chromium": "START_BACKENDS=0 playwright test --ui --project=chromium",
+    "test:e2e:flow": "START_BACKENDS=0 playwright test tests/e2e/game-flow.spec.ts --project=chromium",
+    "test:e2e:debug": "playwright test --debug",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "lint:style": "stylelint \"**/*.{css,scss,vue}\" --fix",
+    "format": "prettier --write .",
+    "type-check": "tsc --noEmit",
+    "pre-commit": "lint-staged",
+    "commit": "cz"
+  },
+  "dependencies": {
+    "@tailwindcss/aspect-ratio": "latest",
+    "@tailwindcss/container-queries": "latest",
+    "@tailwindcss/forms": "latest",
+    "@tailwindcss/typography": "latest",
+    "@types/dompurify": "^3.0.5",
+    "@vueuse/core": "^10.7.0",
+    "axios": "^1.6.2",
+    "dayjs": "^1.11.10",
+    "dompurify": "^3.2.6",
+    "mitt": "^3.0.1",
+    "pixi.js": "^7.3.2",
+    "postcss": "latest",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0",
+    "socket.io-client": "^4.5.4",
+    "vue-i18n": "^9.14.5",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
+    "@playwright/test": "^1.54.2",
+    "@rushstack/eslint-patch": "^1.6.1",
+    "@tailwindcss/postcss": "^4.1.12",
+    "@testing-library/jest-dom": "^6.7.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vitest/ui": "^1.1.0",
+    "autoprefixer": "^10.4.21",
+    "clsx": "^2.1.1",
+    "commitizen": "^4.3.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-prettier": "^5.1.2",
+    "eslint-plugin-react": "^7.32.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-vitest-globals": "^1.5.0",
+    "husky": "^8.0.3",
+    "jsdom": "^23.0.1",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.1",
+    "prettier-plugin-tailwindcss": "latest",
+    "sass": "^1.69.5",
+    "sass-embedded": "^1.90.0",
+    "stylelint": "^16.0.2",
+    "stylelint-config-html": "^1.1.0",
+    "stylelint-config-recommended-scss": "^14.0.0",
+    "stylelint-config-recommended-vue": "^1.5.0",
+    "stylelint-order": "^6.0.4",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.12",
+    "tailwindcss-animate": "latest",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "vite-plugin-checker": "^0.6.2",
+    "vite-plugin-pwa": "^0.17.4",
+    "vitest": "^1.1.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,scss,sass,html,vue}": [
+      "stylelint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "package.json": [
+      "prettier --write"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

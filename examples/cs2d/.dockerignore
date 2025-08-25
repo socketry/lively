@@ -1,0 +1,102 @@
+# Git
+.git
+.gitignore
+.github
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Development
+*.swp
+*.swo
+*~
+.DS_Store
+.idea
+.vscode
+*.sublime-*
+
+# Ruby
+*.gem
+*.rbc
+.bundle
+.config
+coverage
+InstalledFiles
+lib/bundler/man
+pkg
+rdoc
+spec/reports
+test/tmp
+test/version_tmp
+tmp
+.ruby-version
+.ruby-gemset
+.rvmrc
+
+# Logs
+*.log
+log/
+logs/
+api_server.log
+
+# Documentation
+*.md
+docs/
+LICENSE
+README*
+
+# Testing
+test_*.js
+test_*.rb
+spec/
+test/
+node_modules/
+playwright-report/
+test-results/
+
+# Cache
+.cache
+.sass-cache
+*.cache
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.bak
+*.backup
+
+# OS Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Archives
+*.tar
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# Database dumps
+*.sql
+*.sqlite
+*.db
+
+# IDE
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.tmproj
+nbproject/
+.nb-gradle/

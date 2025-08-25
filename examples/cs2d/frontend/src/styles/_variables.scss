@@ -1,0 +1,166 @@
+// CS2D SCSS Variables
+// Vue.js 3 + TypeScript Frontend
+
+// Colors
+:root {
+  --cs-primary: #ff6b35;
+  --cs-secondary: #004e89;
+  --cs-accent: #ffa400;
+  --cs-success: #2ecc71;
+  --cs-warning: #f39c12;
+  --cs-danger: #e74c3c;
+  --cs-dark: #1a1a1a;
+  --cs-light: #ffffff;
+  --cs-gray: #666666;
+  --cs-border: #333333;
+}
+
+// Brand Colors
+$color-primary: var(--cs-primary);
+$color-secondary: var(--cs-secondary);
+$color-accent: var(--cs-accent);
+$color-success: var(--cs-success);
+$color-warning: var(--cs-warning);
+$color-danger: var(--cs-danger);
+
+// Background Colors
+$color-background: var(--cs-dark);
+$color-surface: #2a2a2a;
+$color-card: #1a1a1a;
+
+// Text Colors
+$color-text: var(--cs-light);
+$color-text-secondary: var(--cs-gray);
+$color-text-muted: #999999;
+
+// Border Colors
+$color-border: var(--cs-border);
+$color-border-light: #444444;
+
+// Typography
+$font-family-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+$font-family-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+
+$font-size-xs: 0.75rem;     // 12px
+$font-size-sm: 0.875rem;    // 14px
+$font-size-base: 1rem;      // 16px
+$font-size-lg: 1.125rem;    // 18px
+$font-size-xl: 1.25rem;     // 20px
+$font-size-2xl: 1.5rem;     // 24px
+$font-size-3xl: 1.875rem;   // 30px
+$font-size-4xl: 2.25rem;    // 36px
+
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+// Spacing
+$spacing-xs: 0.25rem;    // 4px
+$spacing-sm: 0.5rem;     // 8px
+$spacing-md: 1rem;       // 16px
+$spacing-lg: 1.5rem;     // 24px
+$spacing-xl: 2rem;       // 32px
+$spacing-2xl: 3rem;      // 48px
+$spacing-3xl: 4rem;      // 64px
+
+// Border Radius
+$border-radius-sm: 0.25rem;   // 4px
+$border-radius-md: 0.5rem;    // 8px
+$border-radius-lg: 0.75rem;   // 12px
+$border-radius-xl: 1rem;      // 16px
+$border-radius-full: 50%;
+
+// Shadows
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+// Game specific
+$shadow-game: 0 0 20px rgba(255, 107, 53, 0.3);
+
+// Z-index layers
+$z-index-dropdown: 1000;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+$z-index-notification: 9999;
+$z-index-loading: 10000;
+
+// Breakpoints
+$breakpoint-xs: 480px;
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+$breakpoint-2xl: 1536px;
+
+// Transitions
+$transition-fast: 0.15s ease-in-out;
+$transition-base: 0.3s ease-in-out;
+$transition-slow: 0.5s ease-in-out;
+
+// Game UI specific
+$hud-opacity: 0.9;
+$chat-width: 300px;
+$minimap-size: 150px;
+$notification-width: 350px;
+
+// Performance
+$animation-duration-fast: 0.2s;
+$animation-duration-normal: 0.3s;
+$animation-duration-slow: 0.5s;
+
+// Accessibility
+$focus-ring-width: 2px;
+$focus-ring-color: var(--cs-primary);
+$focus-ring-offset: 2px;
+
+// Button variants
+$button-height-sm: 2rem;      // 32px
+$button-height-md: 2.5rem;    // 40px
+$button-height-lg: 3rem;      // 48px
+
+// Input variants
+$input-height-sm: 2rem;       // 32px
+$input-height-md: 2.5rem;     // 40px
+$input-height-lg: 3rem;       // 48px
+
+// Container widths
+$container-sm: 640px;
+$container-md: 768px;
+$container-lg: 1024px;
+$container-xl: 1280px;
+$container-2xl: 1536px;
+
+// Game specific measurements
+$tile-size: 32px;
+$player-size: 24px;
+$weapon-icon-size: 32px;
+$health-bar-height: 4px;
+
+// Status colors for different states
+$status-online: var(--cs-success);
+$status-away: var(--cs-warning);
+$status-busy: var(--cs-danger);
+$status-offline: var(--cs-gray);
+
+// Team colors
+$team-terrorist: #d32f2f;
+$team-counter-terrorist: #1976d2;
+$team-spectator: var(--cs-gray);
+
+// Map colors
+$map-wall: #8b7355;
+$map-floor: #f5f5dc;
+$map-water: #4682b4;
+$map-spawn-t: rgba(211, 47, 47, 0.3);
+$map-spawn-ct: rgba(25, 118, 210, 0.3);
+$map-buy-zone: rgba(76, 175, 80, 0.2);
+$map-bomb-site: rgba(255, 152, 0, 0.3);

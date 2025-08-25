@@ -1,8 +1,13 @@
 {
 	"dependencies": {
-		"@socketry/live": "^0.14"
+		"@playwright/test": "^1.54.2",
+		"@socketry/live": "^0.14",
+		"playwright": "^1.54.2"
 	},
 	"scripts": {
-		"postinstall": "bundle exec bake utopia:node:update"
-	}
+		"postinstall": "bundle exec bake utopia:node:update",
+		"test:e2e": "playwright test",
+		"playwright:install": "playwright install"
+	},
+  "devDependencies": {}
 }

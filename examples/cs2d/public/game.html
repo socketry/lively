@@ -1,0 +1,2265 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="game.title">CS2D - 遊戲中</title>
+    <script src="/_static/i18n.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+        background: #000;
+        color: #fff;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      #game-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #game-canvas {
+        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        border: 2px solid #34495e;
+        cursor: crosshair;
+      }
+
+      #hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      .hud-element {
+        position: absolute;
+        pointer-events: auto;
+      }
+
+      #health-bar {
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #555;
+      }
+
+      #health-bar .bar {
+        width: 200px;
+        height: 20px;
+        background: #333;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+
+      #health-bar .fill {
+        height: 100%;
+        background: linear-gradient(90deg, #e74c3c 0%, #f39c12 50%, #27ae60 100%);
+        width: 100%;
+        transition: width 0.3s;
+      }
+
+      #ammo-display {
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #555;
+        text-align: right;
+      }
+
+      #ammo-display .current {
+        font-size: 2em;
+        font-weight: bold;
+        color: #3498db;
+      }
+
+      #ammo-display .reserve {
+        font-size: 1.2em;
+        color: #bdc3c7;
+      }
+
+      /* Equipment bar */
+      #equipment-bar {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #555;
+        display: flex;
+        gap: 10px;
+      }
+
+      .weapon-slot {
+        width: 60px;
+        height: 60px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 2px solid #444;
+        border-radius: 5px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: all 0.3s;
+      }
+
+      .weapon-slot.active {
+        border-color: #3498db;
+        background: rgba(52, 152, 219, 0.2);
+        box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+      }
+
+      .weapon-slot .slot-number {
+        position: absolute;
+        top: 2px;
+        left: 4px;
+        color: #888;
+        font-size: 10px;
+        font-weight: bold;
+      }
+
+      .weapon-slot .weapon-icon {
+        font-size: 24px;
+        color: #fff;
+      }
+
+      .weapon-slot .weapon-name {
+        font-size: 10px;
+        color: #bdc3c7;
+        margin-top: 2px;
+      }
+
+      .weapon-slot .ammo-count {
+        position: absolute;
+        bottom: 2px;
+        right: 4px;
+        color: #3498db;
+        font-size: 10px;
+        font-weight: bold;
+      }
+
+      /* Reload progress bar */
+      #reload-progress {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 180px;
+        height: 6px;
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
+        display: none;
+        overflow: hidden;
+      }
+
+      #reload-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
+        width: 0%;
+        transition: none;
+        box-shadow: 0 0 8px rgba(46, 204, 113, 0.6);
+      }
+
+      #reload-text {
+        position: fixed;
+        bottom: 88px;
+        right: 20px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        display: none;
+        animation: pulse 0.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      #minimap {
+        top: 20px;
+        right: 20px;
+        width: 200px;
+        height: 150px;
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid #555;
+        border-radius: 5px;
+      }
+
+      #minimap canvas {
+        width: 100%;
+        height: 100%;
+      }
+
+      #scoreboard {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        padding: 20px;
+        border-radius: 10px;
+        border: 2px solid #3498db;
+        min-width: 400px;
+        display: none;
+        z-index: 999;
+      }
+
+      #scoreboard table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      #scoreboard th,
+      #scoreboard td {
+        padding: 5px;
+        text-align: left;
+        border-bottom: 1px solid #444;
+      }
+
+      #scoreboard th {
+        color: #3498db;
+        font-size: 0.9em;
+      }
+
+      #scoreboard td {
+        font-size: 0.85em;
+      }
+
+      #chat {
+        bottom: 100px;
+        left: 20px;
+        width: 400px;
+        max-height: 200px;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 5px;
+        border: 1px solid #555;
+      }
+
+      #chat-messages {
+        max-height: 150px;
+        overflow-y: auto;
+        padding: 10px;
+      }
+
+      #chat-input {
+        width: 100%;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        border: none;
+        border-top: 1px solid #555;
+        outline: none;
+      }
+
+      .chat-message {
+        margin-bottom: 5px;
+        font-size: 0.9em;
+      }
+
+      .chat-message .player {
+        color: #3498db;
+        font-weight: bold;
+      }
+
+      .chat-message .system {
+        color: #f39c12;
+        font-style: italic;
+      }
+
+      #controls-help {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #555;
+        display: none;
+        z-index: 200;
+      }
+
+      #controls-help h3 {
+        color: #3498db;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      #controls-help .control-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+
+      #controls-help .key {
+        background: #333;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+      }
+
+      .game-menu {
+        position: fixed;
+        top: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 10px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .menu-btn {
+        background: rgba(52, 152, 219, 0.8);
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: background 0.3s;
+      }
+
+      .menu-btn:hover {
+        background: rgba(52, 152, 219, 1);
+      }
+
+      .menu-btn.danger {
+        background: rgba(231, 76, 60, 0.8);
+      }
+
+      .menu-btn.danger:hover {
+        background: rgba(231, 76, 60, 1);
+      }
+
+      #game-status {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        z-index: 200;
+      }
+
+      #game-status h2 {
+        color: #3498db;
+        margin-bottom: 15px;
+      }
+
+      .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-left: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      #death-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(139, 0, 0, 0.3);
+        display: none;
+        z-index: 150;
+        pointer-events: none;
+      }
+
+      #death-message {
+        position: fixed;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #ff0000;
+        font-size: 48px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        text-align: center;
+      }
+
+      #respawn-timer {
+        position: fixed;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        font-size: 24px;
+        text-align: center;
+      }
+
+      .crosshair {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        pointer-events: none;
+        z-index: 50;
+      }
+
+      .crosshair::before,
+      .crosshair::after {
+        content: '';
+        position: absolute;
+        background: rgba(255, 255, 255, 0.8);
+      }
+
+      .crosshair::before {
+        left: 50%;
+        top: 0;
+        width: 2px;
+        height: 100%;
+        transform: translateX(-50%);
+      }
+
+      .crosshair::after {
+        top: 50%;
+        left: 0;
+        height: 2px;
+        width: 100%;
+        transform: translateY(-50%);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <canvas id="game-canvas" width="1024" height="768"></canvas>
+      <div class="crosshair"></div>
+    </div>
+
+    <div id="hud">
+      <!-- Health bar -->
+      <div id="health-bar" class="hud-element">
+        <div style="display: none"><span id="health-text">100</span></div>
+        <div class="bar">
+          <div class="fill" id="health-fill" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <!-- Ammo display -->
+      <div id="ammo-display" class="hud-element">
+        <div class="current" id="current-ammo">30</div>
+        <div class="reserve">/ <span id="reserve-ammo">90</span></div>
+      </div>
+
+      <!-- Equipment bar -->
+      <div id="equipment-bar">
+        <div class="weapon-slot" id="slot-1" data-slot="1">
+          <span class="slot-number">1</span>
+          <span class="weapon-icon">🔫</span>
+          <span class="weapon-name">Primary</span>
+          <span class="ammo-count"></span>
+        </div>
+        <div class="weapon-slot" id="slot-2" data-slot="2">
+          <span class="slot-number">2</span>
+          <span class="weapon-icon">🔫</span>
+          <span class="weapon-name">Pistol</span>
+          <span class="ammo-count"></span>
+        </div>
+        <div class="weapon-slot active" id="slot-3" data-slot="3">
+          <span class="slot-number">3</span>
+          <span class="weapon-icon">🔪</span>
+          <span class="weapon-name">Knife</span>
+        </div>
+        <div class="weapon-slot" id="slot-4" data-slot="4">
+          <span class="slot-number">4</span>
+          <span class="weapon-icon">💣</span>
+          <span class="weapon-name">HE</span>
+          <span class="ammo-count">0</span>
+        </div>
+        <div class="weapon-slot" id="slot-5" data-slot="5">
+          <span class="slot-number">5</span>
+          <span class="weapon-icon">💨</span>
+          <span class="weapon-name">Flash</span>
+          <span class="ammo-count">0</span>
+        </div>
+      </div>
+
+      <!-- Reload progress bar -->
+      <div id="reload-progress">
+        <div id="reload-progress-bar"></div>
+      </div>
+      <div id="reload-text" data-i18n="game.reloading">換彈中...</div>
+
+      <!-- Minimap -->
+      <div id="minimap" class="hud-element">
+        <canvas id="minimap-canvas" width="200" height="150"></canvas>
+      </div>
+
+      <!-- Scoreboard -->
+      <div id="scoreboard" class="hud-element">
+        <h4 data-i18n="game.score">得分板</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th data-i18n="game.score">Score</th>
+              <th>Kills</th>
+              <th>Deaths</th>
+            </tr>
+          </thead>
+          <tbody id="scoreboard-body">
+            <!-- Players will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Chat -->
+      <div id="chat" class="hud-element">
+        <div id="chat-messages"></div>
+        <input
+          type="text"
+          id="chat-input"
+          placeholder="Press Enter to send message..."
+          maxlength="100"
+          data-i18n-placeholder="game.chatPlaceholder"
+        />
+      </div>
+    </div>
+
+    <!-- Game menu -->
+    <div class="game-menu">
+      <button class="menu-btn" onclick="game.toggleHelp()">
+        <span data-i18n="game.help">Help</span> (F1)
+      </button>
+      <button class="menu-btn" onclick="game.returnToRoom()" data-i18n="game.returnToRoom">
+        Return to Room
+      </button>
+      <button class="menu-btn danger" onclick="game.exitToLobby()" data-i18n="game.exitGame">
+        退出遊戲
+      </button>
+    </div>
+
+    <!-- Controls help -->
+    <div id="controls-help">
+      <h3 data-i18n="game.gameControls">Game Controls</h3>
+      <div class="control-item">
+        <span data-i18n="game.move">Move</span>: <span class="key">W A S D</span>
+      </div>
+      <div class="control-item">
+        <span data-i18n="game.shoot">Shoot</span>:
+        <span class="key" data-i18n="game.mouseLeft">Left Click</span>
+      </div>
+      <div class="control-item">
+        <span data-i18n="game.aim">Aim</span>:
+        <span class="key" data-i18n="game.mouseRight">Right Click</span>
+      </div>
+      <div class="control-item">
+        <span data-i18n="game.reload">Reload</span>: <span class="key">R</span>
+      </div>
+      <div class="control-item">
+        <span data-i18n="game.jump">Jump</span>:
+        <span class="key" data-i18n="game.spaceKey">Space</span>
+      </div>
+      <div class="control-item">
+        <span data-i18n="game.crouch">Crouch</span>: <span class="key">Ctrl</span>
+      </div>
+      <div class="control-item">
+        <span data-i18n="game.chat">Chat</span>: <span class="key">Enter</span>
+      </div>
+      <div class="control-item">
+        <span data-i18n="game.help">Help</span>: <span class="key">F1</span>
+      </div>
+      <div style="text-align: center; margin-top: 15px">
+        <button class="menu-btn" onclick="game.toggleHelp()" data-i18n="common.close">Close</button>
+      </div>
+    </div>
+
+    <!-- Game status overlay -->
+    <div id="game-status">
+      <h2 data-i18n="game.loadingGame">Loading Game...</h2>
+      <div class="spinner"></div>
+      <p id="status-text" data-i18n="game.connectingServer">Connecting to game server...</p>
+    </div>
+
+    <!-- Death screen overlay -->
+    <div id="death-screen">
+      <div id="death-message" data-i18n="game.dead">你已死亡</div>
+      <div id="respawn-timer">
+        <span data-i18n="game.respawnIn">重生倒數</span>: <span id="respawn-seconds">5</span>
+        <span data-i18n="game.seconds">秒</span>
+      </div>
+    </div>
+
+    <!-- Load CS 1.6 Systems -->
+    <script src="/_static/weapon_system.js"></script>
+    <script src="/_static/buy_menu.js"></script>
+    <script src="/_static/grenade_system.js"></script>
+    <script src="/_static/bomb_system.js"></script>
+
+    <script>
+      // Game engine
+      class CS2DGame {
+        constructor() {
+          this.canvas = document.getElementById('game-canvas');
+          this.ctx = this.canvas.getContext('2d');
+          this.minimapCanvas = document.getElementById('minimap-canvas');
+          this.minimapCtx = this.minimapCanvas.getContext('2d');
+
+          this.roomId = null;
+          this.playerId = null;
+          this.playerNickname = null;
+          this.gameState = 'loading';
+          this.players = new Map();
+          this.gameData = null;
+
+          // Player state
+          this.player = {
+            x: 400,
+            y: 300,
+            angle: 0,
+            health: 100,
+            alive: true,
+            ammo: 30,
+            reserveAmmo: 90,
+            weapon: 'ak47',
+            isReloading: false,
+            reloadStartTime: 0,
+            reloadDuration: 2500,
+            score: 0,
+            kills: 0,
+            deaths: 0,
+            money: 800,
+            team: 'ct',
+            hasDefuseKit: false,
+          };
+
+          // Game systems
+          this.canBuy = true;
+          this.roundTime = 115; // 1:55
+          this.freezeTime = 15;
+          this.buyTime = 15;
+          this.showScoreboard = false;
+
+          // Bullet system
+          this.bullets = [];
+          this.lastShotTime = 0;
+          this.fireRate = 100; // milliseconds between shots
+
+          // Weapon drop system
+          this.droppedWeapons = [];
+          this.currentWeapon = 2; // Start with secondary weapon
+
+          // Input state
+          this.keys = {};
+          this.mouse = { x: 0, y: 0, down: false };
+
+          this.init();
+        }
+
+        init() {
+          console.log('Initializing CS2D Game...');
+
+          // Parse URL parameters
+          const urlParams = new URLSearchParams(window.location.search);
+          this.roomId = urlParams.get('room_id');
+          this.playerId = urlParams.get('player_id');
+          this.playerNickname =
+            urlParams.get('nickname') || `Player_${this.playerId?.substring(0, 6)}`;
+
+          if (!this.roomId || !this.playerId) {
+            alert('缺少必要參數，返回大廳');
+            window.location.href = '/';
+            return;
+          }
+
+          // Initialize CS 1.6 systems
+          this.weaponSystem = new WeaponSystem(this);
+          this.buyMenu = new BuyMenuUI(this);
+          this.grenadeSystem = new GrenadeSystemUI(this);
+          this.bombSystem = new BombSystemUI(this);
+
+          this.setupEventListeners();
+          this.startGame();
+        }
+
+        setupEventListeners() {
+          // Keyboard events
+          document.addEventListener('keydown', (e) => {
+            this.keys[e.code] = true;
+
+            switch (e.code) {
+              case 'Digit1':
+                this.switchWeapon(1);
+                break;
+              case 'Digit2':
+                this.switchWeapon(2);
+                break;
+              case 'Digit3':
+                this.switchWeapon(3);
+                break;
+              case 'Digit4':
+                this.switchWeapon(4);
+                break;
+              case 'Digit5':
+                this.switchWeapon(5);
+                break;
+              case 'KeyR':
+                this.reload();
+                break;
+              case 'Tab':
+                e.preventDefault();
+                this.showScoreboard = true;
+                this.updateScoreboard(); // Update content before showing
+                document.getElementById('scoreboard').style.display = 'block';
+                break;
+              case 'KeyG':
+                this.pickupWeapon();
+                break;
+              case 'F1':
+                e.preventDefault();
+                this.toggleHelp();
+                break;
+              case 'Enter':
+                this.focusChat();
+                break;
+              case 'Escape':
+                this.blurChat();
+                break;
+            }
+          });
+
+          document.addEventListener('keyup', (e) => {
+            this.keys[e.code] = false;
+
+            if (e.code === 'Tab') {
+              this.showScoreboard = false;
+              document.getElementById('scoreboard').style.display = 'none';
+            }
+          });
+
+          // Mouse events
+          this.canvas.addEventListener('mousemove', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouse.x = e.clientX - rect.left;
+            this.mouse.y = e.clientY - rect.top;
+
+            // Update player angle based on mouse position relative to player
+            this.player.angle = Math.atan2(
+              this.mouse.y - this.player.y,
+              this.mouse.x - this.player.x,
+            );
+          });
+
+          this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+              // Left click
+              this.mouse.down = true;
+              // Try advanced shooting first, fallback to basic
+              if (!this.shootAdvanced()) {
+                this.shoot();
+              }
+            }
+          });
+
+          this.canvas.addEventListener('mouseup', (e) => {
+            this.mouse.down = false;
+          });
+
+          // Chat input
+          const chatInput = document.getElementById('chat-input');
+          chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              this.sendChatMessage(chatInput.value.trim());
+              chatInput.value = '';
+              chatInput.blur();
+            }
+          });
+
+          // Right click for scoping and prevent context menu
+          this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (this.weaponSystem) {
+              this.weaponSystem.toggleScope();
+            }
+          });
+
+          // Window events
+          window.addEventListener('beforeunload', () => {
+            this.cleanup();
+          });
+        }
+
+        async startGame() {
+          try {
+            // Simulate game loading
+            this.updateStatus('載入遊戲資源...');
+            await this.delay(1000);
+
+            this.updateStatus('連接到遊戲伺服器...');
+            await this.delay(1000);
+
+            this.updateStatus('同步遊戲狀態...');
+            await this.delay(1000);
+
+            // Initialize game state
+            this.initializeGameState();
+
+            // Initialize UI elements
+            this.initializeUI();
+
+            // Hide loading screen
+            document.getElementById('game-status').style.display = 'none';
+
+            // Start game loop
+            this.gameState = 'playing';
+            this.gameLoop();
+
+            // Add system message
+            this.addChatMessage('系統', `歡迎來到 CS2D！房間: ${this.roomId}`, 'system');
+          } catch (error) {
+            console.error('Error starting game:', error);
+            this.updateStatus('載入失敗，請重試');
+          }
+        }
+
+        initializeGameState() {
+          // Try to load game data from localStorage (passed from room page)
+          const storedGameData = localStorage.getItem('cs2d_game_data');
+          let roomPlayers = [];
+
+          if (storedGameData) {
+            try {
+              const gameData = JSON.parse(storedGameData);
+              console.log('Loaded game data from localStorage:', gameData);
+
+              // Check if data is recent (within last 30 seconds)
+              const dataAge = Date.now() - gameData.timestamp;
+              if (dataAge < 30000) {
+                roomPlayers = gameData.players || [];
+                this.gameData = gameData;
+              }
+
+              // Clear the stored data after loading
+              localStorage.removeItem('cs2d_game_data');
+            } catch (e) {
+              console.error('Error parsing stored game data:', e);
+            }
+          }
+
+          // Initialize players from room data
+          if (roomPlayers.length > 0) {
+            console.log('Initializing players from room data:', roomPlayers);
+
+            // Spawn positions for players (distribute around the map)
+            const spawnPoints = [
+              { x: 400, y: 300 },
+              { x: 600, y: 200 },
+              { x: 200, y: 400 },
+              { x: 800, y: 500 },
+              { x: 500, y: 600 },
+              { x: 300, y: 200 },
+              { x: 700, y: 400 },
+              { x: 400, y: 500 },
+              { x: 600, y: 300 },
+              { x: 300, y: 600 },
+            ];
+
+            roomPlayers.forEach((player, index) => {
+              const spawn = spawnPoints[index % spawnPoints.length];
+              const isCurrentPlayer = player.id === this.playerId;
+
+              this.players.set(player.id, {
+                id: player.id,
+                name: player.name || player.id,
+                x: spawn.x,
+                y: spawn.y,
+                angle: Math.random() * Math.PI * 2,
+                health: 100,
+                alive: true,
+                score: 0,
+                kills: 0,
+                deaths: 0,
+                isCurrentPlayer: isCurrentPlayer,
+                isBot: player.is_bot || false,
+                difficulty: player.difficulty || 'normal',
+                deathTime: null,
+              });
+
+              console.log(
+                `Initialized ${player.is_bot ? 'Bot' : 'Player'}: ${player.name} at position (${spawn.x}, ${spawn.y})`,
+              );
+            });
+
+            // Add chat message for each bot
+            roomPlayers.forEach((player) => {
+              if (player.is_bot) {
+                this.addChatMessage(
+                  '系統',
+                  `Bot ${player.name} (${player.difficulty}) 已加入遊戲`,
+                  'system',
+                );
+              }
+            });
+          } else {
+            // Fallback to default player if no room data
+            console.log('No room data found, using default player');
+            this.players.set(this.playerId, {
+              id: this.playerId,
+              name: this.playerNickname,
+              x: 400,
+              y: 300,
+              angle: 0,
+              health: 100,
+              alive: true,
+              score: 0,
+              kills: 0,
+              deaths: 0,
+              isCurrentPlayer: true,
+              isBot: false,
+              deathTime: null,
+            });
+          }
+
+          // Initialize bot AI if we have bots
+          this.initializeBotAI();
+
+          this.updateScoreboard();
+        }
+
+        initializeUI() {
+          // Ensure scoreboard is initially hidden
+          const scoreboard = document.getElementById('scoreboard');
+          if (scoreboard) {
+            scoreboard.style.display = 'none';
+          }
+
+          // Ensure other UI elements are in correct state
+          const reloadProgress = document.getElementById('reload-progress');
+          const reloadText = document.getElementById('reload-text');
+
+          if (reloadProgress) reloadProgress.style.display = 'none';
+          if (reloadText) reloadText.style.display = 'none';
+
+          // Initialize equipment bar
+          this.updateEquipmentBar();
+
+          // Initialize HUD
+          this.updateHUD();
+
+          console.log('UI initialized successfully');
+        }
+
+        initializeBotAI() {
+          // Start bot AI update loop
+          setInterval(() => {
+            this.updateBots();
+          }, 100); // Update bots every 100ms
+        }
+
+        updateBots() {
+          if (this.gameState !== 'playing') return;
+
+          this.players.forEach((player) => {
+            if (player.isBot && player.alive) {
+              // Simple bot AI - random movement and shooting
+              const moveSpeed = 2;
+              const turnSpeed = 0.05;
+
+              // Random movement
+              if (Math.random() < 0.1) {
+                player.angle += (Math.random() - 0.5) * turnSpeed * 10;
+              }
+
+              // Move forward most of the time
+              if (Math.random() < 0.8) {
+                player.x += Math.cos(player.angle) * moveSpeed;
+                player.y += Math.sin(player.angle) * moveSpeed;
+              }
+
+              // Keep bots within bounds
+              player.x = Math.max(50, Math.min(this.canvas.width - 50, player.x));
+              player.y = Math.max(50, Math.min(this.canvas.height - 50, player.y));
+
+              // Random shooting based on difficulty
+              const shootChance =
+                player.difficulty === 'easy' ? 0.01 : player.difficulty === 'hard' ? 0.05 : 0.03;
+
+              if (Math.random() < shootChance) {
+                // Find nearest player to shoot at
+                let nearestPlayer = null;
+                let minDistance = Infinity;
+
+                this.players.forEach((otherPlayer) => {
+                  if (otherPlayer.id !== player.id && otherPlayer.alive) {
+                    const dx = otherPlayer.x - player.x;
+                    const dy = otherPlayer.y - player.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < minDistance) {
+                      minDistance = distance;
+                      nearestPlayer = otherPlayer;
+                    }
+                  }
+                });
+
+                if (nearestPlayer && minDistance < 500) {
+                  // Aim at nearest player
+                  const dx = nearestPlayer.x - player.x;
+                  const dy = nearestPlayer.y - player.y;
+                  player.angle = Math.atan2(dy, dx);
+
+                  // Shoot
+                  this.createBullet(player.x, player.y, player.angle, player.id, true);
+                }
+              }
+            }
+          });
+        }
+
+        gameLoop() {
+          if (this.gameState !== 'playing') return;
+
+          this.update();
+          this.render();
+
+          requestAnimationFrame(() => this.gameLoop());
+        }
+
+        update() {
+          // Calculate delta time
+          const currentTime = Date.now();
+          const deltaTime = (currentTime - (this.lastUpdateTime || currentTime)) / 1000;
+          this.lastUpdateTime = currentTime;
+
+          // Update player movement based on input
+          this.updatePlayerMovement();
+
+          // Handle continuous shooting while mouse is held
+          if (this.mouse.down && this.gameState === 'playing') {
+            // Try advanced shooting first, fallback to basic
+            if (!this.shootAdvanced()) {
+              this.shoot();
+            }
+          }
+
+          // Update bullets
+          this.updateBullets();
+
+          // Check collisions
+          this.checkCollisions();
+
+          // Update CS 1.6 systems
+          if (this.grenadeSystem) {
+            this.grenadeSystem.update(deltaTime);
+          }
+          if (this.bombSystem) {
+            this.bombSystem.update(deltaTime);
+          }
+
+          // Update game state (bullets, AI, etc.)
+          // In a real implementation, this would sync with server
+
+          // Update HUD
+          this.updateHUD();
+        }
+
+        updateBullets() {
+          // Update bullet positions and remove expired bullets
+          this.bullets = this.bullets.filter((bullet) => {
+            // Update position
+            bullet.x += bullet.vx;
+            bullet.y += bullet.vy;
+            bullet.lifetime--;
+
+            // Remove bullets that are out of bounds or expired
+            if (
+              bullet.x < 0 ||
+              bullet.x > this.canvas.width ||
+              bullet.y < 0 ||
+              bullet.y > this.canvas.height ||
+              bullet.lifetime <= 0
+            ) {
+              return false; // Remove bullet
+            }
+
+            return true; // Keep bullet
+          });
+        }
+
+        checkCollisions() {
+          // Check bullet-player collisions
+          this.bullets.forEach((bullet, bulletIndex) => {
+            this.players.forEach((player) => {
+              // Don't check collision with bullet owner or dead players
+              if (player.id === bullet.owner || player.health <= 0) return;
+
+              // Simple circle collision detection
+              const distance = Math.sqrt(
+                Math.pow(bullet.x - player.x, 2) + Math.pow(bullet.y - player.y, 2),
+              );
+
+              if (distance < 15) {
+                // Player radius is 15
+                // Hit detected!
+                player.health -= bullet.damage;
+                this.bullets.splice(bulletIndex, 1); // Remove bullet
+
+                // Visual hit effect
+                this.createHitEffect(player.x, player.y);
+
+                // Check if player died
+                if (player.health <= 0) {
+                  player.health = 0; // Ensure HP doesn't go negative
+                  player.alive = false;
+                  player.deaths++;
+                  player.deathTime = Date.now();
+
+                  // Check if it's the current player who died
+                  if (player.isCurrentPlayer) {
+                    this.handlePlayerDeath();
+                  } else if (bullet.owner === this.playerId) {
+                    this.player.kills++;
+                    this.player.score += 100;
+                    // Award kill money based on weapon
+                    const killReward = this.getKillReward(this.player.weapon);
+                    this.player.money += killReward;
+                    this.addChatMessage(
+                      '系統',
+                      `你擊殺了 ${player.name}! (+$${killReward})`,
+                      'system',
+                    );
+                    // Update buy menu money display if open
+                    if (this.buyMenu && this.buyMenu.isOpen) {
+                      this.buyMenu.updateMoney();
+                    }
+                  }
+
+                  // Schedule respawn
+                  setTimeout(() => this.respawnPlayer(player), 5000); // 5 second respawn
+                }
+
+                this.updateScoreboard();
+              }
+            });
+          });
+        }
+
+        handlePlayerDeath() {
+          // Mark player as dead
+          this.player.alive = false;
+
+          // Drop weapon on death
+          this.dropWeapon();
+
+          // Show death screen
+          document.getElementById('death-screen').style.display = 'block';
+
+          // Cancel reload if in progress
+          if (this.player.isReloading) {
+            this.cancelReload();
+          }
+
+          // Clean up grenade UI elements
+          if (this.grenadeSystem) {
+            this.grenadeSystem.cleanupOnDeath();
+          }
+
+          // Update death timer
+          let respawnTime = 5;
+          const timerInterval = setInterval(() => {
+            respawnTime--;
+            document.getElementById('respawn-seconds').textContent = respawnTime;
+
+            if (respawnTime <= 0) {
+              clearInterval(timerInterval);
+              document.getElementById('death-screen').style.display = 'none';
+            }
+          }, 1000);
+
+          this.player.deaths++;
+          this.addChatMessage('系統', '你已死亡！5秒後重生...', 'system');
+        }
+
+        respawnPlayer(player) {
+          if (!player) return;
+
+          player.health = 100;
+          player.alive = true;
+          player.deathTime = null;
+
+          // Respawn at random position
+          player.x = 100 + Math.random() * (this.canvas.width - 200);
+          player.y = 100 + Math.random() * (this.canvas.height - 200);
+
+          // If it's the current player, update their state
+          if (player.isCurrentPlayer) {
+            this.player.health = 100;
+            this.player.alive = true;
+            this.player.x = player.x;
+            this.player.y = player.y;
+            this.player.ammo = 30;
+            this.player.reserveAmmo = 90;
+            document.getElementById('death-screen').style.display = 'none';
+            document.getElementById('respawn-seconds').textContent = '5';
+          }
+
+          this.addChatMessage('系統', `${player.name} 已重生`, 'system');
+          this.updateScoreboard();
+        }
+
+        getKillReward(weapon) {
+          // CS 1.6 kill rewards by weapon type
+          const rewards = {
+            ak47: 300,
+            m4a1: 300,
+            awp: 100,
+            deagle: 300,
+            usp: 300,
+            glock: 300,
+            mp5: 600,
+            p90: 300,
+            scout: 300,
+            knife: 1500,
+            grenade: 300,
+          };
+          return rewards[weapon] || 300; // Default reward
+        }
+
+        createHitEffect(x, y) {
+          // Visual feedback for hit
+          this.ctx.save();
+          this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+          this.ctx.beginPath();
+          this.ctx.arc(x, y, 20, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.restore();
+        }
+
+        updatePlayerMovement() {
+          // Don't allow movement if dead
+          if (this.player.health <= 0 || !this.player.alive) return;
+
+          // Get weapon-based movement speed
+          let baseSpeed = 3;
+          const weapon = this.weaponSystem ? this.weaponSystem.getWeapon(this.player.weapon) : null;
+
+          // Apply weapon speed modifiers
+          if (weapon) {
+            if (weapon.type === 'sniper') baseSpeed *= 0.7;
+            else if (weapon.type === 'machinegun') baseSpeed *= 0.8;
+            else if (weapon.type === 'rifle') baseSpeed *= 0.9;
+          }
+
+          // Apply scope speed penalty
+          if (this.player.scopeSpeedMultiplier) {
+            baseSpeed *= this.player.scopeSpeedMultiplier;
+          }
+
+          let dx = 0,
+            dy = 0;
+
+          if (this.keys['KeyW']) dy -= baseSpeed;
+          if (this.keys['KeyS']) dy += baseSpeed;
+          if (this.keys['KeyA']) dx -= baseSpeed;
+          if (this.keys['KeyD']) dx += baseSpeed;
+
+          // Normalize diagonal movement
+          if (dx !== 0 && dy !== 0) {
+            dx *= 0.707;
+            dy *= 0.707;
+          }
+
+          this.player.x += dx;
+          this.player.y += dy;
+
+          // Keep player within bounds
+          this.player.x = Math.max(20, Math.min(this.canvas.width - 20, this.player.x));
+          this.player.y = Math.max(20, Math.min(this.canvas.height - 20, this.player.y));
+
+          // Update player in players map
+          if (this.players.has(this.playerId)) {
+            const playerData = this.players.get(this.playerId);
+            playerData.x = this.player.x;
+            playerData.y = this.player.y;
+            playerData.angle = this.player.angle;
+          }
+        }
+
+        render() {
+          // Clear canvas
+          this.ctx.fillStyle = '#2c3e50';
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+          // Draw map grid
+          this.drawGrid();
+
+          // Draw bomb sites (if terrorist or spectating)
+          if (this.bombSystem && (this.player.team === 't' || this.gameState === 'spectating')) {
+            this.bombSystem.renderBombsites(this.ctx);
+          }
+
+          // Draw all players
+          this.players.forEach((player) => {
+            this.drawPlayer(player);
+          });
+
+          // Draw dropped weapons
+          this.drawDroppedWeapons();
+
+          // Draw bullets
+          this.drawBullets();
+
+          // Draw grenade effects
+          if (this.grenadeSystem) {
+            this.grenadeSystem.renderGrenadeEffects(this.ctx);
+          }
+
+          // Draw minimap
+          this.drawMinimap();
+        }
+
+        drawDroppedWeapons() {
+          this.ctx.save();
+
+          // Remove old weapons after 60 seconds
+          const now = Date.now();
+          this.droppedWeapons = this.droppedWeapons.filter((w) => now - w.timestamp < 60000);
+
+          // Draw each dropped weapon
+          this.droppedWeapons.forEach((weapon) => {
+            // Draw weapon box
+            this.ctx.strokeStyle = '#ffd700';
+            this.ctx.lineWidth = 2;
+            this.ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+            this.ctx.strokeRect(weapon.x - 15, weapon.y - 10, 30, 20);
+            this.ctx.fillRect(weapon.x - 15, weapon.y - 10, 30, 20);
+
+            // Draw weapon name
+            this.ctx.fillStyle = '#ffd700';
+            this.ctx.font = '10px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(weapon.weapon.toUpperCase(), weapon.x, weapon.y);
+
+            // Draw ammo count
+            this.ctx.fillStyle = '#fff';
+            this.ctx.font = '8px Arial';
+            this.ctx.fillText(`${weapon.ammo}/${weapon.reserveAmmo}`, weapon.x, weapon.y + 10);
+          });
+
+          this.ctx.restore();
+        }
+
+        drawBullets() {
+          this.ctx.save();
+
+          // Draw each bullet
+          this.bullets.forEach((bullet) => {
+            // Draw bullet trail
+            this.ctx.strokeStyle = 'rgba(255, 255, 100, 0.8)';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(bullet.x - bullet.vx * 2, bullet.y - bullet.vy * 2);
+            this.ctx.lineTo(bullet.x, bullet.y);
+            this.ctx.stroke();
+
+            // Draw bullet
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.beginPath();
+            this.ctx.arc(bullet.x, bullet.y, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+          });
+
+          this.ctx.restore();
+        }
+
+        drawGrid() {
+          this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+          this.ctx.lineWidth = 1;
+
+          const gridSize = 50;
+          for (let x = 0; x < this.canvas.width; x += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.canvas.height);
+            this.ctx.stroke();
+          }
+
+          for (let y = 0; y < this.canvas.height; y += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.canvas.width, y);
+            this.ctx.stroke();
+          }
+        }
+
+        drawPlayer(player) {
+          this.ctx.save();
+
+          // Check if player is dead
+          const isDead = player.health <= 0;
+
+          if (isDead) {
+            // Draw dead player as gray with X mark
+            this.ctx.fillStyle = '#555555';
+            this.ctx.globalAlpha = 0.5;
+            this.ctx.beginPath();
+            this.ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw X mark over dead player
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 3;
+            this.ctx.globalAlpha = 0.8;
+
+            // Draw X
+            const size = 12;
+            this.ctx.beginPath();
+            this.ctx.moveTo(player.x - size, player.y - size);
+            this.ctx.lineTo(player.x + size, player.y + size);
+            this.ctx.moveTo(player.x + size, player.y - size);
+            this.ctx.lineTo(player.x - size, player.y + size);
+            this.ctx.stroke();
+
+            // Draw death timer
+            if (player.deathTime) {
+              const respawnIn = Math.ceil((5000 - (Date.now() - player.deathTime)) / 1000);
+              if (respawnIn > 0) {
+                this.ctx.globalAlpha = 1;
+                this.ctx.fillStyle = '#fff';
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(respawnIn + 's', player.x, player.y + 5);
+              }
+            }
+          } else {
+            // Draw alive player with different colors for bots
+            if (player.isCurrentPlayer) {
+              this.ctx.fillStyle = '#3498db'; // Blue for current player
+            } else if (player.isBot) {
+              // Different colors for bot difficulties
+              this.ctx.fillStyle =
+                player.difficulty === 'easy'
+                  ? '#27ae60' // Green for easy
+                  : player.difficulty === 'hard'
+                    ? '#8b4513' // Brown for hard
+                    : '#f39c12'; // Orange for normal
+            } else {
+              this.ctx.fillStyle = '#e74c3c'; // Red for other players
+            }
+            this.ctx.beginPath();
+            this.ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw direction indicator (only for alive players)
+            this.ctx.strokeStyle = '#fff';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(player.x, player.y);
+            this.ctx.lineTo(
+              player.x + Math.cos(player.angle) * 25,
+              player.y + Math.sin(player.angle) * 25,
+            );
+            this.ctx.stroke();
+          }
+
+          // Draw player name with bot indicator
+          this.ctx.globalAlpha = 1;
+          this.ctx.fillStyle = isDead ? '#888' : '#fff';
+          this.ctx.font = '12px Arial';
+          this.ctx.textAlign = 'center';
+          const displayName = player.isBot ? `[BOT] ${player.name}` : player.name;
+          this.ctx.fillText(displayName, player.x, player.y - 25);
+
+          // Draw health bar
+          const barWidth = 30;
+          const barHeight = 4;
+          const barX = player.x - barWidth / 2;
+          const barY = player.y + 20;
+
+          this.ctx.fillStyle = '#333';
+          this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+          if (!isDead && player.health > 0) {
+            this.ctx.fillStyle = player.health > 50 ? '#27ae60' : '#e74c3c';
+            this.ctx.fillRect(barX, barY, (barWidth * player.health) / 100, barHeight);
+          } else {
+            // Show empty health bar for dead players
+            this.ctx.fillStyle = '#222';
+            this.ctx.fillRect(barX, barY, barWidth, barHeight);
+          }
+
+          // Show HP text (0/100 for dead)
+          this.ctx.fillStyle = isDead ? '#888' : '#fff';
+          this.ctx.font = '10px Arial';
+          this.ctx.textAlign = 'center';
+          this.ctx.fillText(`${Math.max(0, Math.floor(player.health))}/100`, player.x, barY + 15);
+
+          // Draw reload progress bar next to player
+          if (player === this.player && player.isReloading) {
+            const reloadProgress = Math.min(
+              1,
+              (Date.now() - player.reloadStartTime) / player.reloadDuration,
+            );
+            const reloadBarWidth = 4;
+            const reloadBarHeight = 30;
+            const reloadBarX = player.x + 20;
+            const reloadBarY = player.y - reloadBarHeight / 2;
+
+            // Background
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            this.ctx.fillRect(reloadBarX, reloadBarY, reloadBarWidth, reloadBarHeight);
+
+            // Progress
+            this.ctx.fillStyle = '#ffffff';
+            const fillHeight = reloadBarHeight * reloadProgress;
+            this.ctx.fillRect(
+              reloadBarX,
+              reloadBarY + reloadBarHeight - fillHeight,
+              reloadBarWidth,
+              fillHeight,
+            );
+
+            // Border
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(reloadBarX, reloadBarY, reloadBarWidth, reloadBarHeight);
+          }
+
+          this.ctx.restore();
+        }
+
+        drawMinimap() {
+          // Clear minimap
+          this.minimapCtx.fillStyle = '#000';
+          this.minimapCtx.fillRect(0, 0, this.minimapCanvas.width, this.minimapCanvas.height);
+
+          // Scale factor for minimap
+          const scaleX = this.minimapCanvas.width / this.canvas.width;
+          const scaleY = this.minimapCanvas.height / this.canvas.height;
+
+          // Draw players on minimap
+          this.players.forEach((player) => {
+            // Skip dead players or show them differently
+            if (player.health <= 0) {
+              this.minimapCtx.fillStyle = '#555'; // Gray for dead players
+              this.minimapCtx.globalAlpha = 0.3;
+            } else {
+              this.minimapCtx.fillStyle = player.isCurrentPlayer ? '#3498db' : '#e74c3c';
+              this.minimapCtx.globalAlpha = 1;
+            }
+
+            this.minimapCtx.beginPath();
+            this.minimapCtx.arc(player.x * scaleX, player.y * scaleY, 3, 0, Math.PI * 2);
+            this.minimapCtx.fill();
+          });
+
+          this.minimapCtx.globalAlpha = 1; // Reset alpha
+        }
+
+        updateHUD() {
+          // Update health
+          document.getElementById('health-text').textContent = this.player.health;
+          document.getElementById('health-fill').style.width = `${this.player.health}%`;
+
+          // Update ammo
+          document.getElementById('current-ammo').textContent = this.player.ammo;
+          document.getElementById('reserve-ammo').textContent = this.player.reserveAmmo;
+
+          // Update equipment bar
+          this.updateEquipmentBar();
+        }
+
+        updateEquipmentBar() {
+          // Clear all active states
+          document.querySelectorAll('.weapon-slot').forEach((slot) => {
+            slot.classList.remove('active');
+          });
+
+          // Update primary weapon (slot 1)
+          const slot1 = document.getElementById('slot-1');
+          const primaryWeapons = ['ak47', 'm4a1', 'awp', 'scout', 'mp5', 'galil', 'famas'];
+          const hasPrimary = primaryWeapons.includes(this.player.weapon);
+          if (hasPrimary) {
+            slot1.querySelector('.weapon-name').textContent = this.player.weapon.toUpperCase();
+            slot1.querySelector('.ammo-count').textContent = `${this.player.ammo}`;
+            if (this.currentWeapon === 1) slot1.classList.add('active');
+          } else {
+            slot1.querySelector('.weapon-name').textContent = 'Empty';
+            slot1.querySelector('.ammo-count').textContent = '';
+          }
+
+          // Update secondary weapon (slot 2)
+          const slot2 = document.getElementById('slot-2');
+          const secondaryWeapons = ['glock', 'usp', 'deagle', 'p228'];
+          const hasSecondary = secondaryWeapons.includes(this.player.weapon);
+          if (hasSecondary) {
+            slot2.querySelector('.weapon-name').textContent = this.player.weapon.toUpperCase();
+            slot2.querySelector('.ammo-count').textContent = `${this.player.ammo}`;
+            if (this.currentWeapon === 2) slot2.classList.add('active');
+          } else if (!hasPrimary && this.player.weapon !== 'knife') {
+            // If current weapon is not primary and not knife, it must be secondary
+            slot2.querySelector('.weapon-name').textContent = this.player.weapon.toUpperCase();
+            slot2.querySelector('.ammo-count').textContent = `${this.player.ammo}`;
+            if (this.currentWeapon === 2) slot2.classList.add('active');
+          } else {
+            slot2.querySelector('.weapon-name').textContent = 'Empty';
+            slot2.querySelector('.ammo-count').textContent = '';
+          }
+
+          // Knife is always available (slot 3)
+          const slot3 = document.getElementById('slot-3');
+          if (this.player.weapon === 'knife' || this.currentWeapon === 3) {
+            slot3.classList.add('active');
+          }
+
+          // Update grenades (slots 4 and 5)
+          if (this.grenadeSystem) {
+            const slot4 = document.getElementById('slot-4');
+            const heCount = this.grenadeSystem.inventory?.hegrenade || 0;
+            slot4.querySelector('.ammo-count').textContent = heCount;
+
+            const slot5 = document.getElementById('slot-5');
+            const flashCount = this.grenadeSystem.inventory?.flashbang || 0;
+            slot5.querySelector('.ammo-count').textContent = flashCount;
+          }
+        }
+
+        updateScoreboard() {
+          const tbody = document.getElementById('scoreboard-body');
+          tbody.innerHTML = '';
+
+          // Sort players by score
+          const sortedPlayers = Array.from(this.players.values()).sort((a, b) => b.score - a.score);
+
+          sortedPlayers.forEach((player) => {
+            const row = tbody.insertRow();
+            const nameDisplay = player.isBot ? `[BOT] ${player.name}` : player.name;
+            row.innerHTML = `
+                        <td>${nameDisplay}</td>
+                        <td>${player.score}</td>
+                        <td>${player.kills}</td>
+                        <td>${player.deaths}</td>
+                    `;
+
+            if (player.isCurrentPlayer) {
+              row.style.backgroundColor = 'rgba(52, 152, 219, 0.2)';
+            } else if (player.isBot) {
+              row.style.backgroundColor = 'rgba(243, 156, 18, 0.1)';
+            }
+          });
+        }
+
+        shoot() {
+          // Check if player is dead
+          if (this.player.health <= 0 || !this.player.alive) {
+            this.addChatMessage('系統', '你已死亡，等待重生...', 'system');
+            return;
+          }
+
+          // Cannot shoot while reloading
+          if (this.player.isReloading) {
+            return;
+          }
+
+          // Check fire rate
+          const now = Date.now();
+          if (now - this.lastShotTime < this.fireRate) {
+            return; // Too soon to shoot again
+          }
+
+          if (this.player.ammo <= 0) {
+            this.addChatMessage('系統', '彈藥不足！按 R 重新裝彈', 'system');
+            // Auto-reload when empty
+            this.reload();
+            return;
+          }
+
+          this.player.ammo--;
+          this.lastShotTime = now;
+
+          // Get weapon damage based on CS 1.6 authentic values
+          const weaponDamage = {
+            glock: 25,
+            usp: 34,
+            deagle: 54,
+            ak47: 36,
+            m4a1: 33,
+            awp: 115,
+            m3: 20, // Shotgun pellet damage
+            xm1014: 22, // Auto shotgun pellet damage
+          };
+
+          // Check if weapon is a shotgun
+          const shotguns = ['m3', 'xm1014'];
+          const isShotgun = shotguns.includes(this.player.weapon);
+
+          if (isShotgun) {
+            // Shotgun shoots multiple pellets with spread
+            const pelletCount = this.player.weapon === 'xm1014' ? 6 : 8; // XM1014 has 6 pellets, M3 has 8
+            const spreadAngle = 0.15; // Spread in radians
+
+            for (let i = 0; i < pelletCount; i++) {
+              // Calculate spread for each pellet
+              const angleOffset = (Math.random() - 0.5) * spreadAngle;
+              const pelletAngle = this.player.angle + angleOffset;
+
+              // Add some distance variation
+              const speedVariation = 0.8 + Math.random() * 0.4; // 80% to 120% speed
+              const bulletSpeed = 15 * speedVariation;
+
+              const bullet = {
+                x: this.player.x,
+                y: this.player.y,
+                vx: Math.cos(pelletAngle) * bulletSpeed,
+                vy: Math.sin(pelletAngle) * bulletSpeed,
+                angle: pelletAngle,
+                damage: weaponDamage[this.player.weapon] || 20,
+                owner: this.playerId,
+                lifetime: 40, // Shorter range for shotgun pellets
+              };
+
+              this.bullets.push(bullet);
+            }
+
+            // Bigger muzzle flash for shotguns
+            this.createShotgunMuzzleFlash(this.player.x, this.player.y, this.player.angle);
+          } else {
+            // Regular single bullet weapons
+            const bulletSpeed = 15; // pixels per frame
+            const bullet = {
+              x: this.player.x,
+              y: this.player.y,
+              vx: Math.cos(this.player.angle) * bulletSpeed,
+              vy: Math.sin(this.player.angle) * bulletSpeed,
+              angle: this.player.angle,
+              damage: weaponDamage[this.player.weapon] || 25, // Use weapon damage or default to Glock
+              owner: this.playerId,
+              lifetime: 60, // frames before bullet disappears
+            };
+
+            this.bullets.push(bullet);
+
+            // Muzzle flash effect
+            this.createMuzzleFlash(this.player.x, this.player.y, this.player.angle);
+          }
+
+          // Play shooting sound (if implemented)
+          // this.playSound('shoot');
+
+          console.log('Shot fired!', {
+            weapon: this.player.weapon,
+            angle: this.player.angle,
+            ammo: this.player.ammo,
+            bullets: this.bullets.length,
+          });
+        }
+
+        shootAdvanced() {
+          // Use the weapon system for advanced shooting mechanics
+          if (this.weaponSystem) {
+            const success = this.weaponSystem.shoot(this.player.weapon, this.player, this.mouse);
+            if (success) {
+              console.log('Advanced shot fired!', {
+                weapon: this.player.weapon,
+                ammo: this.player.ammo,
+                bullets: this.bullets.length,
+              });
+            }
+            return success;
+          }
+          return false;
+        }
+
+        createBullet(x, y, angle, ownerId, isBot = false) {
+          // Get weapon damage based on CS 1.6 authentic values
+          const weaponDamage = {
+            glock: 25,
+            usp: 34,
+            deagle: 54,
+            ak47: 36,
+            m4a1: 33,
+            awp: 115,
+          };
+
+          // Create bullet object
+          const bulletSpeed = 15; // pixels per frame
+          const bullet = {
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * bulletSpeed,
+            vy: Math.sin(angle) * bulletSpeed,
+            angle: angle,
+            damage: weaponDamage['ak47'] || 25, // Bots use AK47 by default
+            owner: ownerId,
+            isBot: isBot,
+            lifetime: 60, // frames before bullet disappears
+          };
+
+          this.bullets.push(bullet);
+
+          // Muzzle flash effect
+          if (!isBot || Math.random() < 0.5) {
+            // Show muzzle flash for bots sometimes
+            this.createMuzzleFlash(x, y, angle);
+          }
+
+          return bullet;
+        }
+
+        createMuzzleFlash(x, y, angle) {
+          // Visual feedback for shooting
+          this.ctx.save();
+          this.ctx.translate(x, y);
+          this.ctx.rotate(angle);
+
+          // Draw muzzle flash
+          this.ctx.fillStyle = 'rgba(255, 255, 100, 0.8)';
+          this.ctx.beginPath();
+          this.ctx.arc(20, 0, 10, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.restore();
+        }
+
+        createShotgunMuzzleFlash(x, y, angle) {
+          // Bigger visual feedback for shotgun shooting
+          this.ctx.save();
+          this.ctx.translate(x, y);
+          this.ctx.rotate(angle);
+
+          // Draw larger muzzle flash with spread effect
+          const gradient = this.ctx.createRadialGradient(20, 0, 0, 20, 0, 20);
+          gradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
+          gradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.8)');
+          gradient.addColorStop(1, 'rgba(255, 100, 0, 0.3)');
+
+          this.ctx.fillStyle = gradient;
+          this.ctx.beginPath();
+          this.ctx.arc(20, 0, 20, -0.3, 0.3); // Cone shape for shotgun
+          this.ctx.lineTo(20, 0);
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          // Add some spark effects
+          for (let i = 0; i < 5; i++) {
+            const sparkAngle = (Math.random() - 0.5) * 0.5;
+            const sparkDistance = 25 + Math.random() * 10;
+            this.ctx.fillStyle = 'rgba(255, 255, 100, 0.9)';
+            this.ctx.beginPath();
+            this.ctx.arc(
+              Math.cos(sparkAngle) * sparkDistance,
+              Math.sin(sparkAngle) * sparkDistance,
+              2,
+              0,
+              Math.PI * 2,
+            );
+            this.ctx.fill();
+          }
+
+          this.ctx.restore();
+        }
+
+        reload() {
+          // Get weapon data for proper reload mechanics
+          const weapon = this.weaponSystem ? this.weaponSystem.getWeapon(this.player.weapon) : null;
+          const maxAmmo = weapon ? weapon.magazine : 30;
+          const reloadTime = weapon ? weapon.reloadTime : 2500;
+
+          // Check if can reload
+          if (
+            this.player.isReloading ||
+            this.player.ammo === maxAmmo ||
+            this.player.reserveAmmo === 0
+          )
+            return;
+
+          // Start reload
+          this.player.isReloading = true;
+          this.player.reloadStartTime = Date.now();
+          this.player.reloadDuration = reloadTime;
+
+          // Show reload UI
+          document.getElementById('reload-progress').style.display = 'block';
+          document.getElementById('reload-text').style.display = 'block';
+          document.getElementById('reload-progress-bar').style.width = '0%';
+
+          // Animate reload progress
+          const startTime = Date.now();
+          const reloadInterval = setInterval(() => {
+            if (!this.player.isReloading) {
+              clearInterval(reloadInterval);
+              return;
+            }
+
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min((elapsed / this.player.reloadDuration) * 100, 100);
+            document.getElementById('reload-progress-bar').style.width = progress + '%';
+
+            if (elapsed >= this.player.reloadDuration) {
+              // Complete reload
+              clearInterval(reloadInterval);
+              this.completeReload();
+            }
+          }, 10);
+
+          this.addChatMessage('系統', '換彈中...', 'system');
+        }
+
+        dropWeapon() {
+          if (this.player.weapon && this.player.weapon !== 'knife') {
+            // Drop current weapon
+            this.droppedWeapons.push({
+              x: this.player.x + Math.random() * 20 - 10,
+              y: this.player.y + Math.random() * 20 - 10,
+              weapon: this.player.weapon,
+              ammo: this.player.ammo,
+              reserveAmmo: this.player.reserveAmmo,
+              timestamp: Date.now(),
+            });
+
+            // Switch to knife
+            this.player.weapon = 'knife';
+            this.player.ammo = 0;
+            this.player.reserveAmmo = 0;
+
+            this.addChatMessage('系統', `丟棄了 ${this.player.weapon}`, 'system');
+          }
+        }
+
+        switchWeapon(slot) {
+          // Switch to different weapon slot
+          if (slot === 1) {
+            // Switch to primary if available
+            const primaryWeapons = ['ak47', 'm4a1', 'awp', 'scout', 'mp5', 'galil', 'famas'];
+            if (primaryWeapons.includes(this.player.weapon)) {
+              this.currentWeapon = 1;
+            }
+          } else if (slot === 2) {
+            // Switch to secondary if available
+            const secondaryWeapons = ['glock', 'usp', 'deagle', 'p228'];
+            if (secondaryWeapons.includes(this.player.weapon)) {
+              this.currentWeapon = 2;
+            }
+          } else if (slot === 3) {
+            // Always can switch to knife
+            this.currentWeapon = 3;
+            this.player.weapon = 'knife';
+            this.player.ammo = 0;
+            this.player.reserveAmmo = 0;
+          } else if (slot === 4) {
+            // Switch to HE grenade if available
+            if (this.grenadeSystem && this.grenadeSystem.inventory?.hegrenade > 0) {
+              this.currentWeapon = 4;
+              // Trigger grenade throw logic
+            }
+          } else if (slot === 5) {
+            // Switch to flashbang if available
+            if (this.grenadeSystem && this.grenadeSystem.inventory?.flashbang > 0) {
+              this.currentWeapon = 5;
+              // Trigger grenade throw logic
+            }
+          }
+
+          this.updateEquipmentBar();
+        }
+
+        pickupWeapon() {
+          // Find nearby dropped weapon
+          const pickupRadius = 30;
+          for (let i = this.droppedWeapons.length - 1; i >= 0; i--) {
+            const weapon = this.droppedWeapons[i];
+            const dist = Math.sqrt(
+              Math.pow(weapon.x - this.player.x, 2) + Math.pow(weapon.y - this.player.y, 2),
+            );
+
+            if (dist < pickupRadius) {
+              // Drop current weapon if not knife
+              if (this.player.weapon !== 'knife') {
+                this.dropWeapon();
+              }
+
+              // Pick up new weapon
+              this.player.weapon = weapon.weapon;
+              this.player.ammo = weapon.ammo;
+              this.player.reserveAmmo = weapon.reserveAmmo;
+
+              // Remove from dropped weapons
+              this.droppedWeapons.splice(i, 1);
+
+              this.addChatMessage('系統', `撿起了 ${weapon.weapon}`, 'system');
+              this.updateAmmoDisplay();
+              break;
+            }
+          }
+        }
+
+        completeReload() {
+          if (!this.player.isReloading) return;
+
+          // Get weapon data for proper ammo calculation
+          const weapon = this.weaponSystem ? this.weaponSystem.getWeapon(this.player.weapon) : null;
+          const maxAmmo = weapon ? weapon.magazine : 30;
+
+          const needed = maxAmmo - this.player.ammo;
+          const available = Math.min(needed, this.player.reserveAmmo);
+
+          this.player.ammo += available;
+          this.player.reserveAmmo -= available;
+          this.player.isReloading = false;
+
+          // Hide reload UI
+          document.getElementById('reload-progress').style.display = 'none';
+          document.getElementById('reload-text').style.display = 'none';
+
+          // Play reload sound if available
+          if (this.audioManager) {
+            this.audioManager.playSound('reload');
+          }
+
+          this.addChatMessage('系統', '換彈完成！', 'system');
+        }
+
+        cancelReload() {
+          if (!this.player.isReloading) return;
+
+          this.player.isReloading = false;
+
+          // Hide reload UI
+          document.getElementById('reload-progress').style.display = 'none';
+          document.getElementById('reload-text').style.display = 'none';
+
+          this.addChatMessage('系統', '換彈取消', 'warning');
+        }
+
+        // Buy system integration
+        purchaseItem(item, cost) {
+          if (this.player.money >= cost) {
+            this.player.money -= cost;
+
+            // Update weapon or equipment
+            if (item.startsWith('ak') || item.startsWith('m4') || item.startsWith('awp')) {
+              this.player.weapon = item;
+              this.player.ammo = 30; // Full mag
+              this.player.reserveAmmo = 90;
+            } else if (item === 'm3' || item === 'xm1014') {
+              // Shotgun purchases
+              this.player.weapon = item;
+              this.player.ammo = item === 'xm1014' ? 7 : 8; // XM1014 has 7 rounds, M3 has 8
+              this.player.reserveAmmo = 32; // 32 shells in reserve
+              this.fireRate = item === 'xm1014' ? 250 : 880; // XM1014 is auto, M3 is pump-action
+            } else if (item === 'kevlar' || item === 'kevlar_helmet') {
+              this.player.armor = item === 'kevlar' ? 65 : 100;
+            } else if (item === 'defuser') {
+              this.player.hasDefuseKit = true;
+              this.bombSystem.setHasDefuseKit(true);
+            } else if (item === 'hegrenade') {
+              this.grenadeSystem.updateInventory('hegrenade', 1);
+            } else if (item === 'flashbang') {
+              this.grenadeSystem.updateInventory(
+                'flashbang',
+                Math.min(2, (this.grenadeSystem.inventory.flashbang || 0) + 1),
+              );
+            } else if (item === 'smokegrenade') {
+              this.grenadeSystem.updateInventory('smokegrenade', 1);
+            }
+
+            return true;
+          }
+          return false;
+        }
+
+        purchaseAmmo(type, cost) {
+          if (this.player.money >= cost) {
+            this.player.money -= cost;
+            if (type === 'primary') {
+              this.player.reserveAmmo = Math.min(this.player.reserveAmmo + 30, 120);
+            }
+            return true;
+          }
+          return false;
+        }
+
+        // Grenade system integration
+        throwGrenade(params) {
+          // Send to server or handle locally
+          const grenade = {
+            type: params.type,
+            x: params.position.x,
+            y: params.position.y,
+            vx: Math.cos(params.angle) * params.velocity,
+            vy: Math.sin(params.angle) * params.velocity - 200, // Initial upward velocity
+            fuseTime: 1.5,
+          };
+
+          this.grenadeSystem.activeGrenades.push(grenade);
+          this.addChatMessage(
+            '系統',
+            `投擲了 ${this.grenadeSystem.grenadeTypes[params.type].name}`,
+            'info',
+          );
+        }
+
+        // Bomb system integration
+        onBombPlanted(site, position) {
+          this.addChatMessage('系統', `炸彈已在 ${site} 點放置！`, 'critical');
+          // Notify server
+        }
+
+        onBombDefused() {
+          this.addChatMessage('系統', '炸彈已被拆除！CT勝利！', 'success');
+          // End round
+        }
+
+        onBombExploded() {
+          this.addChatMessage('系統', '炸彈爆炸！T勝利！', 'critical');
+          // End round
+        }
+
+        createExplosion(x, y, damage, radius) {
+          // Visual explosion effect
+          this.ctx.save();
+          this.ctx.fillStyle = 'rgba(255, 100, 0, 0.8)';
+          this.ctx.beginPath();
+          this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.restore();
+
+          // Check damage to players
+          this.players.forEach((player) => {
+            const distance = Math.sqrt(Math.pow(player.x - x, 2) + Math.pow(player.y - y, 2));
+            if (distance < radius) {
+              const damageAmount = damage * (1 - distance / radius);
+              this.handlePlayerDamage(player.id, damageAmount);
+            }
+          });
+        }
+
+        addChatMessage(player, message, type = 'normal') {
+          const messagesDiv = document.getElementById('chat-messages');
+          const messageElement = document.createElement('div');
+          messageElement.className = 'chat-message';
+
+          if (type === 'system') {
+            messageElement.innerHTML = `<span class="system">${message}</span>`;
+          } else {
+            messageElement.innerHTML = `<span class="player">${player}:</span> ${message}`;
+          }
+
+          messagesDiv.appendChild(messageElement);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+          // Keep only last 50 messages
+          while (messagesDiv.children.length > 50) {
+            messagesDiv.removeChild(messagesDiv.firstChild);
+          }
+        }
+
+        sendChatMessage(message) {
+          if (!message) return;
+
+          this.addChatMessage(this.playerId, message);
+          // In real implementation, send to server
+          console.log('Chat message sent:', message);
+        }
+
+        focusChat() {
+          const chatInput = document.getElementById('chat-input');
+          chatInput.focus();
+        }
+
+        blurChat() {
+          const chatInput = document.getElementById('chat-input');
+          chatInput.blur();
+        }
+
+        toggleHelp() {
+          const helpDiv = document.getElementById('controls-help');
+          helpDiv.style.display = helpDiv.style.display === 'none' ? 'block' : 'none';
+        }
+
+        returnToRoom() {
+          if (confirm('確定要返回房間嗎？遊戲進度將會遺失。')) {
+            window.location.href = `/room.html?room_id=${this.roomId}&player_id=${this.playerId}`;
+          }
+        }
+
+        exitToLobby() {
+          if (confirm('確定要退出遊戲嗎？')) {
+            this.cleanup();
+            window.location.href = '/';
+          }
+        }
+
+        updateStatus(text) {
+          document.getElementById('status-text').textContent = text;
+        }
+
+        cleanup() {
+          this.gameState = 'stopped';
+
+          // Cleanup weapon system
+          if (this.weaponSystem) {
+            this.weaponSystem.cleanup();
+          }
+
+          // In real implementation, notify server that player left
+          console.log('Game cleanup completed');
+        }
+
+        delay(ms) {
+          return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+      }
+
+      // Initialize game when page loads
+      document.addEventListener('DOMContentLoaded', () => {
+        window.game = new CS2DGame();
+      });
+
+      // Prevent default behavior for game keys
+      document.addEventListener('keydown', (e) => {
+        const gameKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'Space', 'ControlLeft', 'F1'];
+        if (gameKeys.includes(e.code)) {
+          e.preventDefault();
+        }
+      });
+    </script>
+  </body>
+</html>

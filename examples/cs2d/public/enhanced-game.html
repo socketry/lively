@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS2D Enhanced - Advanced SPA Edition</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      color: #fff;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    #gameContainer {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #gameCanvas {
+      border: 2px solid #333;
+      box-shadow: 0 0 50px rgba(0, 150, 255, 0.5);
+      cursor: crosshair;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    
+    #hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    .hud-element {
+      position: absolute;
+      pointer-events: auto;
+    }
+    
+    #fpsCounter {
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+    }
+    
+    #healthBar {
+      bottom: 30px;
+      left: 30px;
+      width: 300px;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid #333;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+    
+    .bar-container {
+      width: 100%;
+      height: 25px;
+      background: #1a1a1a;
+      border-radius: 15px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid #444;
+    }
+    
+    .bar-fill {
+      height: 100%;
+      transition: width 0.3s ease, background 0.3s ease;
+      border-radius: 15px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .health-fill {
+      background: linear-gradient(90deg, #ff3333 0%, #ff6666 50%, #ff9999 100%);
+      box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.3);
+    }
+    
+    .health-fill.high {
+      background: linear-gradient(90deg, #00ff00 0%, #33ff33 50%, #66ff66 100%);
+    }
+    
+    .health-fill.medium {
+      background: linear-gradient(90deg, #ffaa00 0%, #ffcc00 50%, #ffee00 100%);
+    }
+    
+    .health-fill.low {
+      background: linear-gradient(90deg, #ff0000 0%, #ff3333 50%, #ff6666 100%);
+      animation: pulse 0.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .bar-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-weight: bold;
+      font-size: 14px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+      z-index: 1;
+    }
+    
+    #armorBar {
+      bottom: 30px;
+      left: 350px;
+      width: 200px;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid #333;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+    
+    .armor-fill {
+      background: linear-gradient(90deg, #0099ff 0%, #33aaff 50%, #66ccff 100%);
+      box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.3);
+    }
+    
+    #ammoDisplay {
+      bottom: 30px;
+      right: 30px;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid #333;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      min-width: 150px;
+    }
+    
+    #ammoDisplay .current-ammo {
+      font-size: 48px;
+      font-weight: bold;
+      color: #ffcc00;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      font-family: 'Impact', sans-serif;
+    }
+    
+    #ammoDisplay .reserve-ammo {
+      font-size: 24px;
+      color: #999;
+      margin-top: 5px;
+    }
+    
+    #ammoDisplay .weapon-name {
+      font-size: 14px;
+      color: #666;
+      margin-top: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    #minimap {
+      top: 20px;
+      right: 20px;
+      width: 250px;
+      height: 250px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 3px solid #444;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+    }
+    
+    #minimapCanvas {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+    }
+    
+    #scoreboard {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 40, 0.95) 100%);
+      padding: 30px;
+      border-radius: 15px;
+      border: 2px solid #444;
+      box-shadow: 0 10px 50px rgba(0, 0, 0, 0.8);
+      display: none;
+      z-index: 1000;
+      min-width: 600px;
+    }
+    
+    #scoreboard h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #ffcc00;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 24px;
+    }
+    
+    #scoreboard table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 5px;
+    }
+    
+    #scoreboard th {
+      background: rgba(255, 204, 0, 0.2);
+      padding: 10px;
+      text-align: left;
+      color: #ffcc00;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+    
+    #scoreboard td {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px;
+      color: #ccc;
+      font-size: 14px;
+    }
+    
+    #scoreboard tr.ct-team td {
+      background: rgba(0, 100, 200, 0.2);
+      border-left: 3px solid #0066cc;
+    }
+    
+    #scoreboard tr.t-team td {
+      background: rgba(200, 100, 0, 0.2);
+      border-left: 3px solid #cc6600;
+    }
+    
+    #scoreboard tr.local-player td {
+      background: rgba(255, 204, 0, 0.2);
+      color: #fff;
+      font-weight: bold;
+    }
+    
+    #killfeed {
+      top: 100px;
+      right: 20px;
+      width: 300px;
+      max-height: 200px;
+      pointer-events: none;
+    }
+    
+    .killfeed-entry {
+      background: rgba(0, 0, 0, 0.8);
+      padding: 8px 12px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      animation: slideIn 0.3s ease;
+      border-left: 3px solid #ff3333;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .killfeed-entry .killer {
+      color: #00ff00;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .killfeed-entry .weapon {
+      color: #ffcc00;
+      margin: 0 10px;
+      font-size: 20px;
+    }
+    
+    .killfeed-entry .victim {
+      color: #ff3333;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    
+    .killfeed-entry.headshot {
+      border-left-color: #ffcc00;
+    }
+    
+    #crosshair {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 99;
+    }
+    
+    .crosshair-line {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+    }
+    
+    .crosshair-h {
+      width: 20px;
+      height: 2px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .crosshair-v {
+      width: 2px;
+      height: 20px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .crosshair-dot {
+      width: 4px;
+      height: 4px;
+      background: #00ff00;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 4px #00ff00;
+    }
+    
+    #roundTimer {
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      padding: 10px 30px;
+      border-radius: 10px;
+      border: 2px solid #444;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      min-width: 200px;
+    }
+    
+    #roundTimer .time {
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 32px;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+    
+    #roundTimer .time.warning {
+      color: #ffcc00;
+      text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+    }
+    
+    #roundTimer .time.critical {
+      color: #ff3333;
+      text-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+      animation: blink 0.5s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    #teamScore {
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 2px solid #444;
+    }
+    
+    .team-score {
+      padding: 5px 15px;
+      border-radius: 5px;
+      font-size: 20px;
+      font-weight: bold;
+      min-width: 60px;
+      text-align: center;
+    }
+    
+    .team-score.ct {
+      background: rgba(0, 100, 200, 0.3);
+      color: #3399ff;
+      border: 1px solid #0066cc;
+    }
+    
+    .team-score.t {
+      background: rgba(200, 100, 0, 0.3);
+      color: #ff9933;
+      border: 1px solid #cc6600;
+    }
+    
+    #moneyDisplay {
+      bottom: 120px;
+      left: 30px;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 2px solid #333;
+      font-size: 24px;
+      color: #00ff00;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+    }
+    
+    #moneyDisplay::before {
+      content: '$';
+      color: #666;
+      margin-right: 5px;
+    }
+    
+    #loadingScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    
+    #loadingScreen h1 {
+      font-size: 48px;
+      margin-bottom: 30px;
+      text-transform: uppercase;
+      letter-spacing: 5px;
+      background: linear-gradient(90deg, #00ff00, #ffcc00, #ff3333);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradient 3s ease infinite;
+    }
+    
+    @keyframes gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .loading-bar {
+      width: 400px;
+      height: 30px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 15px;
+      overflow: hidden;
+      border: 2px solid #333;
+    }
+    
+    .loading-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #00ff00, #33ff33, #66ff66);
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+    }
+    
+    .loading-text {
+      margin-top: 20px;
+      color: #666;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingScreen">
+    <h1>CS2D Enhanced</h1>
+    <div class="loading-bar">
+      <div class="loading-progress" id="loadingProgress"></div>
+    </div>
+    <div class="loading-text" id="loadingText">Loading game assets...</div>
+  </div>
+  
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="1280" height="720"></canvas>
+    
+    <div id="hud">
+      <div id="fpsCounter" class="hud-element">
+        FPS: <span id="fpsValue">60</span>
+      </div>
+      
+      <div id="roundTimer" class="hud-element">
+        <div class="time" id="timerValue">1:55</div>
+      </div>
+      
+      <div id="teamScore" class="hud-element">
+        <div class="team-score ct">CT: <span id="ctScore">0</span></div>
+        <div class="team-score t">T: <span id="tScore">0</span></div>
+      </div>
+      
+      <div id="healthBar" class="hud-element">
+        <div class="bar-container">
+          <div class="bar-fill health-fill high" id="healthFill" style="width: 100%">
+            <span class="bar-text">100 HP</span>
+          </div>
+        </div>
+      </div>
+      
+      <div id="armorBar" class="hud-element">
+        <div class="bar-container">
+          <div class="bar-fill armor-fill" id="armorFill" style="width: 0%">
+            <span class="bar-text">0 AP</span>
+          </div>
+        </div>
+      </div>
+      
+      <div id="moneyDisplay" class="hud-element">16000</div>
+      
+      <div id="ammoDisplay" class="hud-element">
+        <div class="current-ammo" id="currentAmmo">30</div>
+        <div class="reserve-ammo">/ <span id="reserveAmmo">90</span></div>
+        <div class="weapon-name" id="weaponName">AK-47</div>
+      </div>
+      
+      <div id="minimap" class="hud-element">
+        <canvas id="minimapCanvas" width="250" height="250"></canvas>
+      </div>
+      
+      <div id="killfeed" class="hud-element"></div>
+      
+      <div id="crosshair">
+        <div class="crosshair-line crosshair-h"></div>
+        <div class="crosshair-line crosshair-v"></div>
+        <div class="crosshair-dot"></div>
+      </div>
+    </div>
+    
+    <div id="scoreboard">
+      <h2>SCOREBOARD</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>K</th>
+            <th>D</th>
+            <th>A</th>
+            <th>Score</th>
+            <th>Ping</th>
+          </tr>
+        </thead>
+        <tbody id="scoreboardBody"></tbody>
+      </table>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { GameCore } from '/src/game/GameCore.js';
+    
+    // Loading simulation
+    function simulateLoading() {
+      const progress = document.getElementById('loadingProgress');
+      const text = document.getElementById('loadingText');
+      const messages = [
+        'Loading game assets...',
+        'Initializing physics engine...',
+        'Loading weapon systems...',
+        'Preparing maps...',
+        'Setting up audio...',
+        'Connecting to server...',
+        'Ready!'
+      ];
+      
+      let currentProgress = 0;
+      const interval = setInterval(() => {
+        currentProgress += Math.random() * 20;
+        if (currentProgress > 100) currentProgress = 100;
+        
+        progress.style.width = currentProgress + '%';
+        text.textContent = messages[Math.floor(currentProgress / 15)] || messages[messages.length - 1];
+        
+        if (currentProgress >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            document.getElementById('loadingScreen').style.display = 'none';
+            initGame();
+          }, 500);
+        }
+      }, 200);
+    }
+    
+    function initGame() {
+      const canvas = document.getElementById('gameCanvas');
+      const game = new GameCore(canvas);
+      
+      // Add test player
+      game.addPlayer({
+        id: 'player1',
+        name: 'Player',
+        team: 'ct',
+        position: { x: 400, y: 300 },
+        velocity: { x: 0, y: 0 },
+        health: 100,
+        armor: 0,
+        money: 16000,
+        score: 0,
+        kills: 0,
+        deaths: 0,
+        assists: 0,
+        currentWeapon: 'ak47',
+        weapons: ['ak47', 'glock'],
+        ammo: new Map([['ak47', 30], ['glock', 20]]),
+        isAlive: true,
+        isDucking: false,
+        isWalking: false,
+        isScoped: false,
+        lastShotTime: 0,
+        lastStepTime: 0
+      });
+      
+      game.setLocalPlayer('player1');
+      game.start();
+      
+      // Update HUD
+      setInterval(() => {
+        updateHUD();
+      }, 100);
+    }
+    
+    function updateHUD() {
+      // Update FPS
+      // Update health/armor
+      // Update ammo
+      // Update timer
+      // etc.
+    }
+    
+    // Show/hide scoreboard
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        document.getElementById('scoreboard').style.display = 'block';
+      }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        document.getElementById('scoreboard').style.display = 'none';
+      }
+    });
+    
+    // Start loading
+    window.addEventListener('DOMContentLoaded', () => {
+      simulateLoading();
+    });
+  </script>
+</body>
+</html>

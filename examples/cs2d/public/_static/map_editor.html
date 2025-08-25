@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CS2D Map Editor</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #1a1a1a;
+        color: #fff;
+        font-family: 'Courier New', monospace;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #sidebar {
+        width: 250px;
+        background: #2a2a2a;
+        padding: 20px;
+        overflow-y: auto;
+        border-right: 2px solid #444;
+      }
+
+      #main-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      #toolbar {
+        background: #333;
+        padding: 10px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        border-bottom: 2px solid #444;
+      }
+
+      #canvas-container {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        position: relative;
+      }
+
+      #map-canvas {
+        border: 2px solid #555;
+        cursor: crosshair;
+        background: #000;
+        image-rendering: pixelated;
+      }
+
+      .tile-button {
+        padding: 8px;
+        margin: 5px;
+        background: #444;
+        border: 2px solid #666;
+        color: #fff;
+        cursor: pointer;
+        width: 90%;
+        text-align: left;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+
+      .tile-button:hover {
+        background: #555;
+        border-color: #888;
+      }
+
+      .tile-button.selected {
+        background: #666;
+        border-color: #0af;
+      }
+
+      .tile-preview {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+        vertical-align: middle;
+        border: 1px solid #333;
+      }
+
+      h3 {
+        color: #0af;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+
+      .tool-button {
+        padding: 5px 10px;
+        background: #444;
+        border: 1px solid #666;
+        color: #fff;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .tool-button:hover {
+        background: #555;
+      }
+
+      .tool-button.active {
+        background: #0af;
+        color: #000;
+      }
+
+      #status {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 5px 10px;
+        font-size: 12px;
+        border: 1px solid #444;
+      }
+
+      #minimap {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        border: 2px solid #444;
+        background: #000;
+        width: 200px;
+        height: 150px;
+      }
+
+      input[type='text'],
+      input[type='number'],
+      select {
+        background: #333;
+        border: 1px solid #555;
+        color: #fff;
+        padding: 5px;
+        width: 100%;
+        margin: 5px 0;
+      }
+
+      .section {
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #444;
+      }
+
+      #coordinates {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 5px 10px;
+        font-size: 12px;
+        border: 1px solid #444;
+      }
+
+      .keyboard-hint {
+        font-size: 10px;
+        color: #888;
+        margin-left: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sidebar">
+      <h2 style="color: #0af; margin-top: 0">CS2D Map Editor</h2>
+
+      <div class="section">
+        <h3>Map Properties</h3>
+        <input type="text" id="map-name" placeholder="Map Name" value="custom_map" />
+        <input type="text" id="map-author" placeholder="Author" value="Player" />
+        <select id="map-mode">
+          <option value="defuse">Defuse</option>
+          <option value="hostage">Hostage</option>
+          <option value="deathmatch">Deathmatch</option>
+        </select>
+        <label> Width: <input type="number" id="map-width" value="40" min="20" max="100" /> </label>
+        <label>
+          Height: <input type="number" id="map-height" value="30" min="20" max="100" />
+        </label>
+      </div>
+
+      <div class="section">
+        <h3>Tile Palette</h3>
+
+        <h4 style="color: #888; font-size: 12px">Basic</h4>
+        <div class="tile-button" data-tile="floor">
+          <span class="tile-preview" style="background: #3a3a3a"></span>
+          Floor <span class="keyboard-hint">[1]</span>
+        </div>
+        <div class="tile-button" data-tile="wall">
+          <span class="tile-preview" style="background: #808080"></span>
+          Wall <span class="keyboard-hint">[2]</span>
+        </div>
+        <div class="tile-button" data-tile="box">
+          <span class="tile-preview" style="background: #654321"></span>
+          Box <span class="keyboard-hint">[3]</span>
+        </div>
+        <div class="tile-button" data-tile="barrel">
+          <span class="tile-preview" style="background: #4a4a4a"></span>
+          Barrel <span class="keyboard-hint">[4]</span>
+        </div>
+
+        <h4 style="color: #888; font-size: 12px">Special</h4>
+        <div class="tile-button" data-tile="glass">
+          <span class="tile-preview" style="background: #87ceeb"></span>
+          Glass <span class="keyboard-hint">[G]</span>
+        </div>
+        <div class="tile-button" data-tile="water">
+          <span class="tile-preview" style="background: #0066cc"></span>
+          Water <span class="keyboard-hint">[W]</span>
+        </div>
+        <div class="tile-button" data-tile="door">
+          <span class="tile-preview" style="background: #8b6914"></span>
+          Door <span class="keyboard-hint">[D]</span>
+        </div>
+        <div class="tile-button" data-tile="ladder">
+          <span class="tile-preview" style="background: #8b4513"></span>
+          Ladder <span class="keyboard-hint">[L]</span>
+        </div>
+
+        <h4 style="color: #888; font-size: 12px">Spawn Points</h4>
+        <div class="tile-button" data-tile="ct_spawn">
+          <span class="tile-preview" style="background: #0088ff"></span>
+          CT Spawn <span class="keyboard-hint">[C]</span>
+        </div>
+        <div class="tile-button" data-tile="t_spawn">
+          <span class="tile-preview" style="background: #ff8800"></span>
+          T Spawn <span class="keyboard-hint">[T]</span>
+        </div>
+
+        <h4 style="color: #888; font-size: 12px">Zones</h4>
+        <div class="tile-button" data-tile="bombsite_a">
+          <span class="tile-preview" style="background: #ffaa00"></span>
+          Bombsite A <span class="keyboard-hint">[A]</span>
+        </div>
+        <div class="tile-button" data-tile="bombsite_b">
+          <span class="tile-preview" style="background: #ff00aa"></span>
+          Bombsite B <span class="keyboard-hint">[B]</span>
+        </div>
+        <div class="tile-button" data-tile="buy_zone_ct">
+          <span class="tile-preview" style="background: #0044aa"></span>
+          CT Buy Zone
+        </div>
+        <div class="tile-button" data-tile="buy_zone_t">
+          <span class="tile-preview" style="background: #aa4400"></span>
+          T Buy Zone
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Templates</h3>
+        <button class="tool-button" onclick="editor.loadTemplate('dust2')" style="width: 100%">
+          Load de_dust2
+        </button>
+        <button class="tool-button" onclick="editor.loadTemplate('inferno')" style="width: 100%">
+          Load de_inferno
+        </button>
+        <button class="tool-button" onclick="editor.loadTemplate('aim')" style="width: 100%">
+          Load aim_map
+        </button>
+        <button class="tool-button" onclick="editor.loadTemplate('iceworld')" style="width: 100%">
+          Load fy_iceworld
+        </button>
+      </div>
+    </div>
+
+    <div id="main-area">
+      <div id="toolbar">
+        <button class="tool-button active" id="tool-brush" onclick="editor.setTool('brush')">
+          🖌️ Brush
+        </button>
+        <button class="tool-button" id="tool-fill" onclick="editor.setTool('fill')">🪣 Fill</button>
+        <button class="tool-button" id="tool-line" onclick="editor.setTool('line')">📏 Line</button>
+        <button class="tool-button" id="tool-rect" onclick="editor.setTool('rect')">
+          ▭ Rectangle
+        </button>
+        <button class="tool-button" id="tool-select" onclick="editor.setTool('select')">
+          ⬚ Select
+        </button>
+        <span style="margin-left: 20px">|</span>
+        <button class="tool-button" onclick="editor.clearMap()">🗑️ Clear</button>
+        <button class="tool-button" onclick="editor.validateMap()">✓ Validate</button>
+        <button class="tool-button" onclick="editor.exportMap()">💾 Export</button>
+        <button class="tool-button" onclick="editor.importMap()">📁 Import</button>
+        <button class="tool-button" onclick="editor.undo()">↶ Undo</button>
+        <button class="tool-button" onclick="editor.redo()">↷ Redo</button>
+      </div>
+
+      <div id="canvas-container">
+        <canvas id="map-canvas"></canvas>
+        <div id="coordinates">X: 0, Y: 0</div>
+        <canvas id="minimap"></canvas>
+        <div id="status">Ready</div>
+      </div>
+    </div>
+
+    <script src="map_editor.js"></script>
+  </body>
+</html>

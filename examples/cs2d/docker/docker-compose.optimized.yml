@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Redis service
+  redis:
+    image: redis:7-alpine
+    container_name: cs2d-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+
+  # Base image (built first, cached heavily)
+  base-image:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+    image: cs2d_base:latest
+    profiles:
+      - build-base
+
+  # Optimized Lively application
+  lively-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.lively.optimized
+    container_name: cs2d-lively
+    ports:
+      - "9292:9292"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - RACK_ENV=production
+      - LIVELY_ENV=production
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+
+  # Static server (unchanged, already optimal)
+  static-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.static
+    container_name: cs2d-static
+    ports:
+      - "9293:9293"
+    environment:
+      - PORT=9293
+    volumes:
+      - ./public:/app/public:ro
+      - ./cstrike:/app/cstrike:ro
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+
+  # Optimized API Bridge
+  api-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.api.optimized
+    container_name: cs2d-api-bridge
+    ports:
+      - "9294:9294"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PORT=9294
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2d-network
+    restart: unless-stopped
+
+networks:
+  cs2d-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+
+volumes:
+  redis-data:
+    driver: local

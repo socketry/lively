@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CS2D Demo</title>
+    <style>
+      body { font-family: -apple-system, Segoe UI, Arial, sans-serif; background:#0f1217; color:#e6e6e6; }
+      .container { max-width: 720px; margin: 48px auto; padding: 24px; background: #1a1f27; border-radius: 12px; border:1px solid #2a3240; }
+      h1 { margin-top: 0; }
+      a { color: #7aa2f7; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .row { display: flex; gap: 12px; margin: 8px 0; }
+      input { flex:1; padding: 10px 12px; border-radius: 8px; border:1px solid #2a3240; background:#0f1217; color:#e6e6e6; }
+      button { padding: 10px 14px; border-radius: 8px; border:1px solid #2a3240; background:#2f3b52; color:#e6e6e6; cursor:pointer; }
+      button:hover { background:#3a4a68; }
+      .note { color:#9aa4b2; font-size: 0.9em; }
+      ul { line-height: 1.9; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>CS2D Demo</h1>
+      <p class="note">This is a simple landing page for the static server at <code>/</code>. Use the form to open a room, or navigate directly to existing pages.</p>
+
+      <h3>Quick Start</h3>
+      <div class="row">
+        <input id="roomId" placeholder="room_id (e.g., demo_room)" />
+        <input id="playerId" placeholder="player_id (e.g., host_123)" />
+        <button id="openRoom">Open Room</button>
+      </div>
+      <p class="note">As host, you can add bots and start the game. The game reads room data from <code>localStorage</code>.</p>
+
+      <h3>Pages</h3>
+      <ul>
+        <li><a href="/room.html?room_id=demo_room&player_id=host_1">Room (sample)</a></li>
+        <li><a href="/game.html?room_id=demo_room&player_id=host_1&nickname=Player">Game (sample)</a></li>
+        <li><a href="/health">Server Health</a></li>
+      </ul>
+    </div>
+
+    <script>
+      document.getElementById('openRoom').addEventListener('click', () => {
+        const room = document.getElementById('roomId').value || 'demo_room';
+        const player = document.getElementById('playerId').value || 'host_1';
+        window.location.href = `/room.html?room_id=${encodeURIComponent(room)}&player_id=${encodeURIComponent(player)}`;
+      });
+    </script>
+  </body>
+  </html>
+

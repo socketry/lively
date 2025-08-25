@@ -1,0 +1,258 @@
+/* HUD Component Styles */
+
+.hudContainer {
+  font-family: 'Courier New', 'Lucida Console', monospace;
+  user-select: none;
+  pointer-events: none;
+}
+
+.hudContainer * {
+  box-sizing: border-box;
+}
+
+/* Pulse animation for low health */
+@keyframes healthPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.lowHealth {
+  animation: healthPulse 1s infinite;
+}
+
+/* Crosshair animations */
+@keyframes crosshairHit {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.hitMarker {
+  animation: crosshairHit 0.2s ease-out;
+}
+
+/* Kill feed animations */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.killFeedEntry {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+/* Notification animations */
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3) translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05) translateY(0);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.notification {
+  animation: bounceIn 0.5s ease-out;
+}
+
+/* Buy menu animations */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal {
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+/* Weapon inventory hover effects */
+.weaponSlot {
+  transition: all 0.2s ease;
+}
+
+.weaponSlot:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.weaponSlotSelected {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
+}
+
+/* Minimap animations */
+@keyframes radarSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.radarSweep {
+  animation: radarSweep 4s linear infinite;
+}
+
+/* Scoreboard animations */
+@keyframes scoreboardSlide {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.scoreboard {
+  animation: scoreboardSlide 0.3s ease-out;
+}
+
+/* Round timer critical state */
+@keyframes timerFlash {
+  0%, 100% { color: #ef4444; }
+  50% { color: #fbbf24; }
+}
+
+.criticalTimer {
+  animation: timerFlash 0.5s infinite;
+}
+
+/* Bomb timer critical state */
+@keyframes bombFlash {
+  0%, 100% { 
+    background-color: rgba(220, 38, 38, 0.9);
+    border-color: #ef4444;
+  }
+  50% { 
+    background-color: rgba(251, 191, 36, 0.9);
+    border-color: #fbbf24;
+  }
+}
+
+.criticalBomb {
+  animation: bombFlash 0.3s infinite;
+}
+
+/* Death screen animations */
+@keyframes deathFade {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.deathScreen {
+  animation: deathFade 0.5s ease-out;
+}
+
+/* Round end celebrations */
+@keyframes victory {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.05) rotate(-1deg); }
+  75% { transform: scale(1.05) rotate(1deg); }
+}
+
+.victoryAnimation {
+  animation: victory 2s ease-in-out infinite;
+}
+
+/* Radio menu animations */
+@keyframes radioSlide {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.radioMenu {
+  animation: radioSlide 0.2s ease-out;
+}
+
+/* Responsive scaling for different screen sizes */
+@media (max-width: 1366px) {
+  .hudContainer {
+    font-size: 0.9em;
+  }
+}
+
+@media (max-width: 1024px) {
+  .hudContainer {
+    font-size: 0.8em;
+  }
+}
+
+@media (max-height: 768px) {
+  .hudContainer {
+    font-size: 0.85em;
+  }
+}
+
+/* High DPI display adjustments */
+@media (-webkit-min-device-pixel-ratio: 2) {
+  .hudContainer {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Utility classes */
+.pointerEventsAuto {
+  pointer-events: auto !important;
+}
+
+.pointerEventsNone {
+  pointer-events: none !important;
+}
+
+.selectNone {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Scrollbar customization for HUD elements */
+.customScrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.customScrollbar::-webkit-scrollbar-track {
+  background: rgba(55, 65, 81, 0.5);
+  border-radius: 3px;
+}
+
+.customScrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.7);
+  border-radius: 3px;
+}
+
+.customScrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 1);
+}

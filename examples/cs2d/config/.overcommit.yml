@@ -1,0 +1,90 @@
+# Overcommit configuration for CS2D project
+# https://github.com/sds/overcommit
+
+# Install hooks by running: bundle exec overcommit --install
+
+CommitMsg:
+  CapitalizedSubject:
+    enabled: true
+  EmptyMessage:
+    enabled: true
+  GerritChangeId:
+    enabled: false
+  HardTabs:
+    enabled: false
+  RussianNovel:
+    enabled: false
+  SingleLineSubject:
+    enabled: true
+  SpellCheck:
+    enabled: false
+  TextWidth:
+    enabled: false
+  TrailingPeriod:
+    enabled: true
+
+PreCommit:
+  # Run RuboCop on Ruby files
+  RuboCop:
+    enabled: true
+    on_warn: fail
+    flags: ['--format=emacs', '--force-exclusion', '--display-cop-names']
+
+  # Check for trailing whitespace
+  TrailingWhitespace:
+    enabled: true
+    exclude:
+      - '**/*.md'
+      - '**/*.txt'
+
+  # Check for hard tabs in source code
+  HardTabs:
+    enabled: false # We use tabs in this project
+
+  # Check YAML syntax
+  YamlSyntax:
+    enabled: true
+    include: '**/*.yml'
+
+  # Check JSON syntax
+  JsonSyntax:
+    enabled: true
+    include: '**/*.json'
+
+  # Check for debugger statements
+  Pry:
+    enabled: true
+
+  # Check for merge conflict markers
+  MergeConflicts:
+    enabled: true
+
+  # Check for broken symlinks
+  BrokenSymlinks:
+    enabled: true
+
+  # Custom hook for CS2D-specific checks
+  LocalPathsInGemfile:
+    enabled: false
+
+PrePush:
+  # Run tests before push (if we have a test suite)
+  RSpec:
+    enabled: false
+
+  # Prevent pushing to protected branches
+  ProtectedBranches:
+    enabled: true
+    branches: ['main', 'master', 'production']
+
+PostCheckout:
+  # Update dependencies after checkout
+  BundleInstall:
+    enabled: true
+    flags: ['--quiet']
+
+PostMerge:
+  # Update dependencies after merge
+  BundleInstall:
+    enabled: true
+    flags: ['--quiet']

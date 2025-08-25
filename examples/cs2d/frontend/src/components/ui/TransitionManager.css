@@ -1,0 +1,396 @@
+/* Transition Manager Base Styles */
+.transition-manager {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Fade Transition */
+.transition-fade {
+  opacity: 1;
+  transition: opacity var(--transition-duration, 300ms) var(--transition-easing, ease);
+}
+
+.transition-fade.transitioning {
+  opacity: 0;
+}
+
+/* Slide Transitions */
+.transition-slide-right,
+.transition-slide-left,
+.transition-slide-up,
+.transition-slide-down {
+  transform: translateX(0);
+  transition: transform var(--transition-duration, 300ms) var(--transition-easing, ease);
+}
+
+.transition-slide-right.transitioning {
+  transform: translateX(100%);
+}
+
+.transition-slide-left.transitioning {
+  transform: translateX(-100%);
+}
+
+.transition-slide-up.transitioning {
+  transform: translateY(-100%);
+}
+
+.transition-slide-down.transitioning {
+  transform: translateY(100%);
+}
+
+/* Scale Transition */
+.transition-scale {
+  transform: scale(1);
+  opacity: 1;
+  transition: 
+    transform var(--transition-duration, 300ms) var(--transition-easing, ease),
+    opacity var(--transition-duration, 300ms) var(--transition-easing, ease);
+}
+
+.transition-scale.transitioning {
+  transform: scale(0.95);
+  opacity: 0;
+}
+
+/* Blur Transition */
+.transition-blur {
+  filter: blur(0px);
+  opacity: 1;
+  transition: 
+    filter var(--transition-duration, 300ms) var(--transition-easing, ease),
+    opacity var(--transition-duration, 300ms) var(--transition-easing, ease);
+}
+
+.transition-blur.transitioning {
+  filter: blur(10px);
+  opacity: 0;
+}
+
+/* Page Transition Styles */
+.page-transition {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Loading Transition Styles */
+.loading-transition {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-placeholder {
+  padding: 2rem;
+  text-align: center;
+  color: #64ffda;
+  font-size: 1.2rem;
+  animation: loadingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loadingPulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Modal Transition Styles */
+.modal-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: 
+    opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    backdrop-filter 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-transition.modal-open {
+  opacity: 1;
+}
+
+.modal-transition.modal-closing {
+  opacity: 0;
+}
+
+.modal-content {
+  background: #1a2332;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 90%;
+  max-height: 90%;
+  overflow: auto;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(100, 255, 218, 0.2);
+  transform: scale(0.9) translateY(20px);
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-transition.modal-open .modal-content {
+  transform: scale(1) translateY(0);
+}
+
+.modal-transition.modal-closing .modal-content {
+  transform: scale(0.95) translateY(10px);
+}
+
+/* Staggered List Styles */
+.staggered-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.staggered-item {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: 
+    opacity 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: var(--stagger-delay, 0ms);
+}
+
+.staggered-item.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Gaming-specific transitions */
+.game-ui-transition {
+  position: relative;
+}
+
+.game-ui-transition::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(100, 255, 218, 0.1) 50%,
+    transparent 100%
+  );
+  animation: scanline 2s ease-in-out;
+  z-index: 1;
+}
+
+@keyframes scanline {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* HUD transition effects */
+.hud-element-enter {
+  opacity: 0;
+  transform: scale(0.8);
+  animation: hudElementEnter 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes hudElementEnter {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hud-element-exit {
+  animation: hudElementExit 200ms ease-in forwards;
+}
+
+@keyframes hudElementExit {
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* Notification transitions */
+.notification-enter {
+  opacity: 0;
+  transform: translateX(100%);
+  animation: notificationEnter 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes notificationEnter {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notification-exit {
+  animation: notificationExit 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes notificationExit {
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Screen wipe transition */
+.screen-wipe {
+  position: relative;
+  overflow: hidden;
+}
+
+.screen-wipe::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #64ffda;
+  transform: translateX(-100%);
+  z-index: 10;
+  animation: screenWipe 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes screenWipe {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Glitch transition effect */
+.glitch-transition {
+  position: relative;
+  animation: glitch 200ms linear;
+}
+
+@keyframes glitch {
+  0%, 100% {
+    transform: translate(0);
+    filter: hue-rotate(0deg);
+  }
+  10% {
+    transform: translate(-2px, 2px);
+    filter: hue-rotate(90deg);
+  }
+  20% {
+    transform: translate(-1px, -1px);
+    filter: hue-rotate(180deg);
+  }
+  30% {
+    transform: translate(1px, 2px);
+    filter: hue-rotate(270deg);
+  }
+  40% {
+    transform: translate(1px, -1px);
+    filter: hue-rotate(360deg);
+  }
+  50% {
+    transform: translate(-1px, 2px);
+    filter: hue-rotate(45deg);
+  }
+  60% {
+    transform: translate(-1px, 1px);
+    filter: hue-rotate(135deg);
+  }
+  70% {
+    transform: translate(1px, 1px);
+    filter: hue-rotate(225deg);
+  }
+  80% {
+    transform: translate(-1px, -1px);
+    filter: hue-rotate(315deg);
+  }
+  90% {
+    transform: translate(1px, 2px);
+    filter: hue-rotate(405deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .modal-content {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .staggered-item {
+    transform: translateY(10px);
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 1rem;
+    margin: 0.5rem;
+    border-radius: 8px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .transition-manager,
+  .transition-fade,
+  .transition-slide-right,
+  .transition-slide-left,
+  .transition-slide-up,
+  .transition-slide-down,
+  .transition-scale,
+  .transition-blur,
+  .modal-transition,
+  .modal-content,
+  .staggered-item {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  
+  .game-ui-transition::before,
+  .screen-wipe::after {
+    animation: none !important;
+  }
+  
+  .glitch-transition {
+    animation: none !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .modal-transition {
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: none;
+  }
+  
+  .modal-content {
+    border: 2px solid #ffffff;
+    box-shadow: none;
+  }
+  
+  .loading-placeholder {
+    color: #ffffff;
+  }
+}

@@ -1,0 +1,65 @@
+# Optimized Docker Build Makefile with Layer Caching
+
+.PHONY: build-base build-optimized up-optimized clean-cache stats
+
+# Build base image first (heavy caching here)
+build-base:
+	@echo "🔧 Building base image with maximum caching..."
+	docker build -f Dockerfile.base -t cs2d_base:latest .
+	@echo "✅ Base image built and cached"
+
+# Build optimized services (fast, using cached base)
+build-optimized: build-base
+	@echo "⚡ Building optimized services using cached base..."
+	docker-compose -f docker-compose.optimized.yml build
+	@echo "✅ Optimized build complete"
+
+# Test build speed (with cache)
+test-cached-build:
+	@echo "⏱️  Testing cached build speed..."
+	time docker-compose -f docker-compose.optimized.yml build --parallel
+	@echo "📊 Build completed - check time above"
+
+# Start optimized stack
+up-optimized: build-optimized
+	@echo "🚀 Starting optimized CS2D stack..."
+	docker-compose -f docker-compose.optimized.yml up -d
+	@echo "✅ Optimized stack running!"
+	@echo "📋 Services:"
+	@echo "   Lobby: http://localhost:9292"
+	@echo "   Game:  http://localhost:9293" 
+	@echo "   API:   http://localhost:9294"
+
+# Show Docker layer cache stats
+cache-stats:
+	@echo "📊 Docker Cache Statistics:"
+	docker system df
+	@echo "\n🏷️  Images:"
+	docker images | grep cs2d
+	@echo "\n💾 Build Cache Detail:"
+	docker system df -v | grep -i build
+
+# Clean cache and rebuild (for testing)
+clean-cache:
+	@echo "🧹 Cleaning Docker cache..."
+	docker system prune -f
+	docker builder prune -f
+	@echo "✅ Cache cleaned"
+
+# Compare build times
+benchmark-builds:
+	@echo "🏃 Benchmarking build performance..."
+	@echo "1️⃣ Cold build (no cache):"
+	make clean-cache
+	time make build-optimized
+	@echo "2️⃣ Warm build (with cache):"
+	time docker-compose -f docker-compose.optimized.yml build
+	@echo "📈 Benchmark complete!"
+
+# Stop optimized services
+down-optimized:
+	docker-compose -f docker-compose.optimized.yml down -v
+
+# Show optimized logs
+logs-optimized:
+	docker-compose -f docker-compose.optimized.yml logs -f
