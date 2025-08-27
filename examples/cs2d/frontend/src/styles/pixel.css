@@ -1,0 +1,257 @@
+/* 像素风格设计系统 */
+
+/* 像素字体 */
+.pixel-font {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.5;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
+/* 像素艺术风格 */
+.pixel-art {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* 像素边框 */
+.pixel-border {
+  border-image: url("data:image/svg+xml,%3csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m0,0 L100,0 L100,100 L0,100 Z' fill='none' stroke='%23ffffff' stroke-width='4'/%3e%3c/svg%3e") 4;
+  border-width: 4px;
+  border-style: solid;
+}
+
+/* 8位像素盒子 */
+.pixel-box {
+  background: linear-gradient(145deg, #4a4a4a 0%, #2a2a2a 100%);
+  border: 3px solid;
+  border-color: #666 #333 #333 #666;
+  position: relative;
+}
+
+.pixel-box::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border: 1px solid #888;
+  pointer-events: none;
+}
+
+/* 像素按钮 */
+.pixel-button {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.5;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: linear-gradient(145deg, #5a9fd4 0%, #306998 100%);
+  border: 3px solid;
+  border-color: #7bb3e0 #1e4b66 #1e4b66 #7bb3e0;
+  color: #ffffff;
+  text-shadow: 1px 1px 0px #000;
+  cursor: pointer;
+  transition: none;
+  padding: 8px 16px;
+  min-height: 32px;
+  min-width: 64px;
+}
+
+.pixel-button:hover {
+  background: linear-gradient(145deg, #6bb0e5 0%, #4179a9 100%);
+  border-color: #8cc4f1 #2f5c77 #2f5c77 #8cc4f1;
+}
+
+.pixel-button:active {
+  background: linear-gradient(145deg, #306998 0%, #5a9fd4 100%);
+  border-color: #1e4b66 #7bb3e0 #7bb3e0 #1e4b66;
+}
+
+.pixel-button:disabled {
+  background: linear-gradient(145deg, #666 0%, #444 100%);
+  border-color: #777 #333 #333 #777;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* 像素输入框 */
+.pixel-input {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.5;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+  border: 3px solid;
+  border-color: #333 #666 #666 #333;
+  color: #00ff00;
+  padding: 8px;
+  outline: none;
+  caret-color: #00ff00;
+}
+
+.pixel-input::placeholder {
+  color: #555;
+}
+
+.pixel-input:focus {
+  border-color: #00ff00 #00aa00 #00aa00 #00ff00;
+  box-shadow: 0 0 8px #00ff0066;
+}
+
+/* 像素面板 */
+.pixel-panel {
+  background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 100%);
+  border: 3px solid;
+  border-color: #666 #333 #333 #666;
+  position: relative;
+  padding: 16px;
+}
+
+/* 像素标题 */
+.pixel-title {
+  font-family: 'Press Start 2P', monospace;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  color: #ffffff;
+  text-shadow: 2px 2px 0px #000;
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
+.pixel-subtitle {
+  font-family: 'Press Start 2P', monospace;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  color: #cccccc;
+  text-shadow: 1px 1px 0px #000;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.pixel-text {
+  font-family: 'Press Start 2P', monospace;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  color: #ffffff;
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
+/* 像素动画 */
+@keyframes pixel-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.pixel-blink {
+  animation: pixel-blink 1s infinite;
+}
+
+@keyframes pixel-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 15px #00ff00;
+  }
+  50% { 
+    box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
+  }
+}
+
+.pixel-glow {
+  animation: pixel-glow 2s ease-in-out infinite;
+}
+
+/* 像素颜色调色板 */
+.pixel-bg-primary { background-color: #306998; }
+.pixel-bg-secondary { background-color: #5a9fd4; }
+.pixel-bg-success { background-color: #00aa00; }
+.pixel-bg-danger { background-color: #cc0000; }
+.pixel-bg-warning { background-color: #ffaa00; }
+.pixel-bg-dark { background-color: #1a1a1a; }
+.pixel-bg-light { background-color: #cccccc; }
+
+.pixel-text-primary { color: #306998; }
+.pixel-text-secondary { color: #5a9fd4; }
+.pixel-text-success { color: #00ff00; }
+.pixel-text-danger { color: #ff0000; }
+.pixel-text-warning { color: #ffaa00; }
+.pixel-text-light { color: #ffffff; }
+.pixel-text-muted { color: #888888; }
+
+/* 像素图标 */
+.pixel-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-size: 16px 16px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
+/* 响应式像素 */
+@media (max-width: 768px) {
+  .pixel-title { font-size: 12px; }
+  .pixel-subtitle { font-size: 10px; }
+  .pixel-text { font-size: 6px; }
+  .pixel-button { padding: 6px 12px; min-height: 24px; }
+}
+
+/* 像素网格 */
+.pixel-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+
+/* 像素覆盖层 */
+.pixel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+}
+
+/* 像素模态框 */
+.pixel-modal {
+  background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 100%);
+  border: 3px solid;
+  border-color: #666 #333 #333 #666;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 16px;
+}

@@ -1,0 +1,12 @@
+# CS2D Assets Placeholder
+
+This directory contains placeholder asset files for CS2D game.
+
+Missing assets referenced in the code:
+- hostage_icon.png
+- health_icon.png  
+- armor_icon.png
+- weapons/usp.png (and other weapon sprites)
+- sounds/*.mp3 (weapon firing sounds, etc.)
+
+These should be replaced with actual game assets for full functionality.

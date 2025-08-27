@@ -1,0 +1,65 @@
+# Base Dockerfile with optimal layer caching
+FROM ruby:3.3.6
+
+# Install system dependencies (rarely change, cache-friendly)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    vim \
+    nano \
+    htop \
+    net-tools \
+    iputils-ping \
+    redis-tools \
+    nodejs \
+    npm \
+    libssl-dev \
+    libreadline-dev \
+    zlib1g-dev \
+    libxml2-dev \
+    libxslt-dev \
+    libyaml-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install Playwright (heavy operation, cache it)
+RUN npm install -g playwright && \
+    npx playwright install chromium && \
+    npx playwright install-deps
+
+# Set working directory
+WORKDIR /app
+
+# Copy and install gems FIRST (dependencies change less frequently)
+COPY gems.docker.rb ./Gemfile
+COPY Gemfile.docker.lock ./Gemfile.lock
+RUN bundle config set --local deployment 'false' && \
+    bundle install --jobs 4 --retry 3
+
+# Install development gems (separate layer for caching)
+RUN gem install \
+    rubocop \
+    pry \
+    pry-byebug \
+    rspec \
+    rack-test \
+    minitest
+
+# Create directories
+RUN mkdir -p tmp logs coverage
+
+# Set environment (lightweight operations at end)
+ENV RACK_ENV=development
+ENV LIVELY_ENV=development
+ENV BUNDLE_PATH=/usr/local/bundle
+
+# Useful aliases
+RUN echo 'alias ll="ls -la"' >> ~/.bashrc && \
+    echo 'alias be="bundle exec"' >> ~/.bashrc && \
+    echo 'alias lively="bundle exec lively"' >> ~/.bashrc && \
+    echo 'alias rubocop="bundle exec rubocop"' >> ~/.bashrc
+
+# Keep container running
+CMD ["tail", "-f", "/dev/null"]

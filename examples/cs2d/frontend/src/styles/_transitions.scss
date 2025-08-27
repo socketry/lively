@@ -1,0 +1,443 @@
+// CS2D Transition Styles
+// Vue.js 3 + TypeScript Frontend
+
+// Basic fade transition
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity $transition-base;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// Slide transitions
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all $transition-base;
+}
+
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all $transition-base;
+}
+
+.slide-down-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: all $transition-base;
+}
+
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all $transition-base;
+}
+
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+// Scale transitions
+.scale-enter-active,
+.scale-leave-active {
+  transition: all $transition-base;
+}
+
+.scale-enter-from,
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+// Modal transitions
+.modal-enter-active {
+  transition: all $transition-base;
+}
+
+.modal-leave-active {
+  transition: all $transition-base;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-content,
+.modal-leave-to .modal-content {
+  transform: scale(0.9);
+}
+
+// Notification transitions
+.notification-enter-active,
+.notification-leave-active {
+  transition: all $transition-base;
+}
+
+.notification-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification-move {
+  transition: transform $transition-base;
+}
+
+// Loading transitions
+.loading-enter-active,
+.loading-leave-active {
+  transition: all $transition-slow;
+}
+
+.loading-enter-from,
+.loading-leave-to {
+  opacity: 0;
+}
+
+// Page transitions
+.page-enter-active,
+.page-leave-active {
+  transition: all $transition-base;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+// Game specific transitions
+.hud-enter-active,
+.hud-leave-active {
+  transition: all $transition-fast;
+}
+
+.hud-enter-from,
+.hud-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.buy-menu-enter-active,
+.buy-menu-leave-active {
+  transition: all $transition-base;
+}
+
+.buy-menu-enter-from,
+.buy-menu-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.chat-enter-active,
+.chat-leave-active {
+  transition: all $transition-fast;
+}
+
+.chat-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.chat-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+// List transitions for dynamic content
+.list-enter-active,
+.list-leave-active {
+  transition: all $transition-base;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.list-move {
+  transition: transform $transition-base;
+}
+
+// Stagger transitions for groups
+.stagger-enter-active {
+  transition: all $transition-base;
+  transition-delay: calc(var(--stagger-index, 0) * 50ms);
+}
+
+.stagger-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+// Hover transitions
+.hover-lift {
+  transition: transform $transition-fast, box-shadow $transition-fast;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: $shadow-lg;
+}
+
+.hover-scale {
+  transition: transform $transition-fast;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-glow {
+  transition: box-shadow $transition-base;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+}
+
+// Focus transitions
+.focus-ring {
+  transition: box-shadow $transition-fast;
+}
+
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 $focus-ring-width $focus-ring-color;
+}
+
+// Pulse animation
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+// Bounce animation
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40%, 43% {
+    transform: translateY(-10px);
+  }
+  70% {
+    transform: translateY(-5px);
+  }
+  90% {
+    transform: translateY(-2px);
+  }
+}
+
+.bounce {
+  animation: bounce 1s ease-in-out;
+}
+
+// Shake animation
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+// Spin animation
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+// Flash animation
+@keyframes flash {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0.5;
+  }
+}
+
+.flash {
+  animation: flash 1s ease-in-out infinite;
+}
+
+// Slide in from edges
+.slide-in-top {
+  animation: slideInTop 0.5s ease-out;
+}
+
+@keyframes slideInTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-bottom {
+  animation: slideInBottom 0.5s ease-out;
+}
+
+@keyframes slideInBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+// Zoom animations
+.zoom-in {
+  animation: zoomIn 0.3s ease-out;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.zoom-out {
+  animation: zoomOut 0.3s ease-in;
+}
+
+@keyframes zoomOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+// Utility classes for disabling transitions
+.no-transition,
+.no-transition * {
+  transition: none !important;
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
