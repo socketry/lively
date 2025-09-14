@@ -4,7 +4,7 @@
 # Released under the MIT License.
 # Copyright, 2025, by Samuel Williams.
 
-require 'thread/local'
+require "thread/local"
 
 class GameState
 	extend Thread::Local
@@ -40,7 +40,7 @@ class GameState
 			while true
 				@board.step
 				# Update all views after each step
-				@board.players.each { |player| player.on_updated&.call }
+				@board.players.each {|player| player.on_updated&.call}
 				sleep(dt)
 			end
 		rescue => error
@@ -345,7 +345,7 @@ class Board
 	end
 	
 	def ghost_at?(y, x)
-		@ghosts.any? { |ghost| ghost.position == [y, x] }
+		@ghosts.any? {|ghost| ghost.position == [y, x]}
 	end
 	
 	def remove_dot!(y, x)
@@ -362,7 +362,7 @@ class Board
 	end
 	
 	def frighten_ghosts!
-		@ghosts.each { |ghost| ghost.frighten }
+		@ghosts.each {|ghost| ghost.frighten}
 	end
 	
 	def reset!
@@ -397,7 +397,7 @@ class Board
 	end
 	
 	private def create_maze
-		@grid = Array.new(@height) { Array.new(@width) }
+		@grid = Array.new(@height) {Array.new(@width)}
 		
 		# Start with all paths (no walls except borders)
 		(0...@height).each do |y|
@@ -499,7 +499,7 @@ class Board
 		@ghosts.clear
 		
 		# Create 4 ghosts with different colors in the central ghost home
-		ghost_colors = ['👻', '🟥', '🟪', '🟨']  # White, Red, Purple, Yellow
+		ghost_colors = ["👻", "🟥", "🟪", "🟨"]  # White, Red, Purple, Yellow
 		center_y, center_x = @height/2, @width/2
 		
 		# Position ghosts in the 3x3 ghost home area

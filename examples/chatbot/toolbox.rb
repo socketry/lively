@@ -88,7 +88,7 @@ class Toolbox
 	end
 	
 	def tool?(response)
-		if response.start_with?('{')
+		if response.start_with?("{")
 			begin
 				return JSON.parse(response, symbolize_names: true)
 			rescue => error

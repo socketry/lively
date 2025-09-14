@@ -4,7 +4,7 @@
 # Released under the MIT License.
 # Copyright, 2024-2025, by Samuel Williams.
 
-require 'thread/local'
+require "thread/local"
 
 class GameState
 	extend Thread::Local
@@ -193,7 +193,7 @@ class Board
 				end
 			end
 		end
-
+		
 		validate_fruit_count!
 		
 		return nil
@@ -207,14 +207,14 @@ class Board
 			@grid[y][x] = nil
 			@fruit_count -= 1
 		end
-
+		
 		validate_fruit_count!
 	end
 	
 	# Validate that the fruit count matches the actual number of fruits on the board.
 	# @raises [RuntimeError] If the fruit count is incorrect.
 	def validate_fruit_count!
-		actual_count = @grid.flatten.count { |cell| cell.is_a?(String) }
+		actual_count = @grid.flatten.count {|cell| cell.is_a?(String)}
 		if actual_count != @fruit_count
 			raise "Fruit count mismatch: expected #{@fruit_count}, got #{actual_count}"
 		end
@@ -228,7 +228,7 @@ class Board
 			@grid[y][x] = FRUITS.sample
 			@fruit_count += 1
 		end
-
+		
 		validate_fruit_count!
 	end
 	
@@ -276,7 +276,7 @@ class WormsView < Live::View
 		super
 		
 		@player = @game_state.add_player
-		@player.on_updated { self.update! }
+		@player.on_updated {self.update!}
 	end
 	
 	# Clean up resources when the view is closed.

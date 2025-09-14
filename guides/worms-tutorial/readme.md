@@ -4,6 +4,8 @@ This tutorial will guide you through creating a Worms-style game using Lively, a
 
 We'll build the game step by step, starting with simple concepts and gradually adding complexity.
 
+> **Complete Working Example**: For the complete working implementation with all assets, code, and resources, see the [`examples/worms`](../../examples/worms/) directory in this repository. This tutorial walks through the concepts step by step, while the example directory contains the final working game.
+
 ## What You'll Build
 
 By the end of this tutorial, you'll have created:

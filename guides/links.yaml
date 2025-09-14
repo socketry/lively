@@ -2,3 +2,5 @@ getting-started:
   order: 1
 worms-tutorial:
   order: 2
+flappy-bird-tutorial:
+  order: 3

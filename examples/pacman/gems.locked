@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    lively (0.11.0)
+    lively (0.12.0)
       falcon (~> 0.47)
       live (~> 0.17)
       xrb
@@ -9,7 +9,7 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    async (2.27.2)
+    async (2.27.4)
       console (~> 1.29)
       fiber-annotation
       io-event (~> 1.11)
@@ -23,7 +23,7 @@ GEM
       io-endpoint
       io-stream
       memory-leak (~> 0.5)
-    async-http (0.90.1)
+    async-http (0.91.0)
       async (>= 2.10.2)
       async-pool (~> 0.11)
       io-endpoint (~> 0.14)
@@ -37,7 +37,7 @@ GEM
       async-http (~> 0.56)
     async-pool (0.11.0)
       async (>= 2.0)
-    async-service (0.13.0)
+    async-service (0.14.1)
       async
       async-container (~> 0.16)
     async-websocket (0.30.0)
@@ -80,7 +80,7 @@ GEM
     metrics (0.13.0)
     openssl (3.3.0)
     protocol-hpack (1.5.1)
-    protocol-http (0.51.1)
+    protocol-http (0.53.0)
     protocol-http1 (0.34.1)
       protocol-http (~> 0.22)
     protocol-http2 (0.22.1)
@@ -97,7 +97,7 @@ GEM
       console (~> 1.0)
       mapping (~> 1.0)
     thread-local (1.1.0)
-    traces (0.16.2)
+    traces (0.17.0)
     xrb (0.11.2)
 
 PLATFORMS

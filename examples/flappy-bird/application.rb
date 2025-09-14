@@ -29,6 +29,10 @@ class BoundingBox
 		@y + @height
 	end
 	
+	def center
+		[@x + @width/2, @y + @height/2]
+	end
+	
 	def intersect?(other)
 		!(
 			self.right < other.x ||
@@ -44,9 +48,22 @@ class BoundingBox
 end
 
 class Bird < BoundingBox
-	def initialize(x = 30, y = HEIGHT / 2, width: 34, height: 24)
+	def initialize(x = 30, y = HEIGHT / 2, width: 34, height: 24, skin: nil)
 		super(x, y, width, height)
+		@skin = skin || "bird"
 		@velocity = 0.0
+		@jumping = false
+		@dying = false
+	end
+	
+	attr :skin
+	
+	def dying?
+		@dying != false
+	end
+	
+	def alive?
+		@dying == false
 	end
 	
 	def step(dt)
@@ -57,33 +74,123 @@ class Bird < BoundingBox
 			@y = HEIGHT
 			@velocity = 0.0
 		end
+		
+		if @jumping
+			@jumping -= dt
+			if @jumping < 0
+				@jumping = false
+			end
+		end
+		
+		if @dying
+			@dying += dt
+		end
 	end
 	
-	def jump
+	def jump(extreme = false)
+		return if @dying
+		
 		@velocity = 300.0
+		
+		if extreme
+			@jumping = 0.5
+		end
+	end
+	
+	def die
+		@dying = 0.0
 	end
 	
 	def render(builder, remote: false)
-		rotation = (@velocity / 20.0).clamp(-40.0, 40.0)
-		rotate = "rotate(#{-rotation}deg)";
+		if @dying
+			rotation = 360.0 * (@dying * 2.0)
+		else
+			rotation = (@velocity / 20.0).clamp(-40.0, 40.0)
+		end
 		
-		class_name = remote ? "bird remote" : "bird"
+		rotate = "rotate(#{-rotation}deg)"
 		
-		builder.inline_tag(:div, class: class_name, style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px; transform: #{rotate};")
+		class_name = remote ? "bird #{@skin} remote" : "bird #{@skin}"
+		
+		builder.inline_tag(:div, 
+			class: class_name, 
+			style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px; transform: #{rotate};"
+		)
+		
+		# Render jump particles for local player only
+		if @jumping && !remote
+			center = self.center
+			
+			10.times do |i|
+				angle = (360 / 10) * i
+				id = "bird-#{self.__id__}-particle-#{i}"
+				
+				builder.inline_tag(:div, 
+					id: id, 
+					class: "particle jump", 
+					style: "left: #{center[0]}px; bottom: #{center[1]}px; --rotation-angle: #{angle}deg;"
+				)
+			end
+		end
 	end
 end
 
 class Gemstone < BoundingBox
-	def initialize(x, y, width: 148, height: 116)
-		super(x, y - height / 2, width, height)
+	COLLECTED_AGE = 1.0
+	
+	def initialize(x, y, width: 148/2, height: 116/2)
+		super(x - width/2, y - height/2, width, height)
+		@collected = false
+	end
+	
+	def collected?
+		@collected != false
 	end
 	
 	def step(dt)
 		@x -= 100 * dt
+		
+		if @collected
+			@collected -= dt
+			
+			if @collected < 0
+				@collected = false
+				yield if block_given?
+			end
+		end
+	end
+	
+	def collect!
+		@collected = COLLECTED_AGE
 	end
 	
 	def render(builder)
-		builder.inline_tag(:div, class: "gemstone", style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px;")
+		if @collected
+			opacity = @collected / COLLECTED_AGE
+		else
+			opacity = 1.0
+		end
+		
+		builder.inline_tag(:div, 
+			class: "gemstone", 
+			style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px; opacity: #{opacity};"
+		)
+		
+		# Add particle effects when collected
+		if @collected
+			center = self.center
+			
+			10.times do |i|
+				angle = (360 / 10) * i
+				id = "gemstone-#{self.__id__}-particle-#{i}"
+				
+				builder.inline_tag(:div, 
+					id: id, 
+					class: "particle bonus", 
+					style: "left: #{center[0]}px; bottom: #{center[1]}px; --rotation-angle: #{angle}deg;"
+				)
+			end
+		end
 	end
 end
 
@@ -107,15 +214,16 @@ class Pipe
 	attr_accessor :scored
 	
 	def scaled_random
-		@random.rand(-1.0..1.0) * [@difficulty, 1.0].min
+		@random.rand(-0.8..0.8) * [@difficulty, 1.0].min
 	end
 	
 	def reset!
 		@x = WIDTH + (@random.rand * 10)
 		@y = HEIGHT/2 + (HEIGHT/2 * scaled_random)
 		
+		# Gradually increase difficulty by making gap smaller
 		if @offset > 50
-			@offset -= (@difficulty * 10)
+			@offset -= 1
 		end
 		
 		@difficulty += 0.1
@@ -127,6 +235,7 @@ class Pipe
 		
 		if self.right < 0
 			reset!
+			yield if block_given?
 		end
 	end
 	
@@ -140,6 +249,10 @@ class Pipe
 	
 	def bottom
 		(@y - @offset) - @height
+	end
+	
+	def center
+		[@x + @width/2, @y]
 	end
 	
 	def lower_bounding_box
@@ -162,6 +275,37 @@ class Pipe
 	end
 end
 
+class SkinSelectionView < Live::View
+	SKINS = ["bird", "gull", "kiwi", "owl"]
+	
+	def handle(event)
+		skin = event.dig(:detail, :skin) or return
+		@data[:skin] = skin
+		self.update!
+	end
+	
+	def skin
+		@data[:skin] || SKINS.first
+	end
+	
+	def render(builder)
+		builder.inline_tag(:ul, class: "skins") do
+			SKINS.each do |skin|
+				selected = (skin == self.skin ? "selected" : "")
+				builder.inline_tag(:li, 
+					class: selected, 
+					onClick: forward_event(skin: skin)
+				) do
+					builder.inline_tag(:img, 
+						src: "/_static/flappy-#{skin}.webp", 
+						alt: skin
+					)
+				end
+			end
+		end
+	end
+end
+
 class FlappyBirdView < Live::View
 	def initialize(*arguments, multiplayer_state: nil, **options)
 		super(*arguments, **options)
@@ -173,9 +317,13 @@ class FlappyBirdView < Live::View
 		@pipes = nil
 		@bonus = nil
 		
+		@skin_selection = SkinSelectionView.mount(self, "skin-selection")
+		
 		# Defaults:
 		@score = 0
-		@prompt = "Press Space to Start"
+		@count = 0
+		@scroll = 0
+		@prompt = "Choose your bird and wait for game start!"
 		
 		@random = nil
 		@dead = nil
@@ -186,6 +334,7 @@ class FlappyBirdView < Live::View
 	def bind(page)
 		super
 		
+		page.attach(@skin_selection)
 		@multiplayer_state.add_player(self)
 	end
 	
@@ -195,15 +344,18 @@ class FlappyBirdView < Live::View
 			@game = nil
 		end
 		
+		page.detach(@skin_selection)
 		@multiplayer_state.remove_player(self)
 		
 		super
 	end
 	
 	def jump
-		play_sound("quack") if rand > 0.5
-				
-		@bird&.jump
+		if (extreme = rand > 0.8)
+			play_sound(@bird.skin)
+		end
+		
+		@bird&.jump(extreme)
 	end
 	
 	def handle(event)
@@ -225,13 +377,15 @@ class FlappyBirdView < Live::View
 		@dead = Async::Variable.new
 		@random = Random.new(1)
 		
-		@bird = Bird.new
+		@bird = Bird.new(skin: @skin_selection.skin)
 		@pipes = [
 			Pipe.new(WIDTH + WIDTH * 1/2, HEIGHT/2, random: @random),
 			Pipe.new(WIDTH + WIDTH * 2/2, HEIGHT/2, random: @random)
 		]
 		@bonus = nil
 		@score = 0
+		@count = 0
+		@scroll = 0
 	end
 	
 	def play_sound(name)
@@ -250,19 +404,33 @@ class FlappyBirdView < Live::View
 	
 	def play_music
 		self.script(<<~JAVASCRIPT)
-			if (!this.music) {
-				this.music = new Audio('/_static/music.mp3');
-				this.music.loop = true;
-				this.music.play();
+			this.audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+			
+			if (!this.source) {
+				let playAudioBuffer = (audioBuffer) => {
+					this.source = this.audioContext.createBufferSource();
+					this.source.buffer = audioBuffer;
+					this.source.connect(this.audioContext.destination);
+					this.source.loop = true;
+					this.source.loopStart = 32.0 * 60.0 / 80.0;
+					this.source.loopEnd = 96.0 * 60.0 / 80.0;
+					this.source.start(0, 0);
+				};
+				
+				fetch('/_static/music.mp3')
+					.then(response => response.arrayBuffer())
+					.then(arrayBuffer => this.audioContext.decodeAudioData(arrayBuffer))
+					.then(playAudioBuffer);
 			}
 		JAVASCRIPT
 	end
 	
 	def stop_music
 		self.script(<<~JAVASCRIPT)
-			if (this.music) {
-				this.music.pause();
-				this.music = null;
+			if (this.source) {
+				this.source.stop();
+				this.source.disconnect();
+				this.source = null;
 			}
 		JAVASCRIPT
 	end
@@ -271,12 +439,9 @@ class FlappyBirdView < Live::View
 		Console.info(self, "Player has died.")
 		@dead.resolve(true)
 		
-		play_sound("death")
-		stop_music
-		
 		Highscore.create!(ENV.fetch("PLAYER", "Anonymous"), @score)
 		
-		@prompt = "Game Over! Score: #{@score}."
+		@prompt = "Game Over! Score: #{@score}. Waiting for next round..."
 		@game = nil
 		
 		self.update!
@@ -306,44 +471,66 @@ class FlappyBirdView < Live::View
 	end
 	
 	def step(dt)
+		@scroll += dt
+		
 		@bird.step(dt)
 		@pipes.each do |pipe|
-			pipe.step(dt)
-			
-			if pipe.right < @bird.x && !pipe.scored
-				@score += 1
-				pipe.scored = true
-				
-				if @score == 3
-					play_music
+			pipe.step(dt) do
+				# Pipe was reset - spawn bonus every 5 pipes
+				if @bonus.nil? and @count > 0 and (@count % 5).zero?
+					@bonus = Gemstone.new(*pipe.center)
 				end
 			end
 			
-			if pipe.intersect?(@bird)
-				return game_over!
+			if @bird.alive?
+				if pipe.right < @bird.x && !pipe.scored
+					@score += 1
+					@count += 1
+					
+					pipe.scored = true
+					
+					if @count == 3
+						play_music
+					end
+				end
+				
+				if pipe.intersect?(@bird)
+					Console.info(self, "Player has died.")
+					@bird.die
+					play_sound("death")
+					stop_music
+					return game_over!
+				end
 			end
 		end
 		
-		@bonus&.step(dt)
-		
-		if @bonus&.intersect?(@bird)
-			play_sound("clink")
-			@score = @score * 2
-			@bonus = nil
-		elsif @bonus and @bonus.right < 0
+		@bonus&.step(dt) do
 			@bonus = nil
 		end
 		
-		if @score > 0 and (@score % 5).zero?
-			@bonus = Gemstone.new(WIDTH, HEIGHT/2)
+		if @bonus
+			if !@bonus.collected? and @bonus.intersect?(@bird)
+				play_sound("clink")
+				@score = @score * 2
+				@bonus.collect!
+			elsif @bonus.right < 0
+				@bonus = nil
+			end
 		end
 		
-		if @bird.top < 0
+		if @bird.top < -20
+			if @bird.alive?
+				@bird.die
+				play_sound("death")
+			end
+			
+			stop_music
+			
 			return game_over!
 		end
 	end
 	
-	def run!(dt = 1.0/10.0)
+	def run!(dt = 1.0/30.0)
 		Async do
 			start_time = Async::Clock.now
 			
@@ -367,10 +554,14 @@ class FlappyBirdView < Live::View
 		builder.tag(:div, class: "flappy", tabIndex: 0, onKeyPress: forward_keypress, onTouchStart: forward_keypress) do
 			if @game
 				builder.inline_tag(:div, class: "score") do
-					builder.text(@score)
+					builder.text("Score: #{@score}")
 				end
 			else
 				builder.inline_tag(:div, class: "prompt") do
+					builder.inline_tag(:div, class: "logo")
+					
+					builder << @skin_selection.to_html
+					
 					builder.text(@prompt)
 					
 					builder.inline_tag(:ol, class: "highscores") do
