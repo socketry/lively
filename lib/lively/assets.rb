@@ -51,7 +51,7 @@ module Lively
 		def initialize(delegate, root: PUBLIC_ROOT, content_types: DEFAULT_CONTENT_TYPES, cache_control: DEFAULT_CACHE_CONTROL)
 			super(delegate)
 			
-			@root = File.realpath(File.expand_path(root))
+			@root = File.expand_path(root)
 			
 			@content_types = content_types
 			@cache_control = cache_control
@@ -101,7 +101,12 @@ module Lively
 		# @parameter path [String] The relative path to expand.
 		# @returns [String | Nil] The absolute path if valid, `nil` if the file doesn't exist.
 		def expand_path(path)
-			File.realpath(File.join(@root, path))
+			root = File.realpath(@root)
+			path = File.realpath(File.join(@root, path))
+			
+			if path.start_with?(root) && File.file?(path)
+				return path
+			end
 		rescue Errno::ENOENT
 			nil
 		end
@@ -111,9 +116,7 @@ module Lively
 		# @returns [Protocol::HTTP::Response] The HTTP response for the asset or delegates to next middleware.
 		def call(request)
 			if path = expand_path(request.path)
-				if path.start_with?(@root) && File.file?(path)
-					return response_for(path)
-				end
+				return response_for(path)
 			end
 			
 			super

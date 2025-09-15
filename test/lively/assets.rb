@@ -28,7 +28,7 @@ describe Lively::Assets do
 			Dir.mktmpdir do |custom_root|
 				middleware = Lively::Assets.new(delegate, root: custom_root)
 				
-				expect(middleware.root).to be == File.realpath(custom_root)
+				expect(middleware.root).to be == File.expand_path(custom_root)
 			end
 		end
 		
