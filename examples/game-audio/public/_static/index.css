@@ -160,6 +160,11 @@ body {
 .sound.chirp { background: #009688; }
 .sound.howl { background: #673AB7; }
 
+/* Music control buttons */
+.sound.music-play { background: #4CAF50; }
+.sound.music-stop { background: #F44336; }
+.sound.music-stop-all { background: #9E9E9E; }
+
 /* Animations */
 @keyframes fadeIn {
 	from { opacity: 0; transform: translateY(20px); }

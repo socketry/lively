@@ -322,13 +322,19 @@ class BaseSound {
 		gainNode.gain.linearRampToValueAtTime(0, now + duration);
 	}
 	
-	// Public interface - checks if enabled before playing
+	// Public interface - checks if enabled before playing.
 	play() {
 		if (!this.audioEnabled()) return;
 		this.start();
 	}
 	
-	// Internal method to be implemented by subclasses - assumes audio is enabled
+	// Default stop implementation (no-op for most sounds).
+	stop() {
+		// Most sounds are fire-and-forget, so this is a no-op by default.
+		// Subclasses can override this for continuous sounds like music.
+	}
+	
+	// Internal method to be implemented by subclasses - assumes audio is enabled.
 	start() {
 		throw new Error('start() method must be implemented by subclass');
 	}
@@ -909,6 +915,103 @@ class AlienSound extends BaseSound {
 	}
 }
 
+// Background Music class extending BaseSound with MP3 playback and loop points
+class BackgroundMusicSound extends BaseSound {
+	constructor(output) {
+		super(output);
+		this.source = null;
+		this.gainNode = null;
+		this.audioBuffer = null;
+		this.isPlaying = false;
+	}
+	
+	async start() {
+		if (this.isPlaying) {
+			console.log('Background music is already playing');
+			return;
+		}
+		
+		try {
+			// Create gain node for volume control:
+			this.gainNode = this.audioContext.createGain();
+			this.gainNode.gain.value = 0.8;
+			this.gainNode.connect(this.output.input);
+			
+			// Load audio buffer if not already cached:
+			if (!this.audioBuffer) {
+				await this.loadAudioBuffer();
+			}
+			
+			// Play the cached audio buffer:
+			this.playAudioBuffer();
+			console.log('Background music started');
+		} catch (error) {
+			console.error('Failed to start background music:', error);
+		}
+	}
+	
+	async loadAudioBuffer() {
+		const musicUrl = '/_static/music.mp3';
+		
+		console.log('Loading background music from:', musicUrl);
+		
+		// Fetch and decode the MP3:
+		const response = await fetch(musicUrl);
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+		}
+		
+		const arrayBuffer = await response.arrayBuffer();
+		this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+		
+		console.log(`Background music loaded: ${this.audioBuffer.duration.toFixed(2)}s`);
+	}
+	
+	playAudioBuffer() {
+		// Create and configure buffer source with loop points:
+		this.source = this.audioContext.createBufferSource();
+		this.source.buffer = this.audioBuffer;
+		this.source.loop = true;
+		
+		// These loop points are specific to the music file:
+		this.source.loopStart = 32.0 * 60.0 / 80.0;
+		this.source.loopEnd = 96.0 * 60.0 / 80.0;
+		
+		this.source.connect(this.gainNode);
+		
+		// Handle source end:
+		this.source.onended = () => {
+			this.isPlaying = false;
+			this.source = null;
+		};
+		
+		// Start playback:
+		this.source.start(0);
+		this.isPlaying = true;
+	}
+	
+	stop() {
+		if (this.source && this.isPlaying) {
+			this.source.stop();
+			this.source.disconnect();
+			this.source = null;
+			
+			if (this.gainNode) {
+				this.gainNode.disconnect();
+				this.gainNode = null;
+			}
+			
+			this.isPlaying = false;
+		}
+	}
+	
+	setVolume(volume) {
+		if (this.gainNode) {
+			this.gainNode.gain.value = volume; // Scale to appropriate background level
+		}
+	}
+}
+
 // Main GameAudio class for managing sound instances
 class GameAudio {
 	constructor(audioContext = null) {
@@ -962,6 +1065,18 @@ class GameAudio {
 		instance?.playSound(name);
 	}
 	
+	// Static method to stop a sound
+	static async stopSound(name) {
+		const instance = await GameAudio.getSharedInstance();
+		instance?.stopSound(name);
+	}
+	
+	// Static method to stop all sounds
+	static async stopAllSounds() {
+		const instance = await GameAudio.getSharedInstance();
+		instance?.stopAllSounds();
+	}
+	
 	loadSounds() {
 		this.sounds = {
 			'jump': new JumpSound(this.output),
@@ -978,7 +1093,8 @@ class GameAudio {
 			'alien': new AlienSound(this.output),
 			'roar': new RoarSound(this.output),
 			'chirp': new ChirpSound(this.output),
-			'howl': new HowlSound(this.output)
+			'howl': new HowlSound(this.output),
+			'background': new BackgroundMusicSound(this.output)
 		};
 	}
 	
@@ -989,6 +1105,23 @@ class GameAudio {
 			sound.play();
 		} else {
 			console.warn(`Sound '${name}' not found`);
+		}
+	}
+	
+	// Stop a sound by name
+	stopSound(name) {
+		const sound = this.sounds[name];
+		if (sound) {
+			sound.stop(); // Will be no-op for most sounds, but works for music
+		} else {
+			console.warn(`Sound '${name}' not found`);
+		}
+	}
+	
+	// Stop all sounds
+	stopAllSounds() {
+		if (this.sounds) {
+			Object.values(this.sounds).forEach(sound => sound.stop());
 		}
 	}
 	

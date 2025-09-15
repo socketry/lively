@@ -183,8 +183,37 @@ class GameAudioView < Live::View
 				end
 			end
 			
+			# Music controls section
+			builder.tag("h2") do
+				builder.text("🎵 Background Music")
+			end
+			
+			builder.tag("div", class: "sound-grid") do
+				
+				builder.tag("button", 
+					onclick: "GameAudio.playSound('background')", 
+					class: "sound music-play"
+				) do
+					builder.text("▶️ Play Background Music")
+				end
+				
+				builder.tag("button", 
+					onclick: "GameAudio.stopSound('background')", 
+					class: "sound music-stop"
+				) do
+					builder.text("⏹️ Stop Background Music")
+				end
+				
+				builder.tag("button", 
+					onclick: "GameAudio.stopAllSounds()", 
+					class: "sound music-stop-all"
+				) do
+					builder.text("⏹️ Stop All Sounds")
+				end
+			end
+			
 			# Load external JavaScript file:
-			builder.tag("script", src: "/game-audio.js") {}
+			builder.tag("script", src: "/_static/game-audio.js") {}
 		end
 	end
 	
