@@ -1,0 +1,167 @@
+/* Game Audio Synthesis Demo Styles */
+
+body {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	min-height: 100vh;
+	margin: 0;
+	padding: 0;
+}
+
+/* Main game audio container */
+.game-audio {
+	max-width: 800px;
+	margin: 0 auto;
+	padding: 20px;
+	font-family: 'Courier New', monospace;
+}
+
+/* Headers using descendant selectors */
+.game-audio h1 {
+	text-align: center;
+	color: #222;
+	margin-bottom: 30px;
+	text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.game-audio h2 {
+	text-align: center;
+	color: #333;
+	margin: 40px 0 20px 0;
+}
+
+.game-audio h2.control-title {
+	margin: 20px 0 20px 0;
+}
+
+.game-audio h3 {
+	margin-bottom: 10px;
+	color: #333;
+}
+
+/* Control panel */
+.control-panel {
+	display: flex;
+	gap: 15px;
+	margin-bottom: 30px;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+}
+
+.volume-control {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 16px;
+	color: #333;
+}
+
+.volume-slider {
+	width: 150px;
+	height: 8px;
+	background: #ddd;
+	border-radius: 5px;
+	outline: none;
+	cursor: pointer;
+}
+
+.volume-display {
+	min-width: 40px;
+	font-weight: bold;
+}
+
+/* Visualization section */
+.visualization-container {
+	text-align: center;
+	margin-bottom: 30px;
+}
+
+.waveform-canvas {
+	border: 2px solid #333;
+	border-radius: 8px;
+	background: #000;
+	max-width: 100%;
+	height: auto;
+	display: block;
+	margin-bottom: 10px;
+}
+
+.alert-canvas {
+	border: 2px solid #333;
+	border-radius: 8px;
+	background: #111;
+	max-width: 100%;
+	height: auto;
+	margin-bottom: 15px;
+}
+
+.visualization-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	font-size: 16px;
+	color: #333;
+	cursor: pointer;
+}
+
+.visualization-checkbox {
+	width: 18px;
+	height: 18px;
+	cursor: pointer;
+}
+
+/* Button grid */
+.sound-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 15px;
+	margin-bottom: 30px;
+	animation: fadeIn 0.5s ease-in;
+}
+
+/* Base button styles for sound buttons */
+.sound-grid button {
+	color: white;
+	border: none;
+	padding: 15px 20px;
+	border-radius: 8px;
+	font-size: 16px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: all 0.2s;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.sound-grid button:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+}
+
+.sound-grid button:active {
+	transform: translateY(0);
+	box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}
+
+/* Sound button color variations */
+.sound.jump { background: #4CAF50; }
+.sound.coin { background: #FFD700; }
+.sound.powerup { background: #9C27B0; }
+.sound.death { background: #8B0000; }
+.sound.explosion { background: #FF5722; }
+.sound.laser { background: #03DAC6; }
+.sound.beep { background: #2196F3; }
+.sound.blip { background: #00BCD4; }
+.sound.meow { background: #E91E63; }
+.sound.bark { background: #8D6E63; }
+.sound.duck { background: #FFC107; }
+.sound.alien { background: #9C27B0; }
+.sound.roar { background: #FF6F00; }
+.sound.chirp { background: #009688; }
+.sound.howl { background: #673AB7; }
+
+/* Animations */
+@keyframes fadeIn {
+	from { opacity: 0; transform: translateY(20px); }
+	to { opacity: 1; transform: translateY(0); }
+}
