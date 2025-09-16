@@ -4,7 +4,7 @@ This tutorial will guide you through creating a complete Flappy Bird-style game 
 
 We'll build the game step by step, starting with simple concepts and gradually adding complexity until we have a fully featured game with physics, collision detection, and visual effects.
 
-> **Complete Working Example**: For the complete working implementation with all assets, code, and resources, see the [`examples/flappy-bird`](../../examples/flappy-bird/) directory in this repository. This tutorial walks through the concepts step by step, while the example directory contains the final working game.
+> **Complete Working Example**: For the complete working implementation with all assets, code, and resources, see the `examples/flappy-bird` directory in this repository. This tutorial walks through the concepts step by step, while the example directory contains the final working game.
 
 ## What You'll Build
 
