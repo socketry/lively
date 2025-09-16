@@ -14,15 +14,13 @@
 		{
 			"imports": {
 				"live": "/_components/@socketry/live/Live.js",
+				"live-audio": "/_components/@socketry/live-audio/Live/Audio.js",
 				"morphdom": "/_components/morphdom/morphdom-esm.js"
 			}
 		}
 		</script>
 		
-		<script type="module">
-			import {Live} from 'live';
-			window.live = Live.start();
-		</script>
+		<script type="module" src="/application.js"></script>
 	</head>
 	
 	<body>

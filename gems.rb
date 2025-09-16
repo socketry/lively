@@ -9,6 +9,7 @@ gemspec
 
 gem "utopia"
 gem "io-watch"
+gem "live", path: "../live"
 
 group :maintenance, optional: true do
 	gem "bake-gem"

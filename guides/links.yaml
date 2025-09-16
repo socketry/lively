@@ -4,3 +4,5 @@ worms-tutorial:
   order: 2
 flappy-bird-tutorial:
   order: 3
+game-audio-tutorial:
+  order: 4

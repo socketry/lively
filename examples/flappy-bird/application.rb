@@ -307,6 +307,10 @@ class SkinSelectionView < Live::View
 end
 
 class FlappyBirdView < Live::View
+	def tag_name
+		"live-flappy-bird"
+	end
+	
 	def initialize(*arguments, multiplayer_state: nil, **options)
 		super(*arguments, **options)
 		
@@ -389,50 +393,15 @@ class FlappyBirdView < Live::View
 	end
 	
 	def play_sound(name)
-		self.script(<<~JAVASCRIPT)
-			if (!this.sounds) {
-				this.sounds = {};
-			}
-			
-			if (!this.sounds[#{JSON.dump(name)}]) {
-				this.sounds[#{JSON.dump(name)}] = new Audio('/_static/#{name}.mp3');
-			}
-			
-			this.sounds[#{JSON.dump(name)}].play();
-		JAVASCRIPT
+		self.script("this.audio.playSound(#{JSON.dump(name)})")
 	end
 	
 	def play_music
-		self.script(<<~JAVASCRIPT)
-			this.audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-			
-			if (!this.source) {
-				let playAudioBuffer = (audioBuffer) => {
-					this.source = this.audioContext.createBufferSource();
-					this.source.buffer = audioBuffer;
-					this.source.connect(this.audioContext.destination);
-					this.source.loop = true;
-					this.source.loopStart = 32.0 * 60.0 / 80.0;
-					this.source.loopEnd = 96.0 * 60.0 / 80.0;
-					this.source.start(0, 0);
-				};
-				
-				fetch('/_static/music.mp3')
-					.then(response => response.arrayBuffer())
-					.then(arrayBuffer => this.audioContext.decodeAudioData(arrayBuffer))
-					.then(playAudioBuffer);
-			}
-		JAVASCRIPT
+		self.script("this.audio.playSound('music')")
 	end
 	
 	def stop_music
-		self.script(<<~JAVASCRIPT)
-			if (this.source) {
-				this.source.stop();
-				this.source.disconnect();
-				this.source = null;
-			}
-		JAVASCRIPT
+		self.script("this.audio.stopSound('music')")
 	end
 	
 	def game_over!
