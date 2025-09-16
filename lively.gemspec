@@ -27,6 +27,6 @@ Gem::Specification.new do |spec|
 	spec.required_ruby_version = ">= 3.2"
 	
 	spec.add_dependency "falcon", "~> 0.47"
-	spec.add_dependency "live", "~> 0.17"
+	spec.add_dependency "live", "~> 0.18"
 	spec.add_dependency "xrb"
 end
