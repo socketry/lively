@@ -104,7 +104,7 @@ describe Lively::Pages::Index do
 			html = index.call
 			
 			expect(html).to be(:include?, 'type="module"')
-			expect(html).to be(:include?, "Live.start()")
+			expect(html).to be(:include?, "application.js")
 		end
 		
 		it "includes body content when body responds to to_html" do
@@ -140,7 +140,7 @@ describe Lively::Pages::Index do
 			
 			expect(content).to be(:include?, "<!DOCTYPE html>")
 			expect(content).to be(:include?, "/_static/")
-			expect(content).to be(:include?, "Live.start()")
+			expect(content).to be(:include?, "application.js")
 		end
 	end
 end

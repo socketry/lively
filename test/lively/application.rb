@@ -252,7 +252,7 @@ describe Lively::Application do
 			html = response.read
 			expect(html).to be(:include?, "<!DOCTYPE html>")
 			expect(html).to be(:include?, "Hello, I'm Lively!")
-			expect(html).to be(:include?, "Live.start()")
+			expect(html).to be(:include?, "application.js")
 		end
 		
 		it "serves HTTP requests through the full stack" do

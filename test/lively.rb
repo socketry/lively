@@ -13,10 +13,6 @@ describe Lively do
 		expect(Lively::VERSION).to be =~ /^\d+\.\d+\.\d+$/
 	end
 	
-	it "defines the current version" do
-		expect(Lively::VERSION).to be == "0.12.0"
-	end
-	
 	it "loads all required components" do
 		expect(defined?(Lively::Assets)).to be_truthy
 		expect(defined?(Lively::Application)).to be_truthy
