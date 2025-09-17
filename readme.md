@@ -30,6 +30,10 @@ In order to protect users of this project, we require all contributors to comply
 
 This project is best served by a collaborative and respectful environment. Treat each other professionally, respect differing viewpoints, and engage constructively. Harassment, discrimination, or harmful behavior is not tolerated. Communicate clearly, listen actively, and support one another. If any issues arise, please inform the project maintainers.
 
+## Releases
+
+There are no documented releases.
+
 ## See Also
 
   - [live](https://github.com/socketry/live) — Provides client-server communication using websockets.
