@@ -10,7 +10,11 @@ Please see the [project documentation](https://socketry.github.io/lively/) for m
 
   - [Getting Started](https://socketry.github.io/lively/guides/getting-started/index) - This guide will help you get started with Lively, a framework for building real-time applications in Ruby.
 
-  - [Building a Worms Game with Lively](https://socketry.github.io/lively/guides/worms-tutorial/index) - This tutorial will guide you through creating a Worms-style game using Lively, a Ruby framework for building real-time applications. We'll build the game step by step, starting with simple concepts and gradually adding complexity.
+  - [Building a Worms Game with Lively](https://socketry.github.io/lively/guides/worms-tutorial/index) - This tutorial will guide you through creating a Worms-style game using Lively, a Ruby framework for building real-time applications.
+
+  - [Building a Flappy Bird Game with Live Views](https://socketry.github.io/lively/guides/flappy-bird-tutorial/index) - This tutorial will guide you through creating a complete Flappy Bird-style game using Live Views, a Ruby framework for building real-time interactive applications.
+
+  - [Game Audio Tutorial](https://socketry.github.io/lively/guides/game-audio-tutorial/index) - This guide shows you how to add audio to your Live.js games and applications using the `live-audio` library. You'll learn how to play sound effects, background music, and create dynamic audio experiences.
 
 ## Contributing
 
@@ -32,7 +36,9 @@ This project is best served by a collaborative and respectful environment. Treat
 
 ## Releases
 
-There are no documented releases.
+Please see the [project releases](https://socketry.github.io/lively/releases/index) for all releases.
+
+### v0.14.1
 
 ## See Also
 

@@ -14,3 +14,12 @@ files:
   title: Building a Worms Game with Lively
   description: This tutorial will guide you through creating a Worms-style game using
     Lively, a Ruby framework for building real-time applications.
+- path: flappy-bird-tutorial.md
+  title: Building a Flappy Bird Game with Live Views
+  description: This tutorial will guide you through creating a complete Flappy Bird-style
+    game using Live Views, a Ruby framework for building real-time interactive applications.
+- path: game-audio-tutorial.md
+  title: Game Audio Tutorial
+  description: This guide shows you how to add audio to your Live.js games and applications
+    using the `live-audio` library. You'll learn how to play sound effects, background
+    music, and create dynamic audio experiences.
