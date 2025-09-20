@@ -723,26 +723,41 @@ export class SampleSound extends Sound {
 
 // Background Music class extending SampleSound with looping functionality
 export class BackgroundMusicSound extends SampleSound {
-	constructor(url, loopStart = 0, loopEnd = 0) {
-		super(url, 0.8); // Default volume for background music
-		this.loopStart = loopStart;
-		this.loopEnd = loopEnd;
+	constructor(url, options = {}) {
+		const { volume = 0.8, loop = true, loopStart, loopEnd } = options;
+		super(url, volume);
+		
+		// Store loop configuration
+		this.options = {
+			loop,
+			loopStart,
+			loopEnd
+		};
 	}
 	
 	// Override to configure looping with specific loop points
 	configurePlayback(source) {
-		source.loop = true;
-		source.loopStart = this.loopStart;
-		source.loopEnd = this.loopEnd;
+		const { loop, loopStart, loopEnd } = this.options;
+		
+		// Only set loop properties if they are explicitly provided:
+		if (loop !== undefined) {
+			source.loop = loop;
+		}
+		
+		if (loopStart !== undefined) {
+			source.loopStart = loopStart;
+		}
+		
+		if (loopEnd !== undefined) {
+			source.loopEnd = loopEnd;
+		}
 	}
 	
 	async start(output) {
 		if (this.isPlaying) {
-			console.log('Background music is already playing');
 			return;
 		}
 		
 		await super.start(output);
-		console.log('Background music started with loop points:', this.loopStart, 'to', this.loopEnd);
 	}
 }

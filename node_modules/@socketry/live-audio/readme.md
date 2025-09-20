@@ -7,7 +7,7 @@ A Web Audio API-based game audio synthesis and background music library for Ruby
 ## Features
 
 - **Synthesized Sound Effects**: Classic game sounds including jump, coin, power-up, death, explosion, laser, and animal sounds.
-- **Background Music**: MP3 playback with loop points and volume control.
+- **Background Music**: Audio file playback with loop points and volume control.
 - **Audio Visualization**: Real-time waveform display with quality monitoring.
 - **Anti-Clipping Protection**: Built-in gain management to prevent audio distortion.
 - **Modular Architecture**: Clean separation between sound synthesis, output routing, and visualization.
@@ -33,7 +33,10 @@ window.liveAudio = Audio.start();
 // Add sounds using the controller
 const meow = new MeowSound();
 const explosion = new ExplosionSound();
-const music = new BackgroundMusicSound('/assets/music.mp3', 10.0, 45.0);
+const music = new BackgroundMusicSound('/assets/music.mp3', { 
+  loopStart: 10.0, 
+  loopEnd: 45.0 
+});
 
 window.liveAudio.addSound('meow', meow);
 window.liveAudio.addSound('explosion', explosion);
@@ -147,7 +150,12 @@ The library includes a comprehensive collection of pre-built sound classes in `L
 - `AlienSound` - Alien sound with ring modulation
 
 ### Background Music
-- `BackgroundMusicSound(url, loopStart, loopEnd)` - MP3 background music with required URL and loop points
+- `BackgroundMusicSound(url, options)` - Audio file background music with optional loop configuration
+  - Supports common web audio formats: MP3, WAV, OGG, AAC, FLAC, and others supported by the browser
+  - `options.loop` - Enable/disable looping (default: true)
+  - `options.loopStart` - Loop start time in seconds
+  - `options.loopEnd` - Loop end time in seconds
+  - `options.volume` - Playback volume (default: 0.8)
 
 ### Usage Example
 
@@ -160,11 +168,30 @@ const controller = Audio.start();
 // Add sounds from the library
 const meow = new MeowSound();
 const explosion = new ExplosionSound();
-const music = new BackgroundMusicSound('/assets/background.mp3', 10.5, 45.2);
+
+// Background music examples:
+// Default: loops entire track at 80% volume
+const music1 = new BackgroundMusicSound('/assets/background.mp3');
+
+// Custom loop points
+const music2 = new BackgroundMusicSound('/assets/background.mp3', { 
+  loopStart: 10.5, 
+  loopEnd: 45.2 
+});
+
+// No looping
+const music3 = new BackgroundMusicSound('/assets/background.mp3', { loop: false });
+
+// Custom volume
+const music4 = new BackgroundMusicSound('/assets/background.mp3', { 
+  volume: 0.6,
+  loopStart: 5.0,
+  loopEnd: 30.0
+});
 
 controller.addSound('meow', meow);
 controller.addSound('explosion', explosion);
-controller.addSound('music', music);
+controller.addSound('music', music1);
 
 // Play them
 controller.playSound('meow');

@@ -1,7 +1,7 @@
 {
 	"dependencies": {
 		"@socketry/live": "^0.16.0",
-		"@socketry/live-audio": "^0.4.0"
+		"@socketry/live-audio": "^0.5.0"
 	},
 	"scripts": {
 		"postinstall": "bundle exec bake utopia:node:update"
