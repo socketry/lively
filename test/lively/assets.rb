@@ -248,6 +248,18 @@ describe Lively::Assets do
 			expect(response.headers["content-type"]).to be == "image/png"
 		end
 		
+		it "handles files with spaces in their names" do
+			test_file = File.join(temp_dir, "test file.mp3")
+			File.write(test_file, "fake mp3 content")
+			
+			# Request with URL-encoded space (%20)
+			request = Protocol::HTTP::Request.new("http", "localhost", "GET", "/test%20file.mp3")
+			response = middleware.call(request)
+			
+			expect(response.status).to be == 200
+			expect(response.headers["content-type"]).to be == "audio/mpeg"
+		end
+		
 		it "delegates to next middleware for directory requests" do
 			# Create a subdirectory in the temp directory
 			subdir = File.join(temp_dir, "subdir")

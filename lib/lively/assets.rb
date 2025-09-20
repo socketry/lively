@@ -101,6 +101,8 @@ module Lively
 		# @parameter path [String] The relative path to expand.
 		# @returns [String | Nil] The absolute path if valid, `nil` if the file doesn't exist.
 		def expand_path(path)
+			path = path.split("/").map(&URI.method(:decode_uri_component))
+			
 			root = File.realpath(@root)
 			path = File.realpath(File.join(@root, path))
 			
