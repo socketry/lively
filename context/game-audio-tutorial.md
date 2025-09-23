@@ -45,10 +45,12 @@ customElements.define('live-game', class GameElement extends ViewElement {
 		this.#audio = Audio.start({
 			window,
 			onOutputCreated: (controller, output) => {
-				console.log('Audio system ready');
-				this.loadSounds();
+				// Start background audio:
+				this.#audio.playSound('music');
 			}
 		});
+		
+		this.loadSounds();
 	}
 	
 	disconnectedCallback() {
@@ -60,7 +62,7 @@ customElements.define('live-game', class GameElement extends ViewElement {
 	}
 	
 	loadSounds() {
-		// We'll add sounds here
+		// We'll add sounds here.
 	}
 	
 	get audio() {
@@ -69,33 +71,41 @@ customElements.define('live-game', class GameElement extends ViewElement {
 });
 ```
 
+Note that playing audio can generally only be done in response to a user interaction (like a click or key press) due to browser autoplay policies. The onOutputCreated callback is a good place to start background audio after the user has interacted with the page, while other sound effects can be "best effort" if played outside of user interaction.
+
 ### 2. Adding Synthesized Sound Effects
 
 The library includes many pre-built synthesized sounds:
 
 ```javascript
 loadSounds() {
-	// Game action sounds
+	// Game action sounds:
 	this.#audio.addSound('jump', new Library.JumpSound());
 	this.#audio.addSound('coin', new Library.CoinSound());
 	this.#audio.addSound('powerup', new Library.PowerUpSound());
 	this.#audio.addSound('death', new Library.DeathSound());
 	
-	// Combat sounds
+	// Combat sounds:
 	this.#audio.addSound('laser', new Library.LaserSound());
 	this.#audio.addSound('explosion', new Library.ExplosionSound());
 	
-	// Interface sounds
+	// Interface sounds:
 	this.#audio.addSound('beep', new Library.BeepSound());
 	this.#audio.addSound('blip', new Library.BlipSound());
 	
-	// Animal sounds
+	// Animal sounds:
 	this.#audio.addSound('meow', new Library.MeowSound());
 	this.#audio.addSound('bark', new Library.BarkSound());
 	this.#audio.addSound('duck', new Library.DuckSound());
 	this.#audio.addSound('roar', new Library.RoarSound());
 	this.#audio.addSound('howl', new Library.HowlSound());
 	this.#audio.addSound('chirp', new Library.ChirpSound());
+	
+	// Background music (looping) with optional loop points:
+	this.#audio.addSound('music', new Library.BackgroundMusicSound('/_static/music.mp3', {
+		loopStart: 32.0 * 60.0 / 80.0,
+		loopEnd: 96.0 * 60.0 / 80.0,
+	}));
 }
 ```
 
@@ -121,7 +131,7 @@ class GameView < Live::View
 	
 	def player_jump
 		@player.jump
-		play_sound('jump')  # Play jump sound
+		play_sound('jump')   # Play jump sound
 	end
 	
 	def collect_coin
