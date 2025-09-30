@@ -20,7 +20,7 @@ interface BuyMenuHUDProps {
   onClose: () => void;
 }
 
-const weapons: Record<string, WeaponItem[]> = {
+const getWeapons = (team: 'ct' | 't'): Record<string, WeaponItem[]> => ({
   pistols: [
     {
       id: 'glock',
@@ -259,7 +259,7 @@ const weapons: Record<string, WeaponItem[]> = {
       category: 'grenade'
     }
   ]
-};
+});
 
 export const BuyMenuHUD: React.FC<BuyMenuHUDProps> = ({
   money,
@@ -281,15 +281,16 @@ export const BuyMenuHUD: React.FC<BuyMenuHUDProps> = ({
   };
 
   const getItemsForCategory = (category: string): WeaponItem[] => {
+    const weapons = getWeapons(team);
     let items = weapons[category] || [];
-    
+
     // Filter team-specific items
     if (category === 'equipment') {
-      items = items.filter(item => 
+      items = items.filter(item =>
         item.id !== 'defuse_kit' || team === 'ct'
       );
     }
-    
+
     return items;
   };
 
