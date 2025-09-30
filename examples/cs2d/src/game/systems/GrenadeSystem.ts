@@ -715,15 +715,86 @@ export class GrenadeSystem {
         (position.x - cloud.position.x) ** 2 +
         (position.y - cloud.position.y) ** 2
       );
-      
+
       if (distance <= cloud.radius && cloud.density > 0.3) {
         return true;
       }
     }
-    
+
     return false;
   }
-  
+
+  /**
+   * Check if line of sight is blocked by smoke (2D raycasting)
+   * Uses raycasting to check if any smoke cloud intersects the line between two points
+   * @param from Starting position
+   * @param to Target position
+   * @returns true if smoke blocks the line of sight
+   */
+  isSightBlockedBySmoke(from: Vector2D, to: Vector2D): boolean {
+    // Early exit if no smoke clouds
+    if (this.smokeClouds.size === 0) return false;
+
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Sample points along the ray (every 10 units for accuracy)
+    const sampleInterval = 10;
+    const sampleCount = Math.ceil(distance / sampleInterval);
+
+    // Check each sample point against all smoke clouds
+    for (let i = 0; i <= sampleCount; i++) {
+      const t = i / sampleCount;
+      const samplePoint: Vector2D = {
+        x: from.x + dx * t,
+        y: from.y + dy * t
+      };
+
+      // Check if this point is in any smoke cloud
+      for (const cloud of this.smokeClouds.values()) {
+        // Only block sight if smoke is dense enough
+        if (cloud.density < 0.3) continue;
+
+        const distToCloud = Math.sqrt(
+          (samplePoint.x - cloud.position.x) ** 2 +
+          (samplePoint.y - cloud.position.y) ** 2
+        );
+
+        // If ray passes through smoke cloud, sight is blocked
+        if (distToCloud <= cloud.radius) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Get smoke density at a specific position (0-1)
+   * Used for partial vision reduction
+   */
+  getSmokeDensityAt(position: Vector2D): number {
+    let maxDensity = 0;
+
+    for (const cloud of this.smokeClouds.values()) {
+      const distance = Math.sqrt(
+        (position.x - cloud.position.x) ** 2 +
+        (position.y - cloud.position.y) ** 2
+      );
+
+      if (distance <= cloud.radius) {
+        // Density falls off with distance from center
+        const falloff = 1 - (distance / cloud.radius);
+        const effectiveDensity = cloud.density * falloff;
+        maxDensity = Math.max(maxDensity, effectiveDensity);
+      }
+    }
+
+    return Math.min(1, maxDensity);
+  }
+
   /**
    * Calculate fire damage for player at position
    */
