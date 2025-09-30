@@ -208,21 +208,62 @@ export class CollisionSystem {
 
   /**
    * Check collision between bullet and map walls/obstacles
+   * Supports CS 1.6 style wall penetration with damage reduction
    */
   private checkWallCollision(bullet: Bullet): WallCollisionResult | null {
     const tile = this.dependencies.getTileAt(bullet.position);
-    
-    // Check if bullet hits a solid, non-penetrable surface
-    if (tile && !tile.walkable && !tile.bulletPenetrable) {
-      return {
-        type: 'wall_hit',
+
+    if (!tile || tile.walkable) return null;
+
+    // Check if bullet can penetrate this surface
+    if (tile.bulletPenetrable) {
+      // Track penetration count
+      if (!bullet.penetrationCount) bullet.penetrationCount = 0;
+
+      // Check if bullet has exceeded max penetrations
+      if (bullet.penetrationCount >= GAME_CONSTANTS.WEAPONS.MAX_BULLET_PENETRATIONS) {
+        // Bullet exhausted penetration capability
+        return {
+          type: 'wall_hit',
+          bulletId: bullet.id,
+          position: bullet.position,
+          surfaceType: tile.type || 'concrete'
+        };
+      }
+
+      // Apply penetration damage reduction
+      bullet.penetrationCount++;
+      bullet.damage *= (1 - GAME_CONSTANTS.WEAPONS.BULLET_PENETRATION_LOSS);
+
+      // Emit penetration event for audio/visual feedback
+      this.dependencies.emitNetworkEvent({
+        type: 'bullet_penetration',
         bulletId: bullet.id,
         position: bullet.position,
-        surfaceType: tile.type || 'concrete'
-      };
+        surfaceType: tile.type,
+        remainingDamage: bullet.damage,
+        penetrationCount: bullet.penetrationCount
+      });
+
+      // Create visual effect for penetration
+      this.dependencies.effects.createSparkEffect(bullet.position);
+
+      // Play penetration sound (quieter than full impact)
+      this.dependencies.audio.play('weapons/debris1.wav', bullet.position, {
+        category: 'weapons',
+        volume: 0.3 // Quieter for penetration
+      });
+
+      return null; // Bullet continues through wall
     }
-    
-    return null;
+
+    // Solid, non-penetrable surface - bullet stops
+    return {
+      type: 'wall_hit',
+      bulletId: bullet.id,
+      position: bullet.position,
+      surfaceType: tile.type || 'concrete'
+    };
   }
 
   /**

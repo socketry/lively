@@ -44,6 +44,7 @@ export interface Bullet {
   velocity: Vector2D;
   damage: number;
   penetration: number;
+  penetrationCount?: number; // Track how many walls this bullet has penetrated
   owner: string;
   weapon: string;
   distanceTraveled: number;
