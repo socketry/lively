@@ -25,6 +25,14 @@ export interface BombSite {
   color: string;
 }
 
+export interface BuyZone {
+  id: string;
+  team: 'ct' | 't';
+  bounds: Rectangle;
+  color: string;
+  active: boolean;
+}
+
 export interface MapObject {
   id: string;
   type: 'crate' | 'barrel' | 'car' | 'door' | 'window';
@@ -46,6 +54,7 @@ export interface MapData {
   tiles: MapTile[][];
   spawnPoints: SpawnPoint[];
   bombSites: BombSite[];
+  buyZones: BuyZone[];
   objects: MapObject[];
   lighting: LightingData;
   ambientSound?: string;
@@ -119,6 +128,22 @@ export class MapSystem {
           name: 'B',
           bounds: { x: 1280, y: 1280, width: 256, height: 256 },
           color: '#00aaff'
+        }
+      ],
+      buyZones: [
+        {
+          id: 'ct_buyzone',
+          team: 'ct',
+          bounds: { x: 200, y: 200, width: 200, height: 200 },
+          color: '#4169E1',
+          active: true
+        },
+        {
+          id: 't_buyzone',
+          team: 't',
+          bounds: { x: 1650, y: 1650, width: 200, height: 200 },
+          color: '#DC143C',
+          active: true
         }
       ],
       objects: [
@@ -400,6 +425,48 @@ export class MapSystem {
     return false;
   }
   
+  /**
+   * Get all buy zones
+   */
+  getBuyZones(team?: 'ct' | 't'): BuyZone[] {
+    if (!this.currentMap) return [];
+    return team ?
+      this.currentMap.buyZones.filter(bz => bz.team === team && bz.active) :
+      this.currentMap.buyZones.filter(bz => bz.active);
+  }
+
+  /**
+   * Check if a position is inside a buy zone
+   * @param position Player position to check
+   * @param team Player team (ct or t)
+   * @returns true if player is in their team's buy zone
+   */
+  isInBuyZone(position: Vector2D, team: 'ct' | 't'): boolean {
+    if (!this.currentMap) return false;
+
+    const teamBuyZones = this.currentMap.buyZones.filter(
+      bz => bz.team === team && bz.active
+    );
+
+    for (const zone of teamBuyZones) {
+      if (this.isPositionInRectangle(position, zone.bounds)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if a position is inside a rectangle
+   */
+  private isPositionInRectangle(position: Vector2D, bounds: Rectangle): boolean {
+    return position.x >= bounds.x &&
+           position.x <= bounds.x + bounds.width &&
+           position.y >= bounds.y &&
+           position.y <= bounds.y + bounds.height;
+  }
+
   getCurrentMap(): MapData | null {
     return this.currentMap;
   }

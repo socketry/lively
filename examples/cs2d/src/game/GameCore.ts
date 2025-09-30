@@ -132,7 +132,7 @@ export class GameCore {
     this.maps = new MapSystem();
     this.stateManager = new GameStateManager();
     this.damageSystem = new DamageSystem(this.audio);
-    this.buyMenuSystem = new BuyMenuSystem(this.weapons, this.audio);
+    this.buyMenuSystem = new BuyMenuSystem(this.weapons, this.audio, this.maps);
     this.roundSystem = new RoundSystem(this.gameState, this.players, this.audio);
     this.hud = new HUD(canvas, this.weapons);
     this.bombSystem = new BombSystem(this.audio);

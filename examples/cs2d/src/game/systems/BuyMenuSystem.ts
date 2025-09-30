@@ -1,6 +1,7 @@
 import { Player } from '../GameCore';
 import { WeaponSystem, WeaponStats } from '../weapons/WeaponSystem';
 import { CS16AudioManager } from '../audio/CS16AudioManager';
+import { MapSystem } from '../maps/MapSystem';
 
 export interface BuyableItem {
   id: string;
@@ -24,12 +25,14 @@ export interface BuyMenuState {
 export class BuyMenuSystem {
   private weaponSystem: WeaponSystem;
   private audioManager: CS16AudioManager | null = null;
+  private mapSystem: MapSystem | null = null;
   private buyableItems: Map<string, BuyableItem> = new Map();
   private menuState: Map<string, BuyMenuState> = new Map();
-  
-  constructor(weaponSystem: WeaponSystem, audioManager?: CS16AudioManager) {
+
+  constructor(weaponSystem: WeaponSystem, audioManager?: CS16AudioManager, mapSystem?: MapSystem) {
     this.weaponSystem = weaponSystem;
     this.audioManager = audioManager || null;
+    this.mapSystem = mapSystem || null;
     this.initializeBuyableItems();
   }
   
@@ -580,10 +583,12 @@ export class BuyMenuSystem {
   canPlayerBuy(player: Player, gameState: any): boolean {
     // Can buy during freeze time or first 15 seconds of round
     const canBuyTime = gameState.freezeTime > 0 || gameState.roundTime > 105;
-    
-    // Would need to check buy zone position in actual implementation
-    const inBuyZone = true; // Simplified for now
-    
+
+    // Check if player is in their team's buy zone using MapSystem
+    const inBuyZone = this.mapSystem ?
+      this.mapSystem.isInBuyZone(player.position, player.team) :
+      true; // Fallback to true if MapSystem not available
+
     return canBuyTime && inBuyZone && player.isAlive;
   }
   
@@ -602,7 +607,14 @@ export class BuyMenuSystem {
   setAudioManager(audioManager: CS16AudioManager): void {
     this.audioManager = audioManager;
   }
-  
+
+  /**
+   * Set map system for buy zone detection
+   */
+  setMapSystem(mapSystem: MapSystem): void {
+    this.mapSystem = mapSystem;
+  }
+
   /**
    * Get item by ID
    */
