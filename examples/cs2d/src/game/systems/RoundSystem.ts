@@ -1,6 +1,7 @@
 import { Player, GameState } from '../GameCore';
 import { CS16AudioManager } from '../audio/CS16AudioManager';
 import { Vector2D } from '../physics/PhysicsEngine';
+import { SpawnSystem } from './SpawnSystem';
 
 export type RoundPhase = 'warmup' | 'freeze' | 'live' | 'post_round' | 'halftime' | 'match_end';
 export type RoundEndReason = 'elimination' | 'bomb_exploded' | 'bomb_defused' | 'time' | 'surrender';
@@ -36,6 +37,7 @@ export interface EconomySettings {
 
 export class RoundSystem {
   private audioManager: CS16AudioManager | null = null;
+  private spawnSystem: SpawnSystem | null = null;
   private gameState: GameState;
   private players: Map<string, Player>;
   private roundStats: RoundStats;
@@ -46,15 +48,17 @@ export class RoundSystem {
   private roundStartTime: number = 0;
   private consecutiveLosses: { ct: number; t: number } = { ct: 0, t: 0 };
   private eventCallbacks: Map<string, Function[]> = new Map();
-  
+
   constructor(
-    gameState: GameState, 
-    players: Map<string, Player>, 
-    audioManager?: CS16AudioManager
+    gameState: GameState,
+    players: Map<string, Player>,
+    audioManager?: CS16AudioManager,
+    spawnSystem?: SpawnSystem
   ) {
     this.gameState = gameState;
     this.players = players;
     this.audioManager = audioManager || null;
+    this.spawnSystem = spawnSystem || null;
     
     this.roundStats = {
       roundNumber: 1,
@@ -544,19 +548,37 @@ export class RoundSystem {
    * Respawn all players for new round
    */
   private respawnAllPlayers(): void {
+    // Allocate spawn points using SpawnSystem if available
+    const ctPlayers = Array.from(this.players.values()).filter(p => p.team === 'ct');
+    const tPlayers = Array.from(this.players.values()).filter(p => p.team === 't');
+
+    let ctSpawns: Map<string, Vector2D> | null = null;
+    let tSpawns: Map<string, Vector2D> | null = null;
+
+    if (this.spawnSystem) {
+      ctSpawns = this.spawnSystem.allocateSpawns(ctPlayers, 'ct');
+      tSpawns = this.spawnSystem.allocateSpawns(tPlayers, 't');
+    }
+
     this.players.forEach(player => {
       player.isAlive = true;
       player.health = 100;
       // Armor and equipment persist between rounds
-      
-      // Reset position to spawn point
-      // This would need actual spawn point logic
-      if (player.team === 'ct') {
-        player.position = { x: 100, y: 100 }; // CT spawn
+
+      // Reset position using SpawnSystem or fallback to hardcoded
+      if (ctSpawns && player.team === 'ct' && ctSpawns.has(player.id)) {
+        player.position = ctSpawns.get(player.id)!;
+      } else if (tSpawns && player.team === 't' && tSpawns.has(player.id)) {
+        player.position = tSpawns.get(player.id)!;
       } else {
-        player.position = { x: 900, y: 700 }; // T spawn
+        // Fallback to hardcoded spawns if SpawnSystem not available
+        if (player.team === 'ct') {
+          player.position = { x: 100, y: 100 }; // CT spawn
+        } else {
+          player.position = { x: 900, y: 700 }; // T spawn
+        }
       }
-      
+
       player.velocity = { x: 0, y: 0 };
       player.isDucking = false;
       player.isWalking = false;

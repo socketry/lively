@@ -16,6 +16,9 @@ import { InputSystem, InputCallbacks } from './systems/InputSystem';
 import { CollisionSystem, CollisionDependencies, CollisionEffects } from './systems/CollisionSystem';
 import { GrenadeSystem, GrenadeType, ActiveGrenade, FlashEffect } from './systems/GrenadeSystem';
 import { PlayerActionSystem, JumpState, CrouchState, DefuseKit } from './systems/PlayerActionSystem';
+import { SpawnSystem } from './systems/SpawnSystem';
+import { VisionSystem } from './systems/VisionSystem';
+import { SpectatorSystem } from './systems/SpectatorSystem';
 import { GAME_CONSTANTS } from './config/gameConstants';
 
 export interface Player {
@@ -88,6 +91,9 @@ export class GameCore {
   private collisionSystem: CollisionSystem;
   private grenadeSystem: GrenadeSystem;
   private playerActionSystem: PlayerActionSystem;
+  private spawnSystem: SpawnSystem;
+  private visionSystem: VisionSystem;
+  private spectatorSystem: SpectatorSystem;
   private botAIs: Map<string, BotAI> = new Map();
   
   // Enhanced input state
@@ -133,13 +139,20 @@ export class GameCore {
     this.stateManager = new GameStateManager();
     this.damageSystem = new DamageSystem(this.audio);
     this.buyMenuSystem = new BuyMenuSystem(this.weapons, this.audio, this.maps);
-    this.roundSystem = new RoundSystem(this.gameState, this.players, this.audio);
+
+    // Initialize new game systems first
+    this.spawnSystem = new SpawnSystem(this.maps);
+    this.grenadeSystem = new GrenadeSystem(this.audio, this.renderer);
+    this.visionSystem = new VisionSystem(this.maps, this.grenadeSystem);
+    this.spectatorSystem = new SpectatorSystem(this.players);
+
+    // Initialize RoundSystem with SpawnSystem
+    this.roundSystem = new RoundSystem(this.gameState, this.players, this.audio, this.spawnSystem);
     this.hud = new HUD(canvas, this.weapons);
     this.bombSystem = new BombSystem(this.audio);
     this.inputSystem = new InputSystem(canvas);
-    this.grenadeSystem = new GrenadeSystem(this.audio, this.renderer);
     this.playerActionSystem = new PlayerActionSystem(this.audio);
-    
+
     // Initialize CollisionSystem with required dependencies
     this.collisionSystem = new CollisionSystem(this.createCollisionDependencies());
     
@@ -155,6 +168,9 @@ export class GameCore {
     console.log('🎯 CollisionSystem initialized - extracted 100+ lines from GameCore');
     console.log('🧨 GrenadeSystem initialized with HE, Flash, Smoke, and Molotov support');
     console.log('🏃 PlayerActionSystem initialized with jumping, crouching, and defuse kit support');
+    console.log('🎯 SpawnSystem initialized - intelligent spawn allocation with separation');
+    console.log('👁️ VisionSystem initialized - unified LOS checks with wall and smoke detection');
+    console.log('👻 SpectatorSystem initialized - death cam with killer/teammate following');
     console.log('🧪 Testing: H=damage, J=heal, K=bot, B=buy menu, N=round, E=bomb, M=C4, F1=debug, G=grenade, F=inspect, Q=quickswitch, Space=jump, Ctrl=crouch, Shift=walk');
     
     // Connect state manager to core systems
@@ -1386,10 +1402,13 @@ export class GameCore {
     
     // Update round system
     this.roundSystem.update(deltaTime);
-    
+
+    // Update spectator system
+    this.spectatorSystem.update(deltaTime);
+
     // Update bomb system
     this.bombSystem.update(deltaTime);
-    
+
     // Update grenade system
     this.grenadeSystem.update(deltaTime, (pos) => !this.maps.isPositionWalkable(pos));
     
@@ -1431,19 +1450,22 @@ export class GameCore {
         killer.score += 1;
         // Add money reward based on weapon used
         killer.money += 300; // Base kill reward
-        
+
         console.log('💰 Kill reward given to:', killer.id, 'for killing:', player.id);
       }
     }
-    
+
+    // Enter spectator mode
+    this.spectatorSystem.handlePlayerDeath(player.id, player.position, killerId);
+
     // Remove physics body
     this.physics.removeBody(`player_${player.id}`);
-    
+
     // Update player sprite to show death state
     this.renderer.updateSprite(`player_sprite_${player.id}`, {
       opacity: 0.5 // Make dead player semi-transparent
     });
-    
+
     // Check round end conditions
     this.checkRoundEnd();
   }
