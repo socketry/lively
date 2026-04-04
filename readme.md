@@ -36,11 +36,9 @@ bundle exec sus
 
 ### Making Releases
 
-To make a new release:
+Please see the [project releases](https://socketry.github.io/lively/releases/index) for all releases.
 
-``` shell
-bundle exec bake gem:release:patch # or minor or major
-```
+### v0.14.1
 
 ### Developer Certificate of Origin
 
