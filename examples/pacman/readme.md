@@ -28,7 +28,7 @@ class PacmanView < Live::View
 			task.stop
 		end
 	end
-
+	
 	def render(builder)
 		builder.tag("div") do
 			builder.text(Time.now.to_s)

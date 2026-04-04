@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2021-2024, by Samuel Williams.
+# Copyright, 2021-2026, by Samuel Williams.
 
 source "https://rubygems.org"
 
@@ -9,6 +9,7 @@ gemspec
 
 gem "utopia"
 gem "io-watch"
+gem "lively-electron"
 
 group :maintenance, optional: true do
 	gem "bake-gem"
@@ -26,6 +27,7 @@ group :test do
 	gem "decode"
 	
 	gem "rubocop"
+	gem "rubocop-md"
 	gem "rubocop-socketry"
 	
 	gem "sus-fixtures-async-http"

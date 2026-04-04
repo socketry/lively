@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2021-2025, by Samuel Williams.
+# Copyright, 2025-2026, by Samuel Williams.
 
 require "lively/assets"
 require "sus/fixtures/console"
@@ -12,7 +12,7 @@ require "fileutils"
 describe Lively::Assets do
 	include Sus::Fixtures::Console
 	
-	let(:delegate) {proc {|request| Protocol::HTTP::Response[404, [], "Not Found"]}}
+	let(:delegate) {proc{|request| Protocol::HTTP::Response[404, [], "Not Found"]}}
 	let(:assets) {Lively::Assets.new(delegate)}
 	
 	with "#initialize" do

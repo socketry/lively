@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2024-2025, by Samuel Williams.
+# Copyright, 2025-2026, by Samuel Williams.
 
 class GameAudioView < Live::View
 	def tag_name
@@ -32,7 +32,7 @@ class GameAudioView < Live::View
 						value: "1.0",
 						oninput: "this.closest('live-game-audio').audio.setVolume(this.value); this.nextElementSibling.textContent = Math.round(this.value * 100) + '%'",
 						class: "volume-slider"
-					) {}
+					){}
 					builder.tag("span", id: "volume-display", class: "volume-display") do
 						builder.text("100%")
 					end
@@ -40,19 +40,19 @@ class GameAudioView < Live::View
 			end
 			
 			builder.tag("div", class: "visualization-container") do
-				builder.tag("h3") {builder.text("🌊 Real-time Waveform Analysis")}
+				builder.tag("h3"){builder.text("🌊 Real-time Waveform Analysis")}
 				builder.tag("canvas", 
 					id: "waveform-canvas", 
 					width: "800", 
 					height: "200",
 					class: "waveform-canvas"
-				) {}
+				){}
 				builder.tag("canvas", 
 					id: "alert-canvas", 
 					width: "800", 
 					height: "100",
 					class: "alert-canvas"
-				) {}
+				){}
 				
 				builder.tag("label", class: "visualization-toggle") do
 					builder.tag("input", 
@@ -60,7 +60,7 @@ class GameAudioView < Live::View
 						checked: "checked",
 						onchange: "this.checked ? this.closest('live-game-audio').enableVisualization() : this.closest('live-game-audio').disableVisualization()",
 						class: "visualization-checkbox"
-					) {}
+					){}
 					builder.text("📊 Enable Real-time Visualization")
 				end
 			end

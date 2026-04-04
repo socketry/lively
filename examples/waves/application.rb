@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2024-2025, by Samuel Williams.
+# Copyright, 2024-2026, by Samuel Williams.
 
 require_relative "png"
 require "base64"
@@ -138,7 +138,7 @@ class WavesView < Live::View
 	
 	def render(builder)
 		builder.tag("div", style: "text-align: center; padding: 20px;") do
-			builder.tag("h1") {builder.text("Real-time Wave Simulation")}
+			builder.tag("h1"){builder.text("Real-time Wave Simulation")}
 			builder.tag("img", src: map_data, style: "border: 2px solid #333; image-rendering: pixelated; width: 512px; height: 512px;")
 		end
 	end

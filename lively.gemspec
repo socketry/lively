@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
 	
 	spec.executables = ["lively"]
 	
-	spec.required_ruby_version = ">= 3.2"
+	spec.required_ruby_version = ">= 3.3"
 	
 	spec.add_dependency "agent-context"
 	spec.add_dependency "falcon", "~> 0.47"

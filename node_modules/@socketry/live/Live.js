@@ -87,8 +87,9 @@ export class Live {
 		
 		server.onopen = () => {
 			this.#failures = 0;
-			this.#flush();
+			// Attach elements before flushing any pending events:
 			this.#attach();
+			this.#flush();
 		};
 		
 		server.onmessage = (message) => {
@@ -165,16 +166,30 @@ export class Live {
 		}
 	}
 	
-	bind(element) {
-		this.#send(JSON.stringify(['bind', element.id, element.dataset]));
+	connected() {
+		return this.#server && this.#server.readyState === this.#window.WebSocket.OPEN;
 	}
-
-	unbind(element) {
-		if (this.#server) {
-			this.#send(JSON.stringify(['unbind', element.id]));
+	
+	bind(element) {
+		if (this.connected()) {
+			try {
+				return this.#server.send(JSON.stringify(['bind', element.id, element.dataset]));
+			} catch (error) {
+				// The server must be in a bad state, we will rebind in attach on connect, later.
+			}
 		}
 	}
 
+	unbind(element) {
+		if (this.connected()) {
+			try {
+				return this.#server.send(JSON.stringify(['unbind', element.id]));
+			} catch (error) {
+				// The server must be in a bad state, unbind is irrelelvant.
+			}
+		}
+	}
+	
 	#attach() {
 		for (let element of ViewElement.connectedElements) {
 			this.bind(element);

@@ -116,7 +116,7 @@ To play sounds from your Ruby application, you need to connect your custom eleme
 **Ruby Application (`application.rb`):**
 
 ```ruby
-require 'lively'
+require "lively"
 
 class GameView < Live::View
 	def tag_name
@@ -131,17 +131,17 @@ class GameView < Live::View
 	
 	def player_jump
 		@player.jump
-		play_sound('jump')   # Play jump sound
+		play_sound("jump")   # Play jump sound
 	end
 	
 	def collect_coin
 		@score += 10
-		play_sound('coin')   # Play coin sound
+		play_sound("coin")   # Play coin sound
 	end
 	
 	def player_dies
 		@lives -= 1
-		play_sound('death')  # Play death sound
+		play_sound("death")  # Play death sound
 	end
 end
 ```

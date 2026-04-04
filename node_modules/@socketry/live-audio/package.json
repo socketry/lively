@@ -1,9 +1,13 @@
 {
   "name": "@socketry/live-audio",
   "type": "module",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Web Audio API-based game audio synthesis and background music library for Ruby Live applications.",
   "main": "Live/Audio.js",
+  "exports": {
+    ".": "./Live/Audio.js",
+    "./Library": "./Live/Audio/Library.js"
+  },
   "files": [
     "Live/"
   ],

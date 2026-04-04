@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2024-2025, by Samuel Williams.
+# Copyright, 2025-2026, by Samuel Williams.
 
 require "lively"
 require "sus/fixtures/async"
@@ -12,7 +12,7 @@ require "sus/fixtures/async/http"
 describe Lively::Application do
 	include Sus::Fixtures::Console
 	
-	let(:delegate) {proc {|request| Protocol::HTTP::Response[404, [], "Not Found"]}}
+	let(:delegate) {proc{|request| Protocol::HTTP::Response[404, [], "Not Found"]}}
 	let(:application) {Lively::Application.new(delegate)}
 	
 	with ".[]" do
@@ -125,7 +125,7 @@ describe Lively::Application do
 		
 		it "returns custom class name for subclass" do
 			application_class_class = Class.new(Lively::Application)
-			application_class_class.define_singleton_method(:name) {"CustomApp"}
+			application_class_class.define_singleton_method(:name){"CustomApp"}
 			application_class = application_class_class.new(delegate)
 			
 			expect(application_class.title).to be == "CustomApp"

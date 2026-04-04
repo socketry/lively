@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2024-2025, by Samuel Williams.
+# Copyright, 2025-2026, by Samuel Williams.
 
 require "lively"
 require "sus/fixtures/async"
@@ -99,7 +99,7 @@ describe Lively::HelloWorld do
 			hello_world.instance_variable_set(:@clock, nil)
 			
 			# Should not raise an error
-			expect {hello_world.close}.not.to raise_exception
+			expect{hello_world.close}.not.to raise_exception
 		end
 	end
 	
@@ -127,25 +127,25 @@ describe Lively::HelloWorld do
 		it "includes current time in content" do
 			hello_world.render(builder)
 			
-			expect(builder.content.any? {|c| c.include?("The time is")}).to be == true
+			expect(builder.content.any?{|c| c.include?("The time is")}).to be == true
 		end
 		
 		it "includes introduction text" do
 			hello_world.render(builder)
 			
-			expect(builder.content.any? {|c| c.include?("Hello, I'm Lively!")}).to be == true
+			expect(builder.content.any?{|c| c.include?("Hello, I'm Lively!")}).to be == true
 		end
 		
 		it "includes framework description" do
 			hello_world.render(builder)
 			
-			expect(builder.content.any? {|c| c.include?("simple client-server SPA framework")}).to be == true
+			expect(builder.content.any?{|c| c.include?("simple client-server SPA framework")}).to be == true
 		end
 		
 		it "includes code example" do
 			hello_world.render(builder)
 			
-			code_example = builder.content.find {|c| c.include?("#!/usr/bin/env lively")}
+			code_example = builder.content.find{|c| c.include?("#!/usr/bin/env lively")}
 			expect(code_example).not.to be_nil
 			expect(code_example.include?("class Application")).to be == true
 			expect(code_example.include?("Lively::HelloWorld.new")).to be == true
@@ -154,7 +154,7 @@ describe Lively::HelloWorld do
 		it "includes examples directory reference" do
 			hello_world.render(builder)
 			
-			expect(builder.content.any? {|c| c.include?("examples/")}).to be == true
+			expect(builder.content.any?{|c| c.include?("examples/")}).to be == true
 		end
 	end
 end

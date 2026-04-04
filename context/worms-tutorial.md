@@ -72,7 +72,7 @@ class StaticBoard
 		@height = height
 		
 		# Use an Array of Arrays to store a grid:
-		@grid = Array.new(@height) {Array.new(@width)}
+		@grid = Array.new(@height){Array.new(@width)}
 		
 		# Place a fruit:
 		@grid[1][1] = "🍎"
@@ -94,7 +94,7 @@ class StaticView < Live::View
 	
 	# Render the HTML grid:
 	def render(builder)
-		builder.tag("h1") {builder.text("My First Lively Game!")}
+		builder.tag("h1"){builder.text("My First Lively Game!")}
 		builder.tag("table") do
 			@board.grid.each do |row|
 				builder.tag("tr") do
@@ -102,7 +102,7 @@ class StaticView < Live::View
 						if cell.is_a?(Hash)
 							builder.tag("td", style: "background-color: #{cell[:color]};")
 						elsif cell.is_a?(String)
-							builder.tag("td") {builder.text(cell)}
+							builder.tag("td"){builder.text(cell)}
 						else
 							builder.tag("td")
 						end
@@ -165,7 +165,7 @@ class InteractiveBoard
 	def initialize(width = 5, height = 5)
 		@width = width
 		@height = height
-		@grid = Array.new(@height) {Array.new(@width)}
+		@grid = Array.new(@height){Array.new(@width)}
 		# Put a fruit in the center:
 		@grid[2][2] = "🍎"
 	end
@@ -226,7 +226,7 @@ class InteractiveView < Live::View
 	
 	# Render the HTML grid, including event forwarding.
 	def render(builder)
-		builder.tag("h1") {builder.text("Interactive Board - Click the cells!")}
+		builder.tag("h1"){builder.text("Interactive Board - Click the cells!")}
 		builder.tag("table") do
 			@board.grid.each_with_index do |row, y|
 				builder.tag("tr") do
@@ -235,7 +235,7 @@ class InteractiveView < Live::View
 							# lively.forwardEvent sends the event from the browser to the server, invoking the handle method above. Note that we include the x and y coordinates as extra details.
 							builder.tag("td", onclick: "live.forwardEvent('#{@id}', event, {y: #{y}, x: #{x}});", style: "cursor: pointer; background-color: #{cell[:color]};")
 						elsif cell.is_a?(String)
-							builder.tag("td", onclick: "live.forwardEvent('#{@id}', event, {y: #{y}, x: #{x}});", style: "cursor: pointer;") {builder.text(cell)}
+							builder.tag("td", onclick: "live.forwardEvent('#{@id}', event, {y: #{y}, x: #{x}});", style: "cursor: pointer;"){builder.text(cell)}
 						else
 							builder.tag("td", onclick: "live.forwardEvent('#{@id}', event, {y: #{y}, x: #{x}});", style: "cursor: pointer;")
 						end
@@ -243,7 +243,7 @@ class InteractiveView < Live::View
 				end
 			end
 		end
-		builder.tag("p") {builder.text("Click any cell to cycle: empty → fruit → worm segment → empty.")}
+		builder.tag("p"){builder.text("Click any cell to cycle: empty → fruit → worm segment → empty.")}
 	end
 end
 
@@ -275,7 +275,7 @@ class Board
 	def initialize(width = 8, height = 8)
 		@width = width
 		@height = height
-		@grid = Array.new(@height) {Array.new(@width)}
+		@grid = Array.new(@height){Array.new(@width)}
 	end
 	
 	attr_reader :grid, :width, :height
@@ -348,7 +348,7 @@ class SimpleWorm
 			# Don't move this tick
 			return
 		end
-
+		
 		# Otherwise, update the worm's position:
 		@y, @x = new_y, new_x
 		@board.set_segment(@y, @x, @color, @length)
@@ -394,7 +394,7 @@ class MovingWormView < Live::View
 	
 	# Render the HTML grid, including event forwarding.
 	def render(builder)
-		builder.tag("h1") {builder.text("Automatic Moving Worm")}
+		builder.tag("h1"){builder.text("Automatic Moving Worm")}
 		builder.tag("table") do
 			@board.grid.each_with_index do |row, y|
 				builder.tag("tr") do
@@ -408,8 +408,8 @@ class MovingWormView < Live::View
 				end
 			end
 		end
-		builder.tag("p") {builder.text("Watch the colored worm bounce around and leave a trail!")}
-		builder.tag("p") {builder.text("Current position: (#{@worm.y}, #{@worm.x})")}
+		builder.tag("p"){builder.text("Watch the colored worm bounce around and leave a trail!")}
+		builder.tag("p"){builder.text("Current position: (#{@worm.y}, #{@worm.x})")}
 	end
 end
 
@@ -434,7 +434,7 @@ class Board
 	def initialize(width = 10, height = 10)
 		@width = width
 		@height = height
-		@grid = Array.new(@height) {Array.new(@width)}
+		@grid = Array.new(@height){Array.new(@width)}
 	end
 	
 	attr_reader :grid, :width, :height
@@ -508,7 +508,7 @@ class ControllableView < Live::View
 		@worm = ControllableWorm.new(@board, 5, 5)
 		@movement = nil
 	end
-
+	
 	def bind(page)
 		super
 		
@@ -521,7 +521,7 @@ class ControllableView < Live::View
 			end
 		end
 	end
-
+	
 	def close
 		if movement = @movement
 			@movement = nil
@@ -530,7 +530,7 @@ class ControllableView < Live::View
 		
 		super
 	end
-
+	
 	def handle(event)
 		Console.info(self, "Event:", event)
 		
@@ -548,9 +548,9 @@ class ControllableView < Live::View
 			end
 		end
 	end
-
+	
 	def render(builder)
-		builder.tag("h1") {builder.text("Controllable Worm - Use WASD!")}
+		builder.tag("h1"){builder.text("Controllable Worm - Use WASD!")}
 		builder.tag("table", tabindex: 0, autofocus: true, onkeypress: "live.forwardEvent('#{@id}', event, {key: event.key});") do
 			@board.grid.each_with_index do |row, y|
 				builder.tag("tr") do
@@ -567,10 +567,10 @@ class ControllableView < Live::View
 		
 		# Log extra information about the game:
 		builder.tag("div") do
-			builder.tag("p") {builder.text("Controls: W (up), A (left), S (down), D (right)")}
-			builder.tag("p") {builder.text("Current direction: #{@worm.direction}")}
-			builder.tag("p") {builder.text("Position: (#{@worm.y}, #{@worm.x})")}
-			builder.tag("p") {builder.text("Click on the game board first, then use WASD keys!")}
+			builder.tag("p"){builder.text("Controls: W (up), A (left), S (down), D (right)")}
+			builder.tag("p"){builder.text("Current direction: #{@worm.direction}")}
+			builder.tag("p"){builder.text("Position: (#{@worm.y}, #{@worm.x})")}
+			builder.tag("p"){builder.text("Click on the game board first, then use WASD keys!")}
 		end
 	end
 end
@@ -612,7 +612,7 @@ class Board
 	def initialize(width = 15, height = 15)
 		@width = width
 		@height = height
-		@grid = Array.new(@height) {Array.new(@width)}
+		@grid = Array.new(@height){Array.new(@width)}
 		@fruit_count = 0
 		reset!
 	end
@@ -640,7 +640,7 @@ class Board
 	end
 	
 	def reset!
-		@grid.each {|row| row.fill(nil)}
+		@grid.each{|row| row.fill(nil)}
 		@fruit_count = 0
 		add_fruit!
 	end
@@ -779,11 +779,11 @@ class WormsGameView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag("h1") {builder.text("Worms Game (Reference-style)")}
+		builder.tag("h1"){builder.text("Worms Game (Reference-style)")}
 		builder.tag("div") do
-			builder.tag("p") {builder.text("Score: #{@player.score}")}
-			builder.tag("p") {builder.text("Length: #{@player.count}")}
-			builder.tag("p") {builder.text("Direction: #{@player.direction}")}
+			builder.tag("p"){builder.text("Score: #{@player.score}")}
+			builder.tag("p"){builder.text("Length: #{@player.count}")}
+			builder.tag("p"){builder.text("Direction: #{@player.direction}")}
 		end
 		builder.tag("table", tabindex: 0, autofocus: true, onkeypress: "live.forwardEvent('#{@id}', event, {key: event.key});") do
 			@board.grid.each do |row|
@@ -792,7 +792,7 @@ class WormsGameView < Live::View
 						if cell.is_a?(Hash)
 							builder.tag("td", style: "background-color: #{cell[:color]};")
 						elsif cell.is_a?(String)
-							builder.tag("td") {builder.text(cell)}
+							builder.tag("td"){builder.text(cell)}
 						else
 							builder.tag("td")
 						end

@@ -1,6 +1,6 @@
 {
 	"dependencies": {
-		"@socketry/live": "^0.16.0",
+		"@socketry/live": "^0.16.2",
 		"@socketry/live-audio": "^0.5.0"
 	},
 	"scripts": {

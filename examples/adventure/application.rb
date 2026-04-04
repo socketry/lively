@@ -1,7 +1,9 @@
 #!/usr/bin/env lively
 # frozen_string_literal: true
 
-# Item class: represents objects that can be picked up and used.
+# Released under the MIT License.
+# Copyright, 2025-2026, by Samuel Williams.
+
 class Item
 	attr_reader :name, :description
 	
@@ -58,7 +60,7 @@ class Character
 	
 	def speak(player_inventory = [])
 		# Check if player has quest item
-		if @quest_item && !@quest_complete && player_inventory.any? {|item| item.name == @quest_item}
+		if @quest_item && !@quest_complete && player_inventory.any?{|item| item.name == @quest_item}
 			@quest_complete = true
 			return "perfect_trade"
 		end
@@ -250,15 +252,15 @@ class AdventureView < Live::View
 						# Handle quest completion
 						if char.quest_item && char.reward_item
 							# Remove quest item from inventory
-							@inventory.reject! {|item| item.name == char.quest_item}
+							@inventory.reject!{|item| item.name == char.quest_item}
 							# Add reward item to inventory
 							@inventory << char.reward_item
 							@messages << "#{char.name} takes the #{char.quest_item} gratefully."
 							@messages << "#{char.name} gives you a #{char.reward_item.name}!"
 						elsif char.name == "Water Spirit"
 							# Special ending - needs both Crystal Shard and Moonstone
-							has_crystal = @inventory.any? {|item| item.name == "Crystal Shard"}
-							has_moonstone = @inventory.any? {|item| item.name == "Moonstone"}
+							has_crystal = @inventory.any?{|item| item.name == "Crystal Shard"}
+							has_moonstone = @inventory.any?{|item| item.name == "Moonstone"}
 							
 							if has_crystal && has_moonstone
 								@messages << "The Water Spirit's eyes glow as you present both items."
@@ -293,14 +295,14 @@ class AdventureView < Live::View
 	
 	def render(builder)
 		builder.tag("div", class: "game-container") do
-			builder.tag("h1") {builder.text("Adventure: The Lost Princess")}
+			builder.tag("h1"){builder.text("Adventure: The Lost Princess")}
 			
 			# Show inventory
 			unless @inventory.empty?
 				builder.tag("div", class: "inventory") do
-					builder.tag("span", class: "controls-label") {builder.text("Inventory:")}
+					builder.tag("span", class: "controls-label"){builder.text("Inventory:")}
 					@inventory.each do |item|
-						builder.tag("span", class: "inventory-item") {builder.text(item.name)}
+						builder.tag("span", class: "inventory-item"){builder.text(item.name)}
 					end
 				end
 			end
@@ -311,7 +313,7 @@ class AdventureView < Live::View
 					builder.tag("img", src: "_static/images/#{get_area_image(@current_area.name)}", alt: @current_area.name)
 				end
 				builder.tag("div", class: "area-description") do
-					builder.tag("h2") {builder.text(@current_area.name)}
+					builder.tag("h2"){builder.text(@current_area.name)}
 					builder.text(@current_area.description)
 				end
 			end
@@ -325,34 +327,34 @@ class AdventureView < Live::View
 			
 			if @current_area.exits.any?
 				builder.tag("div", class: "controls") do
-					builder.tag("span", class: "controls-label") {builder.text("Exits:")}
+					builder.tag("span", class: "controls-label"){builder.text("Exits:")}
 					@current_area.exits.each_key do |dir|
-						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {direction: '#{dir}'});") {builder.text(dir.capitalize)}
+						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {direction: '#{dir}'});"){builder.text(dir.capitalize)}
 					end
 				end
 			end
 			
 			if @current_area.items.any?
 				builder.tag("div", class: "controls") do
-					builder.tag("span", class: "controls-label") {builder.text("Items:")}
+					builder.tag("span", class: "controls-label"){builder.text("Items:")}
 					@current_area.items.each_with_index do |item, idx|
-						builder.tag("button", class: "item-button", onclick: "live.forwardEvent('#{@id}', event, {item: #{idx}});") {builder.text("Take #{item.name}")}
+						builder.tag("button", class: "item-button", onclick: "live.forwardEvent('#{@id}', event, {item: #{idx}});"){builder.text("Take #{item.name}")}
 					end
 				end
 			end
 			
 			if @current_area.characters.any?
 				builder.tag("div", class: "controls") do
-					builder.tag("span", class: "controls-label") {builder.text("Talk to:")}
+					builder.tag("span", class: "controls-label"){builder.text("Talk to:")}
 					@current_area.characters.each_with_index do |char, idx|
-						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {character: #{idx}});") {builder.text(char.name)}
+						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {character: #{idx}});"){builder.text(char.name)}
 					end
 				end
 			end
 			
 			builder.tag("div", class: "messages") do
 				@messages.last(6).each do |msg|
-					builder.tag("p") {builder.text(msg)}
+					builder.tag("p"){builder.text(msg)}
 				end
 			end
 		end

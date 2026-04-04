@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2024-2025, by Samuel Williams.
+# Copyright, 2024-2026, by Samuel Williams.
 
 require "thread/local"
 
@@ -214,7 +214,7 @@ class Board
 	# Validate that the fruit count matches the actual number of fruits on the board.
 	# @raises [RuntimeError] If the fruit count is incorrect.
 	def validate_fruit_count!
-		actual_count = @grid.flatten.count {|cell| cell.is_a?(String)}
+		actual_count = @grid.flatten.count{|cell| cell.is_a?(String)}
 		if actual_count != @fruit_count
 			raise "Fruit count mismatch: expected #{@fruit_count}, got #{actual_count}"
 		end
@@ -234,7 +234,7 @@ class Board
 	
 	# Reset the board to its initial state.
 	def reset!
-		@grid = Array.new(@height) {Array.new(@width)}
+		@grid = Array.new(@height){Array.new(@width)}
 		@players.each(&:reset!)
 		@fruit_count = 0
 		add_fruit!
@@ -276,7 +276,7 @@ class WormsView < Live::View
 		super
 		
 		@player = @game_state.add_player
-		@player.on_updated {self.update!}
+		@player.on_updated{self.update!}
 	end
 	
 	# Clean up resources when the view is closed.

@@ -48,7 +48,7 @@ First, let's create the basic structure for our game. We'll start with a simple 
 Create a new file called `flappy_basic.rb`:
 
 ```ruby
-require 'live'
+require "live"
 
 class FlappyBasicView < Live::View
 	WIDTH = 420
@@ -172,7 +172,7 @@ class Bird < BoundingBox
 	
 	def initialize(x = 30, y = HEIGHT / 2, width: 34, height: 24, skin: nil)
 		super(x, y, width, height)
-		@skin = skin || 'bird'
+		@skin = skin || "bird"
 		@velocity = 0.0
 		@jumping = false
 		@dying = false
@@ -253,7 +253,7 @@ class Bird < BoundingBox
 				
 				builder.inline_tag(:div, 
 					id: id, 
-					class: 'particle jump', 
+					class: "particle jump", 
 					style: "left: #{center[0]}px; bottom: #{center[1]}px; --rotation-angle: #{angle}deg;"
 				)
 			end
@@ -387,12 +387,12 @@ class Pipe
 		
 		# Render lower pipe
 		builder.inline_tag(:div, 
-			class: 'pipe', 
+			class: "pipe", 
 			style: "left: #{@x}px; bottom: #{self.bottom}px; width: #{@width}px; height: #{@height}px; #{display}"
 		)
 		# Render upper pipe
 		builder.inline_tag(:div, 
-			class: 'pipe', 
+			class: "pipe", 
 			style: "left: #{@x}px; bottom: #{self.top}px; width: #{@width}px; height: #{@height}px; #{display}"
 		)
 	end
@@ -461,7 +461,7 @@ class Gemstone < BoundingBox
 		end
 		
 		builder.inline_tag(:div, 
-			class: 'gemstone', 
+			class: "gemstone", 
 			style: "left: #{@x}px; bottom: #{@y}px; width: #{@width}px; height: #{@height}px; opacity: #{opacity};"
 		)
 		
@@ -475,7 +475,7 @@ class Gemstone < BoundingBox
 				
 				builder.inline_tag(:div, 
 					id: id, 
-					class: 'particle bonus', 
+					class: "particle bonus", 
 					style: "left: #{center[0]}px; bottom: #{center[1]}px; --rotation-angle: #{angle}deg;"
 				)
 			end
@@ -540,7 +540,7 @@ Let's add a way for players to choose different bird skins:
 
 ```ruby
 class SkinSelectionView < Live::View
-	SKINS = ['bird', 'gull', 'kiwi', 'owl']
+	SKINS = ["bird", "gull", "kiwi", "owl"]
 	
 	def handle(event)
 		skin = event.dig(:detail, :skin) or return
@@ -627,7 +627,7 @@ class FlappyView < Live::View
 		@pipes = nil
 		@bonus = nil
 		
-		@skin_selection = SkinSelectionView.mount(self, 'skin-selection')
+		@skin_selection = SkinSelectionView.mount(self, "skin-selection")
 		
 		# Game state
 		@score = 0
@@ -784,7 +784,7 @@ def step(dt)
 					play_music
 				end
 			end
-		
+			
 			# Check for collision
 			if pipe.intersect?(@bird)
 				Console.info(self, "Player has died.")
@@ -943,7 +943,7 @@ Here's how all the pieces fit together in a complete game file:
 #!/usr/bin/env lively
 # frozen_string_literal: true
 
-require 'live'
+require "live"
 
 # [All the classes we've built: BoundingBox, Bird, Pipe, Gemstone, SkinSelectionView, FlappyView]
 # Put them all together in a single file for easy execution

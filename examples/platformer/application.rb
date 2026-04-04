@@ -1,6 +1,9 @@
 #!/usr/bin/env lively
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2025-2026, by Samuel Williams.
+
 require "json"
 
 # Base entity class with common physics properties
@@ -317,7 +320,7 @@ class CatEnemy < Entity
 		platforms.each do |platform|
 			# Platform is in front of cat
 			if (@direction == :left && platform.x + platform.width >= look_ahead_x && platform.x <= @x) ||
-			   (@direction == :right && platform.x <= look_ahead_x && platform.x + platform.width >= @x)
+						(@direction == :right && platform.x <= look_ahead_x && platform.x + platform.width >= @x)
 				
 				# Platform is above current position (climbable)
 				if platform.y < @y && platform.y > @y - 100
@@ -514,7 +517,7 @@ class PlatformerGame
 		
 		num_gems.times do
 			# Find higher platforms for gems
-			high_platforms = floating_platforms.select { |p| p.y < @height - 200 }
+			high_platforms = floating_platforms.select{|p| p.y < @height - 200}
 			
 			if high_platforms.any?
 				platform = high_platforms.sample
@@ -559,7 +562,7 @@ class PlatformerGame
 		
 		# Select two different platforms for portal placement
 		entrance_platform = floating_platforms.sample
-		exit_platform = floating_platforms.reject { |p| p == entrance_platform }.sample
+		exit_platform = floating_platforms.reject{|p| p == entrance_platform}.sample
 		
 		return unless entrance_platform && exit_platform
 		
@@ -648,10 +651,10 @@ class PlatformerGame
 		
 		# Update all entities with delta time
 		@player.update(delta_time)
-		@platforms.each { |platform| platform.update(delta_time) }
-		@collectibles.each { |collectible| collectible.update(delta_time) }
-		@cat_enemies.each { |cat| cat.update(delta_time, @platforms) }
-		@portals.each { |portal| portal.update(delta_time) }
+		@platforms.each{|platform| platform.update(delta_time)}
+		@collectibles.each{|collectible| collectible.update(delta_time)}
+		@cat_enemies.each{|cat| cat.update(delta_time, @platforms)}
+		@portals.each{|portal| portal.update(delta_time)}
 		
 		# Collision detection (after all updates)
 		check_platform_collisions!
@@ -977,7 +980,7 @@ class PlatformerView < Live::View
 		end
 		
 		# Stop horizontal movement if no left/right keys are pressed
-		unless @keys_pressed.any? {|key| ["a", "d", "ArrowLeft", "ArrowRight"].include?(key)}
+		unless @keys_pressed.any?{|key| ["a", "d", "ArrowLeft", "ArrowRight"].include?(key)}
 			@game.stop_player_horizontal
 		end
 	end
@@ -1019,13 +1022,13 @@ class PlatformerView < Live::View
 		builder.tag("div", id: "game-container") do
 			# Game header
 			builder.tag("div", class: "game-header") do
-				builder.tag("h1") {builder.text("Platformer Game")}
+				builder.tag("h1"){builder.text("Platformer Game")}
 				builder.tag("div", class: "game-info") do
-					builder.tag("span") {builder.text("Score: #{@game.score}")}
-					builder.tag("span") {builder.text("Level: #{@game.level}")}
-					builder.tag("span") {builder.text("Lives: #{@game.lives}")}
+					builder.tag("span"){builder.text("Score: #{@game.score}")}
+					builder.tag("span"){builder.text("Level: #{@game.level}")}
+					builder.tag("span"){builder.text("Lives: #{@game.lives}")}
 					if @game.game_over
-						builder.tag("span", class: "game-over") {builder.text("GAME OVER")}
+						builder.tag("span", class: "game-over"){builder.text("GAME OVER")}
 					end
 				end
 			end
@@ -1099,7 +1102,7 @@ class PlatformerView < Live::View
 			
 			# Game controls
 			builder.tag("div", class: "game-controls") do
-				builder.tag("p") {builder.text("Controls: A/D or Arrow Keys to move, W/Space/Up Arrow to jump")}
+				builder.tag("p"){builder.text("Controls: A/D or Arrow Keys to move, W/Space/Up Arrow to jump")}
 				if @game.game_over
 					builder.tag("button", onclick: "live.forwardEvent('#{@id}', {type: 'restart'});") do
 						builder.text("Restart Game")

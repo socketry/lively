@@ -3,6 +3,9 @@ Changelog
 
 # 2.x
 
+## 2.7.8
+Fix morphing body element
+
 ## 2.7.7
 - Fix stale build
 
