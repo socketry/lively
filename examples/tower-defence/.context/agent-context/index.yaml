@@ -1,0 +1,13 @@
+# Automatically generated context index for Utopia::Project guides.
+# Do not edit then files in this directory directly, instead edit the guides and then run `bake utopia:project:agent:context:update`.
+---
+description: Install and manage context files from Ruby gems.
+metadata:
+  documentation_uri: https://ioquatix.github.io/agent-context/
+  funding_uri: https://github.com/sponsors/ioquatix/
+  source_code_uri: https://github.com/ioquatix/agent-context.git
+files:
+- path: getting-started.md
+  title: Getting Started
+  description: This guide explains how to use `agent-context`, a tool for discovering
+    and installing contextual information from Ruby gems to help AI agents.

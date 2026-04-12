@@ -1,0 +1,25 @@
+# Automatically generated context index for Utopia::Project guides.
+# Do not edit then files in this directory directly, instead edit the guides and then run `bake utopia:project:agent:context:update`.
+---
+description: A service layer for Async.
+metadata:
+  documentation_uri: https://socketry.github.io/async-service/
+  source_code_uri: https://github.com/socketry/async-service.git
+files:
+- path: getting-started.md
+  title: Getting Started
+  description: This guide explains how to get started with `async-service` to create
+    and run services in Ruby.
+- path: service-architecture.md
+  title: Service Architecture
+  description: This guide explains the key architectural components of `async-service`
+    and how they work together to provide a clean separation of concerns.
+- path: best-practices.md
+  title: Best Practices
+  description: This guide outlines recommended patterns and practices for building
+    robust, maintainable services with `async-service`.
+- path: deployment.md
+  title: Deployment
+  description: This guide explains how to deploy `async-service` applications using
+    systemd and Kubernetes. We'll use a simple example service to demonstrate deployment
+    configurations.

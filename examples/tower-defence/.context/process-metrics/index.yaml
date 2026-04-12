@@ -1,0 +1,13 @@
+# Automatically generated context index for Utopia::Project guides.
+# Do not edit then files in this directory directly, instead edit the guides and then run `bake utopia:project:agent:context:update`.
+---
+description: Provide detailed OS-specific process metrics.
+metadata:
+  documentation_uri: https://socketry.github.io/process-metrics/
+  funding_uri: https://github.com/sponsors/ioquatix
+  source_code_uri: https://github.com/socketry/process-metrics.git
+files:
+- path: getting-started.md
+  title: Getting Started
+  description: This guide explains how to use the `process-metrics` gem to collect
+    and analyze process metrics including processor and memory utilization.

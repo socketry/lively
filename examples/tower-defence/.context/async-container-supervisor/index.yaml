@@ -1,0 +1,20 @@
+# Automatically generated context index for Utopia::Project guides.
+# Do not edit then files in this directory directly, instead edit the guides and then run `bake utopia:project:agent:context:update`.
+---
+description: A supervisor for managing multiple container processes.
+metadata:
+  documentation_uri: https://socketry.github.io/async-container-supervisor/
+  source_code_uri: https://github.com/socketry/async-container-supervisor.git
+files:
+- path: getting-started.md
+  title: Getting Started
+  description: This guide explains how to get started with `async-container-supervisor`
+    to supervise and monitor worker processes in your Ruby applications.
+- path: memory-monitor.md
+  title: Memory Monitor
+  description: This guide explains how to use the <code class="language-ruby">Async::Container::Supervisor::MemoryMonitor</code>
+    to detect and restart workers that exceed memory limits or develop memory leaks.
+- path: process-monitor.md
+  title: Process Monitor
+  description: This guide explains how to use the <code class="language-ruby">Async::Container::Supervisor::ProcessMonitor</code>
+    to log CPU and memory metrics for your worker processes.

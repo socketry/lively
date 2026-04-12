@@ -1,0 +1,14 @@
+# Automatically generated context index for Utopia::Project guides.
+# Do not edit then files in this directory directly, instead edit the guides and then run `bake utopia:project:agent:context:update`.
+---
+description: Samovar is a flexible option parser excellent support for sub-commands
+  and help documentation.
+metadata:
+  documentation_uri: https://ioquatix.github.io/samovar/
+  funding_uri: https://github.com/sponsors/ioquatix/
+  source_code_uri: https://github.com/ioquatix/samovar.git
+files:
+- path: getting-started.md
+  title: Getting Started
+  description: This guide explains how to use `samovar` to build command-line tools
+    and applications.

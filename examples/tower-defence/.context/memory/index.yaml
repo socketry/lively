@@ -1,0 +1,12 @@
+# Automatically generated context index for Utopia::Project guides.
+# Do not edit then files in this directory directly, instead edit the guides and then run `bake utopia:project:agent:context:update`.
+---
+description: Memory profiling routines for Ruby 2.3+
+metadata:
+  documentation_uri: https://socketry.github.io/memory/
+  source_code_uri: https://github.com/socketry/memory.git
+files:
+- path: getting-started.md
+  title: Getting Started
+  description: This guide explains how to get started with `memory`, a Ruby gem for
+    profiling memory allocations in your applications.

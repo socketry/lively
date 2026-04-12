@@ -1,0 +1,54 @@
+/* Data Nexus — Cyberpunk Tower Defence */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+	background: #050a14;
+	overflow: hidden;
+	width: 100vw;
+	height: 100vh;
+	font-family: 'Courier New', monospace;
+	color: #00ffcc;
+}
+
+data-nexus-game {
+	display: block;
+	position: fixed;
+	inset: 0;
+}
+
+.game-field {
+	position: fixed;
+	inset: 0;
+	background: transparent;
+	overflow: hidden;
+	outline: none;
+	border: none;
+	cursor: crosshair;
+	z-index: 1;
+}
+
+.game-field:focus {
+	outline: none;
+}
+
+.hud {
+	position: fixed;
+	bottom: 12px;
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 11px;
+	color: rgba(0, 255, 200, 0.4);
+	pointer-events: none;
+	white-space: nowrap;
+	z-index: 10;
+}
+
+/* Hide default scrollbar */
+::-webkit-scrollbar { display: none; }
+
+/* Selection color */
+::selection {
+	background: rgba(0, 255, 200, 0.3);
+	color: #fff;
+}
