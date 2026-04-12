@@ -16,6 +16,18 @@ Please see the [project documentation](https://socketry.github.io/lively/) for m
 
   - [Game Audio Tutorial](https://socketry.github.io/lively/guides/game-audio-tutorial/index) - This guide shows you how to add audio to your Live.js games and applications using the `live-audio` library. You'll learn how to play sound effects, background music, and create dynamic audio experiences.
 
+
+## Releases
+
+Please see the [project releases](https://socketry.github.io/lively/releases/index) for all releases.
+
+### v0.14.1
+
+## See Also
+
+  - [live](https://github.com/socketry/live) — Provides client-server communication using websockets.
+  - [mayu](https://github.com/mayu-live/framework) — A live streaming server-side component-based VirtualDOM rendering framework.
+
 ## Contributing
 
 We welcome contributions to this project.
@@ -36,9 +48,11 @@ bundle exec sus
 
 ### Making Releases
 
-Please see the [project releases](https://socketry.github.io/lively/releases/index) for all releases.
+To make a new release:
 
-### v0.14.1
+``` shell
+bundle exec bake gem:release:patch # or minor or major
+```
 
 ### Developer Certificate of Origin
 
@@ -48,13 +62,3 @@ In order to protect users of this project, we require all contributors to comply
 
 This project is best served by a collaborative and respectful environment. Treat each other professionally, respect differing viewpoints, and engage constructively. Harassment, discrimination, or harmful behavior is not tolerated. Communicate clearly, listen actively, and support one another. If any issues arise, please inform the project maintainers.
 
-## Releases
-
-Please see the [project releases](https://socketry.github.io/lively/releases/index) for all releases.
-
-### v0.14.1
-
-## See Also
-
-  - [live](https://github.com/socketry/live) — Provides client-server communication using websockets.
-  - [mayu](https://github.com/mayu-live/framework) — A live streaming server-side component-based VirtualDOM rendering framework.

@@ -100,7 +100,7 @@ describe Lively::Application do
 		it "can be overridden in subclasses" do
 			controller = Object.new
 			app_class = Class.new(Lively::Application) do
-				define_method(:state) { {controller: controller} }
+				define_method(:state) {{controller: controller}}
 			end
 			
 			app = app_class.new(delegate)
@@ -122,7 +122,7 @@ describe Lively::Application do
 		it "passes state to resolver" do
 			state_value = Object.new
 			app_class = Class.new(Lively::Application) do
-				define_method(:state) { {controller: state_value} }
+				define_method(:state) {{controller: state_value}}
 			end
 			
 			app = app_class.new(delegate)

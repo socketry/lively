@@ -26,7 +26,7 @@ module Lively
 	class Application < Protocol::HTTP::Middleware
 		VIEWS = [HelloWorld].freeze
 		STATE = {}.freeze
-
+		
 		# Create a new application class configured for a specific Live view tag,
 		# optionally with shared state that is passed to all views.
 		#
