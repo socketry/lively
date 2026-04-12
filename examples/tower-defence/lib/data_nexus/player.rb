@@ -12,7 +12,7 @@ module DataNexus
 		ATTRACT_RANGE = 150.0  # 3× pickup range — cubes are pulled in from here
 		DEPOSIT_RANGE = 80.0
 		UPGRADE_RANGE = 30.0
-		MAX_CARRY = 30
+
 
 		COLORS = %w[#00ffcc #ff00ff #00ccff #ffdd00 #ff6600 #88ff44 #ff4488 #44ffcc].freeze
 
@@ -37,8 +37,17 @@ module DataNexus
 			@keys[key] = down
 		end
 
+		# Slots available for a given cube type at the current level.
+		# Common types grow quickly; rare types grow slowly. See CARRY_SCHEDULE.
+		def carry_limit(type)
+			sched = CARRY_SCHEDULE[type]
+			return 0 unless sched
+			sched[:base] + ((@level - 1) / sched[:every]) * sched[:gain]
+		end
+
+		# Total capacity across all types (for HUD summary).
 		def max_carry
-			MAX_CARRY + (@level - 1) * 2
+			CARRY_SCHEDULE.keys.sum { |t| carry_limit(t) }
 		end
 
 		def level_up!
@@ -50,8 +59,8 @@ module DataNexus
 		end
 
 		def add_cube(type, count = 1)
-			space = max_carry - carrying_total
-			actual = [count, space].min
+			space = carry_limit(type) - @inventory[type]
+			actual = [count, [space, 0].max].min
 			@inventory[type] += actual if actual > 0
 			actual
 		end
@@ -130,6 +139,7 @@ module DataNexus
 				color: @color, name: @name,
 				score: @score, level: @level,
 				inventory: @inventory.transform_keys(&:to_s),
+				carry_limits: CARRY_SCHEDULE.keys.to_h { |t| [t.to_s, carry_limit(t)] },
 				carrying: carrying_total,
 				max_carry: max_carry,
 			}

@@ -100,6 +100,9 @@ GEM
       console (~> 1.0)
       mapping (~> 1.0)
     string-format (0.2.0)
+    sus (0.35.2)
+    sus-fixtures-benchmark (0.2.1)
+      sus (~> 0.31)
     traces (0.18.2)
     xrb (0.11.2)
 
@@ -111,6 +114,8 @@ DEPENDENCIES
   agent-context
   io-watch
   lively
+  sus
+  sus-fixtures-benchmark
 
 BUNDLED WITH
   4.0.6

@@ -78,73 +78,106 @@ module DataNexus
 		def >(other) = f > other.f
 	end
 
-	# Encode axial coords as a single Integer for fast hash keying (no Array allocation).
-	# Supports q/r in [-500, 500].
+	# Encode axial coords as a single Integer for direct array indexing.
+	# Supports q/r in [-500, 500]; covers any realistic game coordinate.
 	HEX_KEY_OFFSET = 500
 	HEX_KEY_STRIDE = 1001
+	GRID_SIZE = HEX_KEY_STRIDE * HEX_KEY_STRIDE  # 1_002_001
 	def self.hex_key(q, r) = (q + HEX_KEY_OFFSET) * HEX_KEY_STRIDE + (r + HEX_KEY_OFFSET)
 
-	# Tracks per-hex metadata: death counts, firewalls.
+	# Tracks per-hex metadata: death counts.
 	class HexGrid
-		attr_reader :death_counts
+		DEATH_WEIGHT = 2.0   # extra A* cost per death on a tile
+		DEATH_DECAY  = 0.99999 # per-tick decay (~0.001% per tick)
 
-		DEATH_WEIGHT = 2.0 # extra A* cost per death on a tile
-		DEATH_DECAY = 0.99999 # per-tick multiplier (~0.001% per second)
+		# Weighted heuristic: values > 1.0 make the search greedier toward the
+		# goal, expanding fewer nodes at the cost of path optimality. Enemies
+		# only need a way to the core, not the globally cheapest route.
+		HEURISTIC_WEIGHT = 2.0
 
 		def initialize
-			@death_counts = {} # [q, r] => float
+			# Flat array indexed by hex_key — O(1) direct lookup, no allocation.
+			@cells = Array.new(GRID_SIZE, 0.0)
+			# Sparse index of cells with non-zero counts, used for iteration in
+			# tick and snapshot so we never walk the full 1M-entry array.
+			@active_keys = {}
 		end
 
 		def record_death(x, y, count = 1)
 			q, r = Hex.to_hex(x, y)
-			key = [q, r]
-			@death_counts[key] = (@death_counts[key] || 0.0) + count
+			key = DataNexus.hex_key(q, r)
+			@cells[key] += count
+			@active_keys[key] = true
 		end
 
 		def death_count_at(q, r)
-			@death_counts[[q, r]] || 0.0
+			@cells[DataNexus.hex_key(q, r)]
 		end
 
 		def reduce_deaths(x, y, amount = 2.0)
 			q, r = Hex.to_hex(x, y)
-			key = [q, r]
-			if @death_counts[key]
-				@death_counts[key] = [@death_counts[key] - amount, 0.0].max
-				@death_counts.delete(key) if @death_counts[key] < 0.01
+			key = DataNexus.hex_key(q, r)
+			v = @cells[key]
+			return unless v > 0.0
+			v = [v - amount, 0.0].max
+			@cells[key] = v
+			if v < 0.01
+				@cells[key] = 0.0
+				@active_keys.delete(key)
 			end
 		end
 
 		def tile_cost(q, r)
-			1.0 + death_count_at(q, r) * DEATH_WEIGHT
+			dc = @cells[DataNexus.hex_key(q, r)]
+			dc > 0.0 ? 1.0 + dc * DEATH_WEIGHT : 1.0
 		end
 
-		# Decay death counts slowly each tick.
+		# Decay all active death counts; prune cells that have faded out.
 		def tick(dt)
-			@death_counts.each do |key, count|
-				@death_counts[key] = count * (DEATH_DECAY ** (dt * 20))
+			factor = DEATH_DECAY ** (dt * 20)
+			@active_keys.delete_if do |key, _|
+				v = @cells[key] * factor
+				if v < 0.01
+					@cells[key] = 0.0
+					true
+				else
+					@cells[key] = v
+					false
+				end
 			end
-			@death_counts.delete_if { |_, v| v < 0.01 }
 		end
 
 		# A* pathfinding from world position to target world position.
 		# Returns [path, steps_expanded] where path is array of [world_x, world_y] waypoints.
-		def find_path(from_x, from_y, to_x, to_y, max_steps: 200)
+		#
+		# Uses a weighted heuristic (HEURISTIC_WEIGHT) so the search is biased
+		# toward the goal and expands fewer nodes. Paths may not be globally
+		# optimal but are perfectly adequate for enemy navigation.
+		#
+		# Parent pointers are stored as plain Integer keys; q/r are decoded from
+		# the key during reconstruction, eliminating one [Array] allocation per
+		# improved node in the inner loop.
+		#
+		# Tile cost is inlined from @cells (the flat array) to avoid a method
+		# call and a second hash lookup on every neighbour.
+		def find_path(from_x, from_y, to_x, to_y, max_steps: 150)
 			start_q, start_r = Hex.to_hex(from_x, from_y)
 			goal_q, goal_r = Hex.to_hex(to_x, to_y)
 
 			return [[Hex.to_world(goal_q, goal_r)], 0] if start_q == goal_q && start_r == goal_r
 
 			g_score = {}
-			parent  = {}
+			parent  = {}  # child_key => parent_key (Integer → Integer, no Array)
 			closed  = {}
 
 			start_key = DataNexus.hex_key(start_q, start_r)
 			goal_key  = DataNexus.hex_key(goal_q, goal_r)
 			g_score[start_key] = 0.0
-			parent[start_key]  = nil  # [parent_key, nq, nr] or nil for start
+			parent[start_key]  = nil
 
 			heap = IO::Event::PriorityHeap.new
-			heap.push(HeapEntry.new(Hex.distance(start_q, start_r, goal_q, goal_r).to_f, start_q, start_r))
+			h0 = Hex.distance(start_q, start_r, goal_q, goal_r)
+			heap.push(HeapEntry.new(h0 * HEURISTIC_WEIGHT, start_q, start_r))
 
 			steps = 0
 			while !heap.empty? && steps < max_steps
@@ -156,16 +189,18 @@ module DataNexus
 				closed[current_key] = true
 
 				if current_key == goal_key
-					# Reconstruct path from integer-keyed parent map.
+					# Decode q, r from each integer key as we walk back to start.
+					# This avoids storing [key, q, r] tuples in the parent map.
 					path = []
 					node_key = current_key
-					nq, nr = cq, cr
 					loop do
+						nq = node_key / HEX_KEY_STRIDE - HEX_KEY_OFFSET
+						nr = node_key % HEX_KEY_STRIDE - HEX_KEY_OFFSET
 						wx, wy = Hex.to_world(nq, nr)
 						path.unshift([wx, wy])
-						prev = parent[node_key]
-						break if prev.nil?
-						node_key, nq, nr = prev
+						prev_key = parent[node_key]
+						break if prev_key.nil?
+						node_key = prev_key
 					end
 					path.shift if path.size > 1
 					return [path, steps]
@@ -178,26 +213,34 @@ module DataNexus
 					nkey = DataNexus.hex_key(nq, nr)
 					next if closed.key?(nkey)
 
-					tentative_g = current_g + tile_cost(nq, nr)
+					# Inline tile cost: direct array lookup, no method call, no allocation.
+					dc = @cells[nkey]
+					step_cost = dc > 0.0 ? 1.0 + dc * DEATH_WEIGHT : 1.0
+
+					tentative_g = current_g + step_cost
 					ng = g_score[nkey]
 					next if ng && tentative_g >= ng
 
 					g_score[nkey] = tentative_g
-					parent[nkey]  = [current_key, nq, nr]
-					h = Hex.distance(nq, nr, goal_q, goal_r).to_f
-					heap.push(HeapEntry.new(tentative_g + h, nq, nr))
+					parent[nkey]  = current_key
+					h = Hex.distance(nq, nr, goal_q, goal_r)
+					heap.push(HeapEntry.new(tentative_g + h * HEURISTIC_WEIGHT, nq, nr))
 				end
 			end
 
 			[nil, steps]
 		end
 
-		# Snapshot of death counts for client rendering.
-		# Only include tiles with significant death counts to keep payload small.
+		# Snapshot of death counts for rendering/debugging.
+		# Iterates @active_keys only — never walks the full cells array.
 		def death_counts_snapshot(threshold: 0.5)
-			@death_counts.select { |_, v| v >= threshold }.map do |key, count|
-				wx, wy = Hex.to_world(key[0], key[1])
-				{q: key[0], r: key[1], x: wx.round(1), y: wy.round(1), deaths: count.round(1)}
+			@active_keys.filter_map do |key, _|
+				v = @cells[key]
+				next unless v >= threshold
+				q = key / HEX_KEY_STRIDE - HEX_KEY_OFFSET
+				r = key % HEX_KEY_STRIDE - HEX_KEY_OFFSET
+				wx, wy = Hex.to_world(q, r)
+				{q: q, r: r, x: wx.round(1), y: wy.round(1), deaths: v.round(1)}
 			end
 		end
 	end

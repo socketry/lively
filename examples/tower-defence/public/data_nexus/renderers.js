@@ -357,50 +357,16 @@ export function drawFirewall(ctx, sx, sy, fw, time = 0) {
 	for (let i = 1; i < 6; i++) ctx.lineTo(sx + FIREWALL_DX[i], sy + FIREWALL_DY[i]);
 	ctx.closePath();
 
-	// Fill with translucent magenta
-	const pulse = 0.15 + Math.sin(time * 3) * 0.05;
-	ctx.fillStyle = `rgba(255,0,255,${pulse})`;
-	ctx.fill();
-
-	// Border — color shifts from magenta to red as HP drops
+	// Border only — no fill so towers behind the firewall remain visible.
+	// Color shifts from magenta → orange → red as HP drops.
 	const borderColor = hpRatio > 0.5 ? '#ff00ff' : hpRatio > 0.25 ? '#ff6644' : '#ff3333';
+	const pulse = 0.6 + Math.sin(time * 3) * 0.05;
 	ctx.strokeStyle = borderColor;
 	ctx.lineWidth = 2;
-	ctx.stroke();
-
-	// Center icon — shield/firewall symbol
-	ctx.save();
-	ctx.translate(sx, sy);
-	ctx.rotate(time * 0.5);
-	ctx.strokeStyle = borderColor;
-	ctx.lineWidth = 1.5;
-	ctx.globalAlpha = 0.7;
-	ctx.beginPath();
-	for (let i = 0; i < 4; i++) {
-		const a = i * Math.PI / 2;
-		ctx.moveTo(0, 0);
-		ctx.lineTo(Math.cos(a) * 12, Math.sin(a) * 12);
-	}
+	ctx.globalAlpha = pulse;
 	ctx.stroke();
 	ctx.globalAlpha = 1;
-	ctx.restore();
 
-	// HP bar
-	if (hpRatio < 1) {
-		const barW = 24;
-		const barH = 3;
-		ctx.fillStyle = 'rgba(0,0,0,0.6)';
-		ctx.fillRect(sx - barW/2, sy - 20, barW, barH);
-		ctx.fillStyle = borderColor;
-		ctx.fillRect(sx - barW/2, sy - 20, barW * hpRatio, barH);
-	}
-
-	// Label
-	ctx.font = '7px "Courier New", monospace';
-	ctx.fillStyle = borderColor;
-	ctx.textAlign = 'center';
-	ctx.fillText('FIREWALL', sx, sy + 22);
-	ctx.textAlign = 'left';
 }
 
 export function drawPlayer(ctx, sx, sy, player, isMe, interpolatedAngle = null, time = 0) {

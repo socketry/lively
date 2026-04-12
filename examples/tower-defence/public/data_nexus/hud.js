@@ -98,31 +98,85 @@ export class HUD {
 
 	#drawInventory(ctx, w, h, me) {
 		if (!me) return;
-		const inv = me.inventory || {};
-		const cubeTypes = [
-			{key: 'core', color: '#00ffcc', label: 'CORE'},
-			{key: 'cipher', color: '#ff00ff', label: 'CIPH'},
-			{key: 'quantum', color: '#00ccff', label: 'QBIT'},
-			{key: 'void', color: '#ff3333', label: 'VOID'},
-			{key: 'nexus', color: '#ffd700', label: 'NXS'},
-		];
-		const invY = h - 50;
-		ctx.fillStyle = 'rgba(0,10,20,0.85)';
-		ctx.fillRect(0, invY - 12, 440, 62);
-		ctx.strokeStyle = 'rgba(0,255,200,0.3)';
-		ctx.beginPath(); ctx.moveTo(0, invY - 12); ctx.lineTo(440, invY - 12); ctx.stroke();
+		const inv    = me.inventory    || {};
+		const limits = me.carry_limits || {};
 
+		// Proportional slot widths — fixed relative to type frequency, not
+		// level-dependent, so the layout never shifts as the player levels up.
+		const cubeTypes = [
+			{key: 'core',    color: '#00ffcc', label: 'CORE',  weight: 6},
+			{key: 'cipher',  color: '#ff00ff', label: 'CIPH',  weight: 4},
+			{key: 'quantum', color: '#00ccff', label: 'QBIT',  weight: 3},
+			{key: 'void',    color: '#ff3333', label: 'VOID',  weight: 2},
+			{key: 'nexus',   color: '#ffd700', label: 'NXS',   weight: 1.5},
+			{key: 'prism',   color: '#dd88ff', label: 'PRM',   weight: 1},
+		];
+		const totalWeight = cubeTypes.reduce((s, ct) => s + ct.weight, 0);
+
+		const panelW  = 560;
+		const slotH   = 46;
+		const headerH = 18;
+		const panelH  = headerH + slotH;
+		const panelY  = h - panelH;
+
+		// Panel background + top border
+		ctx.fillStyle = 'rgba(0,10,20,0.85)';
+		ctx.fillRect(0, panelY, panelW, panelH);
+		ctx.strokeStyle = 'rgba(0,255,200,0.3)';
+		ctx.lineWidth = 1;
+		ctx.beginPath(); ctx.moveTo(0, panelY); ctx.lineTo(panelW, panelY); ctx.stroke();
+
+		// Header line
 		ctx.font = '11px "Courier New", monospace';
 		ctx.fillStyle = '#888';
-		ctx.fillText(`INVENTORY [${me.carrying}/${me.max_carry}]  LVL ${me.level}  [F] FIREWALL core:3`, 12, invY);
+		ctx.textBaseline = 'middle';
+		ctx.fillText(`INVENTORY  LVL ${me.level}  [F] FIREWALL core:3`, 8, panelY + headerH / 2);
 
-		let ix = 12;
-		ctx.font = '14px "Courier New", monospace';
+		// Per-type slots
+		let x = 0;
+		const slotY = panelY + headerH;
+		const barH  = 4;
+
 		for (const ct of cubeTypes) {
-			const count = inv[ct.key] || 0;
-			ctx.fillStyle = count > 0 ? ct.color : 'rgba(255,255,255,0.2)';
-			ctx.fillText(`${ct.label}:${count}`, ix, invY + 22);
-			ix += 82;
+			const slotW = Math.round(panelW * ct.weight / totalWeight);
+			const count = inv[ct.key]    || 0;
+			const limit = limits[ct.key] || 0;
+			const fill  = limit > 0 ? count / limit : 0;
+			const empty = count === 0;
+
+			// Slot tint
+			ctx.fillStyle = empty ? 'rgba(255,255,255,0.02)' : ct.color + '15';
+			ctx.fillRect(x, slotY, slotW, slotH);
+
+			// Label
+			ctx.font = '9px "Courier New", monospace';
+			ctx.textBaseline = 'top';
+			ctx.fillStyle = empty ? 'rgba(255,255,255,0.25)' : ct.color + 'aa';
+			ctx.fillText(ct.label, x + 4, slotY + 3);
+
+			// Count (omit limit text on the two narrowest slots)
+			ctx.font = '13px "Courier New", monospace';
+			ctx.fillStyle = empty ? 'rgba(255,255,255,0.18)' : ct.color;
+			const countText = slotW > 46 ? `${count}/${limit}` : `${count}`;
+			ctx.fillText(countText, x + 4, slotY + 14);
+
+			// Fill bar
+			const barY = slotY + slotH - barH;
+			ctx.fillStyle = 'rgba(255,255,255,0.06)';
+			ctx.fillRect(x, barY, slotW, barH);
+			if (fill > 0) {
+				ctx.fillStyle = ct.color;
+				ctx.fillRect(x, barY, Math.round(slotW * fill), barH);
+			}
+
+			// Slot divider
+			ctx.strokeStyle = 'rgba(0,255,200,0.12)';
+			ctx.beginPath();
+			ctx.moveTo(x + slotW, slotY);
+			ctx.lineTo(x + slotW, slotY + slotH);
+			ctx.stroke();
+
+			x += slotW;
 		}
 	}
 

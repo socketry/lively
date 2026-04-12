@@ -9,11 +9,26 @@ module DataNexus
 
 	# ── Data-cube / resource types ──────────────────────────────────────────
 	CUBE_TYPES = {
-		core: {color: "#00ffcc", tier: 0, label: "Core Data"},
-		cipher: {color: "#ff00ff", tier: 1, label: "Cipher Shard"},
+		core:    {color: "#00ffcc", tier: 0, label: "Core Data"},
+		cipher:  {color: "#ff00ff", tier: 1, label: "Cipher Shard"},
 		quantum: {color: "#00ccff", tier: 2, label: "Quantum Bit"},
-		void: {color: "#ff3333", tier: 3, label: "Void Fragment"},
-		nexus: {color: "#ffd700", tier: 4, label: "Nexus Shard"},
+		void:    {color: "#ff3333", tier: 3, label: "Void Fragment"},
+		nexus:   {color: "#ffd700", tier: 4, label: "Nexus Shard"},
+		prism:   {color: "#dd88ff", tier: 5, label: "Prism Core"},
+	}.freeze
+
+	# Per-type inventory capacity schedule.
+	# base  — slots at level 1.
+	# gain  — slots added each time the interval elapses.
+	# every — how many levels between each gain (+1 gain per N levels).
+	# Common types grow fast; rare types grow slowly.
+	CARRY_SCHEDULE = {
+		core:    {base: 12, gain: 2, every: 1}, # +2 every level
+		cipher:  {base:  8, gain: 1, every: 1}, # +1 every level
+		quantum: {base:  5, gain: 1, every: 2}, # +1 every 2 levels
+		void:    {base:  3, gain: 1, every: 3}, # +1 every 3 levels
+		nexus:   {base:  2, gain: 1, every: 5}, # +1 every 5 levels
+		prism:   {base:  1, gain: 1, every: 8}, # +1 every 8 levels
 	}.freeze
 
 	# ── Core upgrade definitions ──────────────────────────────────────────
@@ -48,6 +63,8 @@ module DataNexus
 				1 => {cost: {core: 8}, damage: 12, range: 220},
 				2 => {cost: {core: 12, cipher: 4}, damage: 18, range: 250, fire_rate: 4.0},
 				3 => {cost: {cipher: 10, quantum: 3}, damage: 28, range: 280, fire_rate: 5.0},
+				4 => {cost: {void: 3, prism: 1}, damage: 42, range: 310, fire_rate: 6.5},
+				5 => {cost: {nexus: 1, prism: 2}, damage: 65, range: 340, fire_rate: 8.0},
 			},
 		},
 		thermal: {
@@ -57,6 +74,8 @@ module DataNexus
 				1 => {cost: {core: 10}, damage: 22, range: 180},
 				2 => {cost: {cipher: 6}, damage: 32, range: 200},
 				3 => {cost: {cipher: 8, quantum: 5}, damage: 50, range: 240, fire_rate: 2.0},
+				4 => {cost: {void: 4, prism: 1}, damage: 78, range: 265, fire_rate: 2.5},
+				5 => {cost: {nexus: 1, prism: 2}, damage: 115, range: 295, fire_rate: 3.0},
 			},
 		},
 		crypto: {
@@ -66,6 +85,8 @@ module DataNexus
 				1 => {cost: {cipher: 5}, damage: 8, range: 280},
 				2 => {cost: {cipher: 8, quantum: 3}, damage: 12, range: 320},
 				3 => {cost: {quantum: 8, void: 2}, damage: 20, range: 380, fire_rate: 3.0},
+				4 => {cost: {void: 3, prism: 1}, damage: 32, range: 430, fire_rate: 4.0},
+				5 => {cost: {nexus: 1, prism: 2}, damage: 50, range: 490, fire_rate: 5.5},
 			},
 		},
 		disrupt: {
@@ -75,6 +96,8 @@ module DataNexus
 				1 => {cost: {cipher: 6, quantum: 2}, damage: 30},
 				2 => {cost: {quantum: 6, void: 2}, damage: 45, range: 200},
 				3 => {cost: {void: 8}, damage: 70, range: 240, fire_rate: 1.5},
+				4 => {cost: {void: 5, prism: 1}, damage: 105, range: 265, fire_rate: 1.8},
+				5 => {cost: {nexus: 1, prism: 2}, damage: 155, range: 300, fire_rate: 2.5},
 			},
 		},
 	}.freeze
@@ -139,11 +162,11 @@ module DataNexus
 			size: 8, shield: :disrupt, damage_resist: {disrupt: 0.6},
 		},
 		overlord: {
-			hp: 400, speed: 20, reward: {quantum: 3, void: 1}, color: "#ff0066",
+			hp: 400, speed: 20, reward: {quantum: 3, void: 1, prism: 1}, color: "#ff0066",
 			size: 24, shield: :crypto, damage_resist: {kinetic: 0.3, thermal: 0.3, crypto: 0.3},
 		},
 		architect: {
-			hp: 1500, speed: 12, reward: {nexus: 1, void: 3, quantum: 5}, color: "#ffd700",
+			hp: 1500, speed: 12, reward: {nexus: 1, void: 3, quantum: 5, prism: 2}, color: "#ffd700",
 			size: 32, shield: :disrupt, damage_resist: {kinetic: 0.4, thermal: 0.4, crypto: 0.4, disrupt: 0.2},
 		},
 	}.freeze
