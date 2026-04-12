@@ -62,6 +62,80 @@ $ ./application.rb
 
 You should see "Hello World!" displayed in your browser.
 
+## Shared State
+
+When multiple browser windows need to share state — for example, a multiplayer game or a collaborative tool — you can pass shared state to `Application[]`. The state is passed as keyword arguments to all views, both during the initial page render and when browsers reconnect via WebSocket.
+
+```ruby
+#!/usr/bin/env lively
+
+class GameState
+	def initialize
+		@players = []
+	end
+	
+	attr :players
+	
+	def add_player(player)
+		@players << player
+	end
+end
+
+class GameView < Live::View
+	def initialize(id = self.class.unique_id, data = {}, game_state: nil)
+		super(id, data)
+		@game_state = game_state
+	end
+	
+	def render(builder)
+		builder.tag(:p) do
+			builder.text("Players: #{@game_state.players.length}")
+		end
+	end
+end
+
+Application = Lively::Application[GameView, game_state: GameState.new]
+```
+
+The `game_state:` keyword is passed to every `GameView` instance — whether created by the initial page load or by a WebSocket reconnection. This means all connected browsers share the same `GameState` object.
+
+For more complex applications, subclass {ruby Lively::Application} and override `#state`, `#allowed_views`, and `#body`:
+
+```ruby
+class Application < Lively::Application
+	def allowed_views
+		[DisplayView, ControlView]
+	end
+	
+	def state
+		{controller: @controller}
+	end
+	
+	def initialize(delegate)
+		@controller = MyController.new
+		super
+	end
+	
+	def body(request)
+		case request.path
+		when "/"
+			DisplayView.new(**state)
+		when "/control"
+			ControlView.new(**state)
+		end
+	end
+	
+	def handle(request)
+		if body = self.body(request)
+			page = Lively::Pages::Index.new(title: "My App", body: body)
+			Protocol::HTTP::Response[200, [], [page.call]]
+		else
+			Protocol::HTTP::Response[404, [], ["Not Found"]]
+		end
+	end
+end
+```
+
 ## Live Reloading
 
 To enable live reloading, add the `io-watch` gem to your `gems.rb` file:
