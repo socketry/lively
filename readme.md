@@ -16,12 +16,53 @@ Please see the [project documentation](https://socketry.github.io/lively/) for m
 
   - [Game Audio Tutorial](https://socketry.github.io/lively/guides/game-audio-tutorial/index) - This guide shows you how to add audio to your Live.js games and applications using the `live-audio` library. You'll learn how to play sound effects, background music, and create dynamic audio experiences.
 
-
 ## Releases
 
 Please see the [project releases](https://socketry.github.io/lively/releases/index) for all releases.
 
+### v0.17.0
+
+  - Expose shared application state via `Application[..., controller: Controller.new]`.
+
+### v0.16.2
+
+  - Modernize internals and update dependencies.
+
+### v0.16.1
+
+  - Updated game audio tutorial content.
+
+### v0.16.0
+
+  - Updated `live-audio` component dependencies.
+
+### v0.15.1
+
+  - Fixed handling of spaces in asset names.
+
+### v0.15.0
+
+  - Added platformer-style game example.
+  - Improved game audio tutorial.
+
 ### v0.14.1
+
+  - Added `bake` tasks for release management.
+
+### v0.14.0
+
+  - Fixed guide rendering and test suite.
+
+### v0.13.1
+
+  - Tidied up gem dependencies.
+
+### v0.13.0
+
+  - Added `live-audio` support for background and positional audio in applications.
+  - Added game audio example demonstrating audio playback.
+  - Fixed serving non-existent asset paths gracefully.
+  - Achieved 100% test and documentation coverage.
 
 ## See Also
 
@@ -61,4 +102,3 @@ In order to protect users of this project, we require all contributors to comply
 ### Community Guidelines
 
 This project is best served by a collaborative and respectful environment. Treat each other professionally, respect differing viewpoints, and engage constructively. Harassment, discrimination, or harmful behavior is not tolerated. Communicate clearly, listen actively, and support one another. If any issues arise, please inform the project maintainers.
-

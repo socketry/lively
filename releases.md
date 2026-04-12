@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.17.0
 
   - Expose shared application state via `Application[..., controller: Controller.new]`.
 
