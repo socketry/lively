@@ -118,12 +118,8 @@ class ChatbotView < Live::View
 end
 
 class Application < Lively::Application
-	def self.resolver
-		Live::Resolver.allow(ChatbotView)
-	end
-	
-	def body(...)
-		ChatbotView.root(...)
+	def allowed_views
+		[ChatbotView]
 	end
 	
 	def handle(request)
@@ -142,7 +138,9 @@ class Application < Lively::Application
 			
 			return ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
 		else
-			return super(request, conversation_id: conversation_id)
+			body = ChatbotView.root(conversation_id: conversation_id)
+			page = Pages::Index.new(title: self.title, body: body)
+			return Protocol::HTTP::Response[200, [], [page.call]]
 		end
 	end
 end

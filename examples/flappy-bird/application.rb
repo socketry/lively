@@ -560,19 +560,6 @@ class FlappyBirdView < Live::View
 	end
 end
 
-class Resolver < Live::Resolver
-	def initialize(**state)
-		super()
-		
-		@state = state
-	end
-	
-	def call(id, data)
-		if klass = @allowed[data[:class]]
-			return klass.new(id, **data, **@state)
-		end
-	end
-end
 
 class MultiplayerState
 	MINIMUM_PLAYERS = 1
@@ -635,14 +622,4 @@ class MultiplayerState
 	end
 end
 
-class Application < Lively::Application
-	def self.resolver
-		Resolver.new(multiplayer_state: MultiplayerState.new).tap do |resolver|
-			resolver.allow(FlappyBirdView)
-		end
-	end
-	
-	def body(...)
-		FlappyBirdView.new(...)
-	end
-end
+Application = Lively::Application[FlappyBirdView, multiplayer_state: MultiplayerState.new]

@@ -7,6 +7,7 @@ require "live"
 require "protocol/http/middleware"
 require "async/websocket/adapters/http"
 
+require_relative "resolver"
 require_relative "pages/index"
 require_relative "hello_world"
 
@@ -18,49 +19,65 @@ module Lively
 	# standard HTTP requests for the initial page load and WebSocket connections
 	# for live updates. It integrates with the Live framework to provide real-time
 	# interactive web applications.
+	#
+	# Use {.[]} to create a simple application class for a single view, optionally
+	# with shared state. For more complex applications, subclass and override
+	# {#allowed_views}, {#state}, and {#body}.
 	class Application < Protocol::HTTP::Middleware
-		# Create a new application class configured for a specific Live view tag.
+		VIEWS = [HelloWorld].freeze
+		STATE = {}.freeze
+
+		# Create a new application class configured for a specific Live view tag,
+		# optionally with shared state that is passed to all views.
+		#
 		# @parameter tag [Class] The Live view class to use as the application body.
+		# @parameter state [Hash] Shared state to pass to all views as keyword arguments.
 		# @returns [Class] A new application class configured for the specified tag.
-		def self.[](tag)
+		def self.[](*tags, **state)
 			klass = Class.new(self)
 			
-			klass.define_singleton_method(:resolver) do
-				Live::Resolver.allow(tag)
-			end
-			
-			klass.define_method(:body) do
-				tag.new
-			end
+			klass.const_set(:VIEWS, tags)
+			klass.const_set(:STATE, state)
 			
 			return klass
 		end
 		
-		# Get the default resolver for this application.
-		# @returns [Live::Resolver] A resolver configured to allow HelloWorld components.
-		def self.resolver
-			Live::Resolver.allow(HelloWorld)
-		end
-		
 		# Initialize a new Lively application.
 		# @parameter delegate [Protocol::HTTP::Middleware] The next middleware in the chain.
-		# @parameter resolver [Live::Resolver] The resolver for Live components.
-		def initialize(delegate, resolver: self.class.resolver)
+		def initialize(delegate)
 			super(delegate)
-			
-			@resolver = resolver
 		end
-		
-		# @attribute [Live::Resolver] The resolver for live components.
-		attr :resolver
 		
 		# @attribute [Protocol::HTTP::Middleware] The delegate middleware for request handling.
 		attr :delegate
 		
+		# The shared state for this application, passed to all views via the resolver.
+		# Override this in subclasses to provide custom state.
+		# @returns [Hash] Key-value pairs passed as keyword arguments to view constructors.
+		def state
+			self.class::STATE
+		end
+		
+		# The view classes that this application allows.
+		# Override this in subclasses to specify which views can be resolved.
+		# @returns [Array(Class)] The allowed view classes.
+		def allowed_views
+			self.class::VIEWS
+		end
+		
+		# The resolver for live components.
+		# Built from {#allowed_views} and {#state}.
+		# @returns [Lively::Resolver] The resolver instance.
+		def resolver
+			@resolver ||= Resolver.new(self.state).tap do |resolver|
+				resolver.allow(*self.allowed_views)
+			end
+		end
+		
 		# Handle a WebSocket connection for live updates.
 		# @parameter connection [Async::WebSocket::Connection] The WebSocket connection.
 		def live(connection)
-			Live::Page.new(@resolver).run(connection)
+			Live::Page.new(self.resolver).run(connection)
 		end
 		
 		# Get the title for this application.
@@ -70,25 +87,22 @@ module Lively
 		end
 		
 		# Create the body content for this application.
-		# @parameter **options [Hash] Additional options to pass to the body constructor.
-		# @returns [HelloWorld] A new HelloWorld instance.
-		def body(...)
-			HelloWorld.new(...)
+		# @returns [Live::View] A new view instance.
+		def body
+			self.allowed_views.first.new(**self.state)
 		end
 		
 		# Create the index page for this application.
-		# @parameter **options [Hash] Additional options to pass to the index constructor.
 		# @returns [Pages::Index] A new index page instance.
-		def index(...)
-			Pages::Index.new(title: self.title, body: self.body(...))
+		def index
+			Pages::Index.new(title: self.title, body: self.body)
 		end
 		
 		# Handle a standard HTTP request.
 		# @parameter request [Protocol::HTTP::Request] The incoming HTTP request.
-		# @parameter **options [Hash] Additional options.
 		# @returns [Protocol::HTTP::Response] The HTTP response with the rendered page.
-		def handle(request, ...)
-			return Protocol::HTTP::Response[200, [], [self.index(...).call]]
+		def handle(request)
+			return Protocol::HTTP::Response[200, [], [self.index.call]]
 		end
 		
 		# Process an incoming HTTP request.
