@@ -8,7 +8,8 @@ module DataNexus
 		DRAG = 3.0 # friction coefficient — velocity decays by this factor per second
 		MAX_SPEED = 300.0 # px / second (hard cap)
 
-		PICKUP_RANGE = 50.0
+		PICKUP_RANGE = 20.0
+		ATTRACT_RANGE = 150.0  # 3× pickup range — cubes are pulled in from here
 		DEPOSIT_RANGE = 80.0
 		UPGRADE_RANGE = 30.0
 		MAX_CARRY = 30

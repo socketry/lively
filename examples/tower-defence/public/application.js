@@ -15,12 +15,7 @@ customElements.define('data-nexus-game', class DataNexusElement extends ViewElem
 		super.connectedCallback();
 
 		// Initialize audio
-		this.#audio = Audio.start({
-			window,
-			onOutputCreated: (controller, output) => {
-				console.log('Data Nexus audio initialized');
-			}
-		});
+		this.#audio = Audio.start({ window });
 		this.#loadSounds();
 
 		this.#resizeObserver = new ResizeObserver((entries) => {
