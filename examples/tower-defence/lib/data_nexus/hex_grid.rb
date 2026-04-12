@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "io/event/priority_heap"
+
 module DataNexus
 	# Pointy-top hex grid using axial coordinates (q, r).
 	# Hex center to vertex distance = HEX_SIZE.
@@ -70,6 +72,18 @@ module DataNexus
 		end
 	end
 
+	# Entry for the A* priority heap. PriorityHeap requires elements to implement `<`.
+	HeapEntry = Struct.new(:f, :q, :r) do
+		def <(other) = f < other.f
+		def >(other) = f > other.f
+	end
+
+	# Encode axial coords as a single Integer for fast hash keying (no Array allocation).
+	# Supports q/r in [-500, 500].
+	HEX_KEY_OFFSET = 500
+	HEX_KEY_STRIDE = 1001
+	def self.hex_key(q, r) = (q + HEX_KEY_OFFSET) * HEX_KEY_STRIDE + (r + HEX_KEY_OFFSET)
+
 	# Tracks per-hex metadata: death counts, firewalls.
 	class HexGrid
 		attr_reader :death_counts
@@ -113,61 +127,69 @@ module DataNexus
 		end
 
 		# A* pathfinding from world position to target world position.
-		# Returns array of [world_x, world_y] waypoints, or nil if no path.
+		# Returns [path, steps_expanded] where path is array of [world_x, world_y] waypoints.
 		def find_path(from_x, from_y, to_x, to_y, max_steps: 200)
 			start_q, start_r = Hex.to_hex(from_x, from_y)
 			goal_q, goal_r = Hex.to_hex(to_x, to_y)
 
-			return [Hex.to_world(goal_q, goal_r)] if start_q == goal_q && start_r == goal_r
+			return [[Hex.to_world(goal_q, goal_r)], 0] if start_q == goal_q && start_r == goal_r
 
-			open_set = {} # [q,r] => {g:, f:, parent:}
-			closed_set = {}
+			g_score = {}
+			parent  = {}
+			closed  = {}
 
-			start_key = [start_q, start_r]
-			h = Hex.distance(start_q, start_r, goal_q, goal_r).to_f
-			open_set[start_key] = {g: 0.0, f: h, parent: nil}
+			start_key = DataNexus.hex_key(start_q, start_r)
+			goal_key  = DataNexus.hex_key(goal_q, goal_r)
+			g_score[start_key] = 0.0
+			parent[start_key]  = nil  # [parent_key, nq, nr] or nil for start
+
+			heap = IO::Event::PriorityHeap.new
+			heap.push(HeapEntry.new(Hex.distance(start_q, start_r, goal_q, goal_r).to_f, start_q, start_r))
 
 			steps = 0
-			while !open_set.empty? && steps < max_steps
+			while !heap.empty? && steps < max_steps
 				steps += 1
 
-				# Pick node with lowest f
-				current_key, current = open_set.min_by { |_, v| v[:f] }
-				cq, cr = current_key
+				_f, cq, cr = heap.pop.deconstruct
+				current_key = DataNexus.hex_key(cq, cr)
+				next if closed.key?(current_key)
+				closed[current_key] = true
 
-				if cq == goal_q && cr == goal_r
-					# Reconstruct path
+				if current_key == goal_key
+					# Reconstruct path from integer-keyed parent map.
 					path = []
-					node = current_key
-					while node
-						wx, wy = Hex.to_world(node[0], node[1])
+					node_key = current_key
+					nq, nr = cq, cr
+					loop do
+						wx, wy = Hex.to_world(nq, nr)
 						path.unshift([wx, wy])
-						node = closed_set[node]&.[](:parent) || open_set[node]&.[](:parent)
+						prev = parent[node_key]
+						break if prev.nil?
+						node_key, nq, nr = prev
 					end
-					# Skip the first waypoint (current position)
 					path.shift if path.size > 1
-					return path
+					return [path, steps]
 				end
 
-				open_set.delete(current_key)
-				closed_set[current_key] = current
+				current_g = g_score[current_key]
+				Hex::DIRECTIONS.each do |dq, dr|
+					nq = cq + dq
+					nr = cr + dr
+					nkey = DataNexus.hex_key(nq, nr)
+					next if closed.key?(nkey)
 
-				Hex.neighbors(cq, cr).each do |nq, nr|
-					nkey = [nq, nr]
-					next if closed_set.key?(nkey)
+					tentative_g = current_g + tile_cost(nq, nr)
+					ng = g_score[nkey]
+					next if ng && tentative_g >= ng
 
-					tentative_g = current[:g] + tile_cost(nq, nr)
-					existing = open_set[nkey]
-
-					if existing.nil? || tentative_g < existing[:g]
-						h = Hex.distance(nq, nr, goal_q, goal_r).to_f
-						open_set[nkey] = {g: tentative_g, f: tentative_g + h, parent: current_key}
-					end
+					g_score[nkey] = tentative_g
+					parent[nkey]  = [current_key, nq, nr]
+					h = Hex.distance(nq, nr, goal_q, goal_r).to_f
+					heap.push(HeapEntry.new(tentative_g + h, nq, nr))
 				end
 			end
 
-			# Fallback: no path found, go direct
-			nil
+			[nil, steps]
 		end
 
 		# Snapshot of death counts for client rendering.

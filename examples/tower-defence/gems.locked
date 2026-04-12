@@ -71,7 +71,7 @@ GEM
       async-websocket (~> 0.27)
       protocol-websocket (~> 0.19)
       xrb (~> 0.10)
-    lively (0.17.0)
+    lively (0.17.1)
       agent-context
       falcon (~> 0.47)
       io-watch
@@ -113,4 +113,4 @@ DEPENDENCIES
   lively
 
 BUNDLED WITH
-   2.6.9
+  4.0.6

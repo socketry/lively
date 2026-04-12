@@ -5,7 +5,7 @@ module DataNexus
 	# enemies that pass through it, but takes damage proportional to the
 	# enemy's max HP. When destroyed, it's gone.
 	class Firewall
-		DAMAGE_PER_SECOND = 120.0 # damage dealt to enemies on this tile each second
+		DAMAGE_PER_SECOND = 240.0 # damage dealt to enemies on this tile each second
 		DAMAGE_TAKEN_RATIO = 0.04 # fraction of enemy max_hp taken as self-damage per hit
 		DAMAGE_TYPE = :crypto
 
@@ -16,7 +16,7 @@ module DataNexus
 			@q = q
 			@r = r
 			@x, @y = Hex.to_world(q, r)
-			@max_hp = 400
+			@max_hp = 800
 			@hp = @max_hp
 			@color = "#ff00ff"
 			@cooldown = 0.0

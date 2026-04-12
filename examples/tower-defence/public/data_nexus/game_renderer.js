@@ -5,7 +5,7 @@ import { EntityTracker } from './entity_tracker.js';
 import { HUD } from './hud.js';
 import { TouchControls } from './touch_controls.js';
 import { DeltaStateManager } from './delta_state.js';
-import { drawCore, drawPad, drawTower, drawCube, drawEnemy, drawPlayer, drawFirewall, drawHexDeaths } from './renderers.js';
+import { drawCore, drawPad, drawTower, drawCube, drawEnemy, drawPlayer, drawFirewall } from './renderers.js';
 
 
 const DEPOSIT_RANGE = 80; // must match server Player::DEPOSIT_RANGE
@@ -33,11 +33,14 @@ export class GameRenderer {
 	#enemyTracker = new EntityTracker();
 	#cubeTracker = new EntityTracker();
 
+	#boundFrame;
+	#dpr = 1;
+
 
 
 	// Delta-compressed state channels
 	#delta = new DeltaStateManager([
-		'pads', 'towers', 'firewalls', 'hex_deaths',
+		'pads', 'towers', 'firewalls',
 		'core', 'enemies', 'players', 'cubes',
 	]);
 
@@ -52,12 +55,13 @@ export class GameRenderer {
 		this.#hud = new HUD();
 		this.#touch = new TouchControls(element);
 
+		this.#boundFrame = this.#frame.bind(this);
 		this.#resize();
 		window.addEventListener('resize', () => this.#resize());
 		document.addEventListener('click', (e) => this.#onClick(e));
 		document.addEventListener('keydown', (e) => this.#onKeyDown(e));
 		document.addEventListener('gametick', (e) => this.#onTick(e.detail));
-		requestAnimationFrame(this.#frame.bind(this));
+		requestAnimationFrame(this.#boundFrame);
 	}
 
 	get isGameOver() {
@@ -124,7 +128,8 @@ export class GameRenderer {
 	// ── Resize ───────────────────────────────────────────────────────────
 
 	#resize() {
-		const dpr = window.devicePixelRatio || 1;
+		this.#dpr = window.devicePixelRatio || 1;
+		const dpr = this.#dpr;
 		const w = window.innerWidth;
 		const h = window.innerHeight;
 		this.#canvas.width = w * dpr;
@@ -214,12 +219,23 @@ export class GameRenderer {
 
 		this.#particles.update(dt);
 		this.#draw(ts / 1000);
-		requestAnimationFrame(this.#frame.bind(this));
+		requestAnimationFrame(this.#boundFrame);
+	}
+
+	// Rolling average frame timings per section (exponential moving average)
+	#perf = {};
+	#perfSamples = 0;
+
+	#time(label, fn) {
+		const t0 = performance.now();
+		fn();
+		const ms = performance.now() - t0;
+		this.#perf[label] = this.#perf[label] === undefined ? ms : this.#perf[label] * 0.95 + ms * 0.05;
 	}
 
 	#draw(time) {
 		const ctx = this.#ctx;
-		const dpr = window.devicePixelRatio || 1;
+		const dpr = this.#dpr;
 		const w = this.#canvas.width / dpr;
 		const h = this.#canvas.height / dpr;
 		const cx = w / 2;
@@ -227,7 +243,7 @@ export class GameRenderer {
 		const camX = this.#camX;
 		const camY = this.#camY;
 
-		this.#grid.draw(ctx, w, h, camX, camY);
+		this.#time('grid', () => this.#grid.draw(ctx, w, h, camX, camY));
 
 		if (!this.#state) return;
 		const state = this.#state;
@@ -237,93 +253,140 @@ export class GameRenderer {
 		// Core state (for drawCore and HUD)
 		const coreState = d.channel('core').get('state') || {};
 
-		// Hex death heatmap
-		for (const hd of d.channel('hex_deaths').values()) {
-			const sx = cx + hd.x - camX;
-			const sy = cy + hd.y - camY;
-			if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
-			drawHexDeaths(ctx, sx, sy, hd.deaths);
-		}
-
 		// Data Core
-		drawCore(ctx, cx - camX, cy - camY, coreState, time);
+		this.#time('core', () => drawCore(ctx, cx - camX, cy - camY, coreState, time));
 
 		// Tower pads
-		for (const pad of d.channel('pads').values()) {
-			const sx = cx + pad.x - camX;
-			const sy = cy + pad.y - camY;
-			if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
-			drawPad(ctx, sx, sy, pad, this.#hud.nearbyEmptyPad?.index === pad.index, time);
-		}
+		this.#time('pads', () => {
+			for (const pad of d.channel('pads').values()) {
+				const sx = cx + pad.x - camX;
+				const sy = cy + pad.y - camY;
+				if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
+				drawPad(ctx, sx, sy, pad, this.#hud.nearbyEmptyPad?.index === pad.index, time);
+			}
+		});
 
 		// Towers
-		const myPlayer = d.channel('players').get(myId);
-		const myInv = myPlayer?.inventory || {};
-		for (const tower of d.channel('towers').values()) {
-			const sx = cx + tower.x - camX;
-			const sy = cy + tower.y - camY;
-			if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
-			const isNearby = this.#hud.nearbyTower?.pad === tower.pad;
-			let canAfford = false;
-			if (tower.can_upgrade && tower.upgrade_cost && !tower.upgrading) {
-				canAfford = Object.entries(tower.upgrade_cost).every(([k, v]) => (myInv[k] || 0) >= v);
+		this.#time('towers', () => {
+			const myPlayer = d.channel('players').get(myId);
+			const myInv = myPlayer?.inventory || {};
+			for (const tower of d.channel('towers').values()) {
+				const sx = cx + tower.x - camX;
+				const sy = cy + tower.y - camY;
+				if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
+				const isNearby = this.#hud.nearbyTower?.pad === tower.pad;
+				let canAfford = false;
+				if (tower.can_upgrade && tower.upgrade_cost && !tower.upgrading) {
+					canAfford = Object.entries(tower.upgrade_cost).every(([k, v]) => (myInv[k] || 0) >= v);
+				}
+				drawTower(ctx, sx, sy, tower, isNearby, canAfford, coreState, time);
 			}
-			drawTower(ctx, sx, sy, tower, isNearby, canAfford, coreState, time);
-		}
+		});
 
 		// Firewalls
-		for (const fw of d.channel('firewalls').values()) {
-			const sx = cx + fw.x - camX;
-			const sy = cy + fw.y - camY;
-			if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
-			drawFirewall(ctx, sx, sy, fw, time);
-		}
+		this.#time('firewalls', () => {
+			for (const fw of d.channel('firewalls').values()) {
+				const sx = cx + fw.x - camX;
+				const sy = cy + fw.y - camY;
+				if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
+				drawFirewall(ctx, sx, sy, fw, time);
+			}
+		});
 
 		// Projectiles (always sent in full, not delta-compressed)
-		for (const proj of (state.projectiles || [])) {
-			ctx.strokeStyle = proj.color;
-			ctx.lineWidth = 2;
-			ctx.globalAlpha = 0.7;
-			ctx.beginPath();
-			ctx.moveTo(cx + proj.from_x - camX, cy + proj.from_y - camY);
-			ctx.lineTo(cx + proj.to_x - camX, cy + proj.to_y - camY);
-			ctx.stroke();
-			ctx.globalAlpha = 1;
-		}
+		this.#time('projectiles', () => {
+			if (state.projectiles?.length) {
+				ctx.lineWidth = 2;
+				ctx.globalAlpha = 0.7;
+				for (const proj of state.projectiles) {
+					ctx.strokeStyle = proj.color;
+					ctx.beginPath();
+					ctx.moveTo(cx + proj.from_x - camX, cy + proj.from_y - camY);
+					ctx.lineTo(cx + proj.to_x - camX, cy + proj.to_y - camY);
+					ctx.stroke();
+				}
+				ctx.globalAlpha = 1;
+			}
+		});
 
 		// Cubes (interpolated)
-		this.#cubeTracker.forEach((id, ix, iy, _angle, cube) => {
-			const sx = cx + ix - camX;
-			const sy = cy + iy - camY;
-			if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) return;
-			drawCube(ctx, sx, sy, cube, time);
+		this.#time('cubes', () => {
+			this.#cubeTracker.forEach((id, ix, iy, _angle, cube) => {
+				const sx = cx + ix - camX;
+				const sy = cy + iy - camY;
+				if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) return;
+				drawCube(ctx, sx, sy, cube, time);
+			});
 		});
 
 		// Enemies (interpolated)
-		this.#enemyTracker.forEach((id, ix, iy, _angle, enemy) => {
-			const sx = cx + ix - camX;
-			const sy = cy + iy - camY;
-			if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) return;
-			drawEnemy(ctx, sx, sy, enemy, time);
+		this.#time('enemies', () => {
+			this.#enemyTracker.forEach((id, ix, iy, _angle, enemy) => {
+				const sx = cx + ix - camX;
+				const sy = cy + iy - camY;
+				if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) return;
+				drawEnemy(ctx, sx, sy, enemy, time);
+			});
 		});
 
 		// Players (interpolated position + angle)
-		this.#playerTracker.forEach((id, ix, iy, angle, player) => {
-			const sx = cx + ix - camX;
-			const sy = cy + iy - camY;
-			if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) return;
-			drawPlayer(ctx, sx, sy, player, id === myId, angle, time);
+		this.#time('players', () => {
+			this.#playerTracker.forEach((id, ix, iy, angle, player) => {
+				const sx = cx + ix - camX;
+				const sy = cy + iy - camY;
+				if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) return;
+				drawPlayer(ctx, sx, sy, player, id === myId, angle, time);
+			});
 		});
 
 		// Particles
-		this.#particles.draw(ctx, camX, camY, cx, cy);
+		this.#time('particles', () => this.#particles.draw(ctx, camX, camY, cx, cy));
 
 		// HUD — merge core state + player data for the HUD
-		const hudState = {
-			...coreState,
-			players: d.channel('players').toObject(),
-			enemies: d.channel('enemies').toArray(),
-		};
-		this.#hud.draw(ctx, w, h, hudState, myId);
+		this.#time('hud', () => {
+			const hudState = {
+				...coreState,
+				players: d.channel('players').toObject(),
+				enemies: d.channel('enemies').toArray(),
+			};
+			this.#hud.draw(ctx, w, h, hudState, myId);
+		});
+
+		// Frame time overlay
+		this.#perfSamples++;
+		if (this.#perfSamples % 60 === 0) {
+			const lines = Object.entries(this.#perf)
+				.map(([k, v]) => `${k.padEnd(12)} ${v.toFixed(3)}ms`)
+				.join('\n');
+			console.log('[frame timings]\n' + lines);
+		}
+
+		this.#drawPerfOverlay(ctx, w, h);
+	}
+
+	#drawPerfOverlay(ctx, w, h) {
+		const entries = Object.entries(this.#perf);
+		if (!entries.length) return;
+
+		const lineH = 14;
+		const pad = 6;
+		const overlayW = 180;
+		const overlayH = pad * 2 + entries.length * lineH;
+		const x = w - overlayW - 8;
+		const y = 52;
+
+		ctx.fillStyle = 'rgba(0,0,0,0.7)';
+		ctx.fillRect(x, y, overlayW, overlayH);
+		ctx.font = '11px "Courier New", monospace';
+		ctx.textBaseline = 'top';
+
+		let ly = y + pad;
+		for (const [label, ms] of entries) {
+			const heat = Math.min(ms / 2, 1); // red at 2ms+
+			ctx.fillStyle = `rgb(${Math.round(heat * 255)},${Math.round((1 - heat) * 200)},50)`;
+			ctx.fillText(`${label.padEnd(11)} ${ms.toFixed(2)}ms`, x + pad, ly);
+			ly += lineH;
+		}
+		ctx.textBaseline = 'alphabetic';
 	}
 }

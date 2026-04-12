@@ -27,7 +27,8 @@ module DataNexus
 			# Pathfinding state
 			@path = nil # array of [wx, wy] waypoints
 			@path_index = 0
-			@path_timer = 0.0
+			# Stagger initial recalc so a wave of enemies doesn't all A* on the same tick
+			@path_timer = Random.rand * PATH_RECALC_INTERVAL
 		end
 
 		def alive?
@@ -43,29 +44,42 @@ module DataNexus
 		end
 
 		# Compute or refresh the A* path toward the target.
+		# Returns the number of A* steps expanded.
 		def update_path(hex_grid)
-			@path = hex_grid.find_path(@x, @y, @target_x, @target_y)
+			@path, steps = hex_grid.find_path(@x, @y, @target_x, @target_y)
 			@path_index = 0
 			@path_timer = 0.0
+			steps
+		end
+
+		def architect?
+			@type == :architect
+		end
+
+		def advance_path_timer(dt)
+			@path_timer += dt
+		end
+
+		# Returns true if this enemy needs a path recalculation this tick.
+		def path_due?
+			@path.nil? || @path_timer >= PATH_RECALC_INTERVAL
 		end
 
 		def tick(dt, hex_grid: nil)
 			return unless alive?
 
-			# Periodically recalculate path
 			if hex_grid
-				@path_timer += dt
-				if @path.nil? || @path_timer >= PATH_RECALC_INTERVAL
-					update_path(hex_grid)
-				end
-
-				# Architects clear death counts as they move, carving a safe path
-				if @type == :architect
-					hex_grid.reduce_deaths(@x, @y)
-				end
+				advance_path_timer(dt)
+				update_path(hex_grid) if path_due?
+				hex_grid.reduce_deaths(@x, @y) if architect?
 			end
 
-			# Determine current movement target
+			tick_move(dt)
+		end
+
+		# Movement only — called directly by the profiling path in GameWorld.
+		def tick_move(dt)
+			return unless alive?
 			if @path && @path_index < @path.length
 				wx, wy = @path[@path_index]
 				dx = wx - @x

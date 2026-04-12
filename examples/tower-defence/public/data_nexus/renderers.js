@@ -1,4 +1,13 @@
-import { TWO_PI, hexCorners, HEX_SIZE } from './constants.js';
+import { TWO_PI, HEX_SIZE } from './constants.js';
+
+// Pre-compute hex corner offsets for firewalls (HEX_SIZE * 0.9), pointy-top axial
+const FIREWALL_DX = [];
+const FIREWALL_DY = [];
+for (let i = 0; i < 6; i++) {
+	const angle = Math.PI / 180 * (60 * i - 30);
+	FIREWALL_DX.push(HEX_SIZE * 0.9 * Math.cos(angle));
+	FIREWALL_DY.push(HEX_SIZE * 0.9 * Math.sin(angle));
+}
 
 /**
  * Individual entity rendering functions. Each takes a canvas context,
@@ -343,9 +352,9 @@ export function drawFirewall(ctx, sx, sy, fw, time = 0) {
 	const hpRatio = fw.hp / fw.max_hp;
 
 	// Hex outline
-	const corners = hexCorners(sx, sy, HEX_SIZE * 0.9);
 	ctx.beginPath();
-	corners.forEach(([cx, cy], i) => i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy));
+	ctx.moveTo(sx + FIREWALL_DX[0], sy + FIREWALL_DY[0]);
+	for (let i = 1; i < 6; i++) ctx.lineTo(sx + FIREWALL_DX[i], sy + FIREWALL_DY[i]);
 	ctx.closePath();
 
 	// Fill with translucent magenta
@@ -392,36 +401,6 @@ export function drawFirewall(ctx, sx, sy, fw, time = 0) {
 	ctx.textAlign = 'center';
 	ctx.fillText('FIREWALL', sx, sy + 22);
 	ctx.textAlign = 'left';
-}
-
-// Pre-compute hex death corner offsets
-const DEATH_HEX_CORNERS = [];
-for (let i = 0; i < 6; i++) {
-	const angle = Math.PI / 180 * (60 * i - 30);
-	DEATH_HEX_CORNERS.push([HEX_SIZE * 0.92 * Math.cos(angle), HEX_SIZE * 0.92 * Math.sin(angle)]);
-}
-
-export function drawHexDeaths(ctx, sx, sy, deaths) {
-	const intensity = Math.min(deaths / 10, 1.0);
-	if (intensity < 0.02) return;
-
-	ctx.beginPath();
-	ctx.moveTo(sx + DEATH_HEX_CORNERS[0][0], sy + DEATH_HEX_CORNERS[0][1]);
-	for (let i = 1; i < 6; i++) {
-		ctx.lineTo(sx + DEATH_HEX_CORNERS[i][0], sy + DEATH_HEX_CORNERS[i][1]);
-	}
-	ctx.closePath();
-
-	const r = Math.round(255 - intensity * 80);
-	const g = Math.round(60 - intensity * 50);
-	ctx.fillStyle = `rgba(${r},${g},10,${0.08 + intensity * 0.25})`;
-	ctx.fill();
-
-	if (intensity > 0.3) {
-		ctx.strokeStyle = `rgba(255,60,20,${intensity * 0.4})`;
-		ctx.lineWidth = 1;
-		ctx.stroke();
-	}
 }
 
 export function drawPlayer(ctx, sx, sy, player, isMe, interpolatedAngle = null, time = 0) {

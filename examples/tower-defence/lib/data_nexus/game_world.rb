@@ -33,7 +33,6 @@ module DataNexus
 				pads: DeltaLog.new,       # almost never changes
 				towers: DeltaLog.new,     # changes on build/upgrade/sell
 				firewalls: DeltaLog.new,  # changes on build/destroy/hp
-				hex_deaths: DeltaLog.new, # changes when enemies die
 				core: DeltaLog.new,       # hp, buffs, wave — changes infrequently
 				enemies: DeltaLog.new,    # changes every tick (positions)
 				players: DeltaLog.new,    # changes every tick (positions)
@@ -96,28 +95,57 @@ module DataNexus
 			@game_over
 		end
 
+		# ── Profiling ─────────────────────────────────────────────────────
+
+		PERF_PRINT_INTERVAL = 5.0 # seconds between console output
+
+		def perf_time(label, &block)
+			t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+			block.call
+			elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000.0
+			@perf_ema[label] = @perf_ema.key?(label) ?
+				@perf_ema[label] * 0.95 + elapsed * 0.05 : elapsed
+		end
+
+		def perf_print
+			@perf_elapsed ||= 0.0
+			@perf_last_print ||= Process.clock_gettime(Process::CLOCK_MONOTONIC)
+			now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+			if now - @perf_last_print >= PERF_PRINT_INTERVAL
+				@perf_last_print = now
+				lines = @perf_ema.map do |k, v|
+					label = k.to_s
+					value = label.end_with?("_n", "count") ? format("%d", v) : format("%.3fms", v)
+					"  #{label.ljust(20)} #{value}"
+				end.join("\n")
+				Console.logger.info(self, "[tick timings]\n#{lines}")
+			end
+		end
+
 		# ── Main tick ─────────────────────────────────────────────────────
 
 		def tick(dt)
 			return if @game_over
 
-			tick_waves(dt)
-			tick_spawns(dt)
+			@perf_ema ||= {}
 
-			@players.each_value { |p| p.tick(dt, speed_multiplier: speed_multiplier) }
-			@enemies.each { |e| e.tick(dt, hex_grid: @hex_grid) }
+			perf_time(:waves)    { tick_waves(dt) }
+			perf_time(:spawns)   { tick_spawns(dt) }
+			perf_time(:players)  { @players.each_value { |p| p.tick(dt, speed_multiplier: speed_multiplier) } }
+			perf_time(:enemies)  { tick_enemies_detailed(dt) }
+			perf_time(:towers)   { tick_tower_combat(dt) }
+			perf_time(:firewalls){ tick_firewall_combat(dt) }
+			perf_time(:deaths)   { tick_enemy_deaths }
+			perf_time(:core_col) { tick_core_collisions }
+			perf_time(:game_over){ tick_game_over }
+			perf_time(:cube_pick){ tick_cube_pickup }
+			perf_time(:cube_age) { tick_cube_aging(dt) }
+			perf_time(:upgrades) { tick_tower_upgrades(dt) }
+			perf_time(:fw_clean) { tick_firewall_cleanup }
+			perf_time(:hex_grid) { @hex_grid.tick(dt) }
+			perf_time(:sync)     { sync_channels }
 
-			tick_tower_combat(dt)
-			tick_firewall_combat(dt)
-			tick_enemy_deaths
-			tick_core_collisions
-			tick_game_over
-			tick_cube_pickup
-			tick_cube_aging(dt)
-			tick_tower_upgrades(dt)
-			tick_firewall_cleanup
-			@hex_grid.tick(dt)
-			sync_channels
+			perf_print
 		end
 
 		# ── Player actions ────────────────────────────────────────────────
@@ -280,13 +308,6 @@ module DataNexus
 			@firewalls.each { |key, fw| fw_state[key.join(",")] = fw.to_h }
 			@channels[:firewalls].replace(fw_state)
 
-			# Hex deaths (change when enemies die, then slowly decay)
-			death_state = {}
-			@hex_grid.death_counts_snapshot.each do |d|
-				death_state["#{d[:q]},#{d[:r]}"] = d
-			end
-			@channels[:hex_deaths].replace(death_state)
-
 			# Core state (hp, buffs, wave — changes infrequently)
 			@channels[:core].set(:state, {
 				core_hp: @core_hp,
@@ -315,6 +336,41 @@ module DataNexus
 		end
 
 		# ── Tick sub-steps ────────────────────────────────────────────────
+
+		def tick_enemies_detailed(dt)
+			path_ms = 0.0
+			move_ms = 0.0
+			path_count = 0
+			path_steps = 0
+
+			@enemies.each do |e|
+				next unless e.alive?
+
+				e.advance_path_timer(dt)
+				@hex_grid.reduce_deaths(e.x, e.y) if e.architect?
+
+				# Time pathfinding separately
+				if e.path_due?
+					t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+					steps = e.update_path(@hex_grid)
+					path_ms += (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000.0
+					path_count += 1
+					path_steps += steps.to_i
+				end
+
+				# Time movement
+				t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+				e.tick_move(dt)
+				move_ms += (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000.0
+			end
+
+			alpha = 0.05
+			@perf_ema[:"enemies.count"]   = @enemies.size
+			@perf_ema[:"enemies.paths"]   = @perf_ema.key?(:"enemies.paths")  ? @perf_ema[:"enemies.paths"]  * (1 - alpha) + path_ms  * alpha : path_ms
+			@perf_ema[:"enemies.paths_n"] = path_count
+			@perf_ema[:"enemies.steps_n"] = path_count > 0 ? (path_steps.to_f / path_count).round : 0
+			@perf_ema[:"enemies.move"]    = @perf_ema.key?(:"enemies.move")   ? @perf_ema[:"enemies.move"]   * (1 - alpha) + move_ms   * alpha : move_ms
+		end
 
 		def tick_waves(dt)
 			@wave_timer -= dt
