@@ -5,8 +5,8 @@ import { TWO_PI, hexCorners, HEX_SIZE } from './constants.js';
  * screen-space position, entity data, and optional flags.
  */
 
-export function drawCore(ctx, sx, sy, state) {
-	const time = Date.now() / 1000;
+export function drawCore(ctx, sx, sy, state, time) {
+	
 	const pulse = 0.8 + Math.sin(time * 2) * 0.2;
 	const hpRatio = state.core_hp / state.max_core_hp;
 	const coreColor = hpRatio > 0.5 ? '#00ffcc' : hpRatio > 0.25 ? '#ffaa00' : '#ff3333';
@@ -54,7 +54,7 @@ export function drawCore(ctx, sx, sy, state) {
 	ctx.textAlign = 'left';
 }
 
-export function drawPad(ctx, sx, sy, pad, isNearby = false) {
+export function drawPad(ctx, sx, sy, pad, isNearby = false, time = 0) {
 	const baseColor = pad.ring === 'inner' ? 'rgba(0,255,200,' :
 		pad.ring === 'outer' ? 'rgba(0,200,255,' : 'rgba(255,0,255,';
 	const size = 20;
@@ -62,7 +62,7 @@ export function drawPad(ctx, sx, sy, pad, isNearby = false) {
 	if (pad.has_tower) return;
 
 	if (isNearby) {
-		const time = Date.now() / 1000;
+		
 		const pulse = 0.3 + Math.sin(time * 4) * 0.15;
 		ctx.fillStyle = baseColor + pulse + ')';
 		ctx.beginPath();
@@ -96,8 +96,8 @@ export function drawPad(ctx, sx, sy, pad, isNearby = false) {
 	ctx.textBaseline = 'alphabetic';
 }
 
-export function drawTower(ctx, sx, sy, tower, isNearby = false, canAffordUpgrade = false, gameState = null) {
-	const time = Date.now() / 1000;
+export function drawTower(ctx, sx, sy, tower, isNearby = false, canAffordUpgrade = false, gameState = null, time = 0) {
+	
 
 	// Range indicator
 	ctx.beginPath();
@@ -224,8 +224,8 @@ export function drawTower(ctx, sx, sy, tower, isNearby = false, canAffordUpgrade
 	ctx.textAlign = 'left';
 }
 
-export function drawCube(ctx, sx, sy, cube) {
-	const time = Date.now() / 1000;
+export function drawCube(ctx, sx, sy, cube, time = 0) {
+	
 	const bob = Math.sin(time * 3 + sx * 0.1) * 3;
 
 	ctx.globalAlpha = 0.3;
@@ -257,11 +257,11 @@ export function drawCube(ctx, sx, sy, cube) {
 	}
 }
 
-export function drawEnemy(ctx, sx, sy, enemy) {
-	const time = Date.now() / 1000;
+export function drawEnemy(ctx, sx, sy, enemy, time = 0) {
 	const size = enemy.size;
 	const isArchitect = enemy.type === 'architect';
 
+	// Threat glow
 	ctx.globalAlpha = isArchitect ? 0.35 : 0.2;
 	ctx.fillStyle = enemy.color;
 	ctx.beginPath();
@@ -304,6 +304,7 @@ export function drawEnemy(ctx, sx, sy, enemy) {
 		ctx.fillText('ARCHITECT', sx, sy + size + 12);
 		ctx.textAlign = 'left';
 	} else {
+		// Regular enemy: spiky rotating star
 		ctx.save();
 		ctx.translate(sx, sy);
 		ctx.rotate(time * 1.5);
@@ -337,8 +338,8 @@ export function drawEnemy(ctx, sx, sy, enemy) {
 	}
 }
 
-export function drawFirewall(ctx, sx, sy, fw) {
-	const time = Date.now() / 1000;
+export function drawFirewall(ctx, sx, sy, fw, time = 0) {
+	
 	const hpRatio = fw.hp / fw.max_hp;
 
 	// Hex outline
@@ -393,21 +394,38 @@ export function drawFirewall(ctx, sx, sy, fw) {
 	ctx.textAlign = 'left';
 }
 
-export function drawHexDeaths(ctx, sx, sy, deaths) {
-	// Heat overlay on hex tile — more deaths = more red
-	const intensity = Math.min(deaths / 20, 1.0); // cap at 20 deaths
-	if (intensity < 0.02) return;
-
-	const corners = hexCorners(sx, sy, HEX_SIZE * 0.85);
-	ctx.beginPath();
-	corners.forEach(([cx, cy], i) => i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy));
-	ctx.closePath();
-	ctx.fillStyle = `rgba(255,50,20,${intensity * 0.15})`;
-	ctx.fill();
+// Pre-compute hex death corner offsets
+const DEATH_HEX_CORNERS = [];
+for (let i = 0; i < 6; i++) {
+	const angle = Math.PI / 180 * (60 * i - 30);
+	DEATH_HEX_CORNERS.push([HEX_SIZE * 0.92 * Math.cos(angle), HEX_SIZE * 0.92 * Math.sin(angle)]);
 }
 
-export function drawPlayer(ctx, sx, sy, player, isMe, interpolatedAngle = null) {
-	const time = Date.now() / 1000;
+export function drawHexDeaths(ctx, sx, sy, deaths) {
+	const intensity = Math.min(deaths / 10, 1.0);
+	if (intensity < 0.02) return;
+
+	ctx.beginPath();
+	ctx.moveTo(sx + DEATH_HEX_CORNERS[0][0], sy + DEATH_HEX_CORNERS[0][1]);
+	for (let i = 1; i < 6; i++) {
+		ctx.lineTo(sx + DEATH_HEX_CORNERS[i][0], sy + DEATH_HEX_CORNERS[i][1]);
+	}
+	ctx.closePath();
+
+	const r = Math.round(255 - intensity * 80);
+	const g = Math.round(60 - intensity * 50);
+	ctx.fillStyle = `rgba(${r},${g},10,${0.08 + intensity * 0.25})`;
+	ctx.fill();
+
+	if (intensity > 0.3) {
+		ctx.strokeStyle = `rgba(255,60,20,${intensity * 0.4})`;
+		ctx.lineWidth = 1;
+		ctx.stroke();
+	}
+}
+
+export function drawPlayer(ctx, sx, sy, player, isMe, interpolatedAngle = null, time = 0) {
+	
 	const size = isMe ? 14 : 11;
 	const angle = interpolatedAngle ?? player.angle;
 

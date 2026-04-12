@@ -69,18 +69,26 @@ module DataNexus
 				end
 			when "build"
 				detail = event[:detail] || {}
-				world.build_tower(@id, detail[:pad].to_i, detail[:type].to_s)
+				result = world.build_tower(@id, detail[:pad].to_i, detail[:type].to_s)
+				play_sound(result[:success] ? "build" : "beep")
 			when "sell"
 				detail = event[:detail] || {}
 				world.sell_tower(@id, detail[:pad].to_i)
+				play_sound("explosion")
 			when "core_upgrade"
 				detail = event[:detail] || {}
-				world.upgrade_core(@id, detail[:type].to_s)
+				result = world.upgrade_core(@id, detail[:type].to_s)
+				play_sound(result[:success] ? "build" : "beep")
 			when "firewall"
-				world.build_firewall(@id)
+				result = world.build_firewall(@id)
+				play_sound(result[:success] ? "build" : "beep")
 			when "restart"
 				@controller.reset!
 			end
+		end
+
+		def play_sound(name)
+			script("this.audio?.playSound('#{name}')")
 		end
 
 		def render(builder)

@@ -75,7 +75,7 @@ module DataNexus
 		attr_reader :death_counts
 
 		DEATH_WEIGHT = 2.0 # extra A* cost per death on a tile
-		DEATH_DECAY = 0.995 # per-tick multiplier (slow decay)
+		DEATH_DECAY = 0.99999 # per-tick multiplier (~0.001% per second)
 
 		def initialize
 			@death_counts = {} # [q, r] => float

@@ -7,6 +7,7 @@ import { TouchControls } from './touch_controls.js';
 import { DeltaStateManager } from './delta_state.js';
 import { drawCore, drawPad, drawTower, drawCube, drawEnemy, drawPlayer, drawFirewall, drawHexDeaths } from './renderers.js';
 
+
 const DEPOSIT_RANGE = 80; // must match server Player::DEPOSIT_RANGE
 
 /**
@@ -31,6 +32,8 @@ export class GameRenderer {
 	#playerTracker = new EntityTracker();
 	#enemyTracker = new EntityTracker();
 	#cubeTracker = new EntityTracker();
+
+
 
 	// Delta-compressed state channels
 	#delta = new DeltaStateManager([
@@ -210,11 +213,11 @@ export class GameRenderer {
 		}
 
 		this.#particles.update(dt);
-		this.#draw();
+		this.#draw(ts / 1000);
 		requestAnimationFrame(this.#frame.bind(this));
 	}
 
-	#draw() {
+	#draw(time) {
 		const ctx = this.#ctx;
 		const dpr = window.devicePixelRatio || 1;
 		const w = this.#canvas.width / dpr;
@@ -234,7 +237,7 @@ export class GameRenderer {
 		// Core state (for drawCore and HUD)
 		const coreState = d.channel('core').get('state') || {};
 
-		// Hex death heatmap (drawn first, below everything)
+		// Hex death heatmap
 		for (const hd of d.channel('hex_deaths').values()) {
 			const sx = cx + hd.x - camX;
 			const sy = cy + hd.y - camY;
@@ -243,14 +246,14 @@ export class GameRenderer {
 		}
 
 		// Data Core
-		drawCore(ctx, cx - camX, cy - camY, coreState);
+		drawCore(ctx, cx - camX, cy - camY, coreState, time);
 
 		// Tower pads
 		for (const pad of d.channel('pads').values()) {
 			const sx = cx + pad.x - camX;
 			const sy = cy + pad.y - camY;
 			if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
-			drawPad(ctx, sx, sy, pad, this.#hud.nearbyEmptyPad?.index === pad.index);
+			drawPad(ctx, sx, sy, pad, this.#hud.nearbyEmptyPad?.index === pad.index, time);
 		}
 
 		// Towers
@@ -265,7 +268,7 @@ export class GameRenderer {
 			if (tower.can_upgrade && tower.upgrade_cost && !tower.upgrading) {
 				canAfford = Object.entries(tower.upgrade_cost).every(([k, v]) => (myInv[k] || 0) >= v);
 			}
-			drawTower(ctx, sx, sy, tower, isNearby, canAfford, coreState);
+			drawTower(ctx, sx, sy, tower, isNearby, canAfford, coreState, time);
 		}
 
 		// Firewalls
@@ -273,7 +276,7 @@ export class GameRenderer {
 			const sx = cx + fw.x - camX;
 			const sy = cy + fw.y - camY;
 			if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
-			drawFirewall(ctx, sx, sy, fw);
+			drawFirewall(ctx, sx, sy, fw, time);
 		}
 
 		// Projectiles (always sent in full, not delta-compressed)
@@ -293,7 +296,7 @@ export class GameRenderer {
 			const sx = cx + ix - camX;
 			const sy = cy + iy - camY;
 			if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) return;
-			drawCube(ctx, sx, sy, cube);
+			drawCube(ctx, sx, sy, cube, time);
 		});
 
 		// Enemies (interpolated)
@@ -301,7 +304,7 @@ export class GameRenderer {
 			const sx = cx + ix - camX;
 			const sy = cy + iy - camY;
 			if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) return;
-			drawEnemy(ctx, sx, sy, enemy);
+			drawEnemy(ctx, sx, sy, enemy, time);
 		});
 
 		// Players (interpolated position + angle)
@@ -309,7 +312,7 @@ export class GameRenderer {
 			const sx = cx + ix - camX;
 			const sy = cy + iy - camY;
 			if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) return;
-			drawPlayer(ctx, sx, sy, player, id === myId, angle);
+			drawPlayer(ctx, sx, sy, player, id === myId, angle, time);
 		});
 
 		// Particles

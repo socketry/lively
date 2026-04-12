@@ -38,8 +38,11 @@ module DataNexus
 
 		def reset!
 			@world.restart!
-			# Reset cursors on all connected views
 			@views.each(&:reset_cursors!)
+		end
+
+		def play_sound_all(name)
+			@views.each { |v| v.play_sound(name) }
 		end
 
 		private
@@ -55,7 +58,23 @@ module DataNexus
 					dt = now - last_time
 					last_time = now
 
+					prev_wave = @world.wave_number
+					prev_game_over = @world.game_over?
+
 					@world.tick([dt, 0.1].min)
+
+					# Detect game events and notify all views
+					if @world.wave_number != prev_wave
+						if @world.wave_number % 10 == 0
+							play_sound_all("roar") # Architect incoming
+						else
+							play_sound_all("alien") # New wave
+						end
+					end
+
+					if @world.game_over? && !prev_game_over
+						play_sound_all("death")
+					end
 
 					# Push updates to all connected views
 					@views.each do |view|
