@@ -27,7 +27,7 @@ module Lively
 		# @returns [Live::Element | Nil] The resolved element, or `nil`.
 		def call(id, data)
 			if klass = @allowed[data[:class]]
-				return klass.new(id, data, **@state)
+				return klass.new(id, data, **(@state || {}))
 			end
 		end
 	end
