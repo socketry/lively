@@ -1,0 +1,5 @@
+- **`Lively::Application`** — Protocol::HTTP middleware; serves the page and handles WebSocket upgrades.
+- **`Live::View`** — your component; defines `render` and handles events.
+- **`Live::Page`** — manages all views connected to one WebSocket session.
+- **`Lively::Resolver`** — reconnects views by class name after a page reload.
+- **`Lively::Assets`** — serves static files (CSS, JS, images) from `public/`.
