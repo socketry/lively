@@ -20,6 +20,10 @@ Please see the [project documentation](https://socketry.github.io/lively/) for m
 
 Please see the [project releases](https://socketry.github.io/lively/releases/index) for all releases.
 
+### v0.18.0
+
+  - Add support for HTTY.
+
 ### v0.17.0
 
   - Expose shared application state via `Application[..., controller: Controller.new]`.
@@ -56,13 +60,6 @@ Please see the [project releases](https://socketry.github.io/lively/releases/ind
 ### v0.13.1
 
   - Tidied up gem dependencies.
-
-### v0.13.0
-
-  - Added `live-audio` support for background and positional audio in applications.
-  - Added game audio example demonstrating audio playback.
-  - Fixed serving non-existent asset paths gracefully.
-  - Achieved 100% test and documentation coverage.
 
 ## See Also
 

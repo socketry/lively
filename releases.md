@@ -1,5 +1,9 @@
 # Releases
 
+## v0.18.0
+
+  - Add support for HTTY.
+
 ## v0.17.0
 
   - Expose shared application state via `Application[..., controller: Controller.new]`.
