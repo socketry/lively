@@ -20,7 +20,7 @@ describe Lively::Environment::Application do
 		
 		it "selects HTTY transport when htty is true" do
 			environment = Async::Service::Environment.build(subject, root: __dir__) do
-				def htty = true
+				htty true
 			end
 			expect(environment.evaluator.transport_environment).to be == Lively::Environment::HTTY
 		end
