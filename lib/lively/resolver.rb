@@ -13,7 +13,7 @@ module Lively
 	class Resolver < Live::Resolver
 		# Initialize a new resolver with shared state.
 		# @parameter state [Hash] Key-value pairs to pass to view constructors as keyword arguments.
-		def initialize(state = nil)
+		def initialize(state = {})
 			super()
 			@state = state
 		end

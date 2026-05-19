@@ -23,8 +23,8 @@ describe Lively::Resolver do
 			expect(result).to be_nil
 		end
 		
-		it "has nil state by default" do
-			expect(resolver.state).to be_nil
+		it "has empty state by default" do
+			expect(resolver.state).to be(:empty?)
 		end
 	end
 	
