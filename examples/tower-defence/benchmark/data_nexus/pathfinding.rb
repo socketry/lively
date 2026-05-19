@@ -14,32 +14,32 @@ DT = DataNexus::TICK_RATE
 
 describe DataNexus::HexGrid do
 	include Sus::Fixtures::Benchmark
-
-	let(:grid) { DataNexus::HexGrid.new }
-
+	
+	let(:grid) {DataNexus::HexGrid.new}
+	
 	# ── Single path ──────────────────────────────────────────────────────────
-
+	
 	# Typical drone spawning just outside the near ring.
 	measure "single path — short (200px)" do |repeats|
-		repeats.times { grid.find_path(200, 0, 0, 0) }
+		repeats.times{grid.find_path(200, 0, 0, 0)}
 	end
-
+	
 	# Typical path at maximum spawn distance (late game).
 	measure "single path — long (800px)" do |repeats|
-		repeats.times { grid.find_path(800, 0, 0, 0) }
+		repeats.times{grid.find_path(800, 0, 0, 0)}
 	end
-
+	
 	# Diagonal worst-case: corner of the spawn ring to core.
 	measure "single path — diagonal 800px" do |repeats|
 		x = 800.0 / Math.sqrt(2)
-		repeats.times { grid.find_path(x, x, 0, 0) }
+		repeats.times{grid.find_path(x, x, 0, 0)}
 	end
-
+	
 	# ── Death heatmap impact ─────────────────────────────────────────────────
 	#
 	# The heatmap adds extra A* cost to busy hexes, causing the pathfinder to
 	# detour. Measure how much a populated heatmap affects path-find time.
-
+	
 	with "populated death heatmap" do
 		before do
 			# Seed a ring of death counts between spawn and core, as would
@@ -52,23 +52,23 @@ describe DataNexus::HexGrid do
 				end
 			end
 		end
-
+		
 		measure "single path — long (800px, hot heatmap)" do |repeats|
-			repeats.times { grid.find_path(800, 0, 0, 0) }
+			repeats.times{grid.find_path(800, 0, 0, 0)}
 		end
-
+		
 		measure "single path — diagonal 800px, hot heatmap" do |repeats|
 			x = 800.0 / Math.sqrt(2)
-			repeats.times { grid.find_path(x, x, 0, 0) }
+			repeats.times{grid.find_path(x, x, 0, 0)}
 		end
 	end
-
+	
 	# ── Batch pathfinding ────────────────────────────────────────────────────
 	#
 	# Simulates an entire wave's enemies all needing a path recalc on the same
 	# tick — the realistic worst case. Each call uses a slightly different start
 	# position (as enemies spread out over time).
-
+	
 	[10, 50, 100, 200].each do |count|
 		measure "batch — #{count} enemies recalculating paths" do |repeats|
 			# Pre-compute start positions so the measurement is pure pathfinding.
@@ -77,7 +77,7 @@ describe DataNexus::HexGrid do
 				dist  = 700 + (i % 5) * 30.0
 				[Math.cos(angle) * dist, Math.sin(angle) * dist]
 			end
-
+			
 			repeats.times do
 				origins.each do |(x, y)|
 					grid.find_path(x, y, 0, 0)

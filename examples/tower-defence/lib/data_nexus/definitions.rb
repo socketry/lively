@@ -6,7 +6,7 @@ module DataNexus
 	TICK_RATE = 1.0 / 20 # 20 Hz server tick
 	CHUNK_SIZE = 512 # pixels per chunk side
 	UPGRADE_TIME = 2.5 # seconds to stand near a tower to upgrade it
-
+	
 	# ── Data-cube / resource types ──────────────────────────────────────────
 	CUBE_TYPES = {
 		core:    {color: "#00ffcc", tier: 0, label: "Core Data"},
@@ -16,7 +16,7 @@ module DataNexus
 		nexus:   {color: "#ffd700", tier: 4, label: "Nexus Shard"},
 		prism:   {color: "#dd88ff", tier: 5, label: "Prism Core"},
 	}.freeze
-
+	
 	# Per-type inventory capacity schedule.
 	# base  — slots at level 1.
 	# gain  — slots added each time the interval elapses.
@@ -30,7 +30,7 @@ module DataNexus
 		nexus:   {base:  2, gain: 1, every: 5}, # +1 every 5 levels
 		prism:   {base:  1, gain: 1, every: 8}, # +1 every 8 levels
 	}.freeze
-
+	
 	# ── Core upgrade definitions ──────────────────────────────────────────
 	CORE_UPGRADES = {
 		overclock: {
@@ -50,10 +50,10 @@ module DataNexus
 			desc: "+25% firewall HP & damage", cost: {nexus: 1},
 		},
 	}.freeze
-
+	
 	# ── Damage / shield types ──────────────────────────────────────────────
 	DAMAGE_TYPES = %i[kinetic thermal crypto disrupt].freeze
-
+	
 	# ── Tower definitions ──────────────────────────────────────────────────
 	TOWER_DEFS = {
 		pulse: {
@@ -101,12 +101,12 @@ module DataNexus
 			},
 		},
 	}.freeze
-
+	
 	# ── Tower pad positions (relative to data core) ───────────────────────
 	# Snap world coords to nearest hex center (inline, before Hex module is loaded).
 	HEX_SZ = 40.0
 	SQ3 = Math.sqrt(3)
-
+	
 	def self.snap_to_hex(wx, wy)
 		qf = (SQ3 / 3.0 * wx - 1.0 / 3.0 * wy) / HEX_SZ
 		rf = (2.0 / 3.0 * wy) / HEX_SZ
@@ -117,9 +117,9 @@ module DataNexus
 		elsif rd > sd then rr = -rq - rs
 		end
 		{x: (HEX_SZ * (SQ3 * rq + SQ3 / 2.0 * rr)).round(1),
-		 y: (HEX_SZ * (1.5 * rr)).round(1)}
+			y: (HEX_SZ * (1.5 * rr)).round(1)}
 	end
-
+	
 	def self.hex_ring_pads(count, radius, offset_angle: 0.0)
 		seen = {}
 		(0...count).filter_map do |i|
@@ -131,14 +131,14 @@ module DataNexus
 			pad
 		end
 	end
-
+	
 	INNER_PADS = hex_ring_pads(8, 150).freeze
 	OUTER_PADS = hex_ring_pads(16, 350).freeze
 	FAR_PADS = hex_ring_pads(24, 600, offset_angle: Math::PI / 24).freeze
-
+	
 	# ── Firewall cost ──────────────────────────────────────────────────
 	FIREWALL_COST = {core: 3}.freeze
-
+	
 	# ── Enemy definitions ────────────────────────────────────────────────
 	ENEMY_DEFS = {
 		drone: {

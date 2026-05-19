@@ -7,7 +7,7 @@ module DataNexus
 		def tag_name
 			"data-nexus-game"
 		end
-
+		
 		def initialize(id = self.class.unique_id, data = {}, controller:)
 			super(id, data)
 			@controller = controller
@@ -15,33 +15,33 @@ module DataNexus
 			@field_height = 800
 			@cursors = DeltaCursors.new
 		end
-
+		
 		def bind(page)
 			super
-
+			
 			if (w = @data["width"].to_i) > 0
 				@field_width = w
 				@field_height = @data["height"].to_i
 			end
-
+			
 			@controller.add_view(self)
 		end
-
+		
 		def close
 			@controller.remove_view(self)
 			super
 		end
-
+		
 		# Called by the controller each tick to push state to this client.
 		def send_tick!
 			world = @controller.world
 			snapshot = world.snapshot_for(@id, cursors: @cursors)
 			player = world.players[@id]
 			return unless player
-
+			
 			cx = @field_width / 2.0
 			cy = @field_height / 2.0
-
+			
 			dispatch_event("[id=#{JSON.dump(@id)}]", "gametick",
 				detail: snapshot.merge(
 					screenCX: cx, screenCY: cy,
@@ -49,14 +49,14 @@ module DataNexus
 				),
 				bubbles: true)
 		end
-
+		
 		def reset_cursors!
 			@cursors.reset!
 		end
-
+		
 		def handle(event)
 			world = @controller.world
-
+			
 			case event[:type]
 			when "keydown"
 				world.players[@id]&.handle_key(event[:detail][:key], true)
@@ -86,11 +86,11 @@ module DataNexus
 				@controller.reset!
 			end
 		end
-
+		
 		def play_sound(name)
 			script("this.audio?.playSound('#{name}')")
 		end
-
+		
 		def render(builder)
 			builder.tag(:div,
 				id: "game-field",
@@ -100,7 +100,7 @@ module DataNexus
 				onkeydown: "live.forwardEvent(#{JSON.dump(@id)}, event, {key: event.key}); event.preventDefault();",
 				onkeyup: "live.forwardEvent(#{JSON.dump(@id)}, event, {key: event.key});",
 			) do
-				builder.tag(:div, id: "hud", class: "hud") { builder.text("Connecting to Data Nexus...") }
+				builder.tag(:div, id: "hud", class: "hud"){builder.text("Connecting to Data Nexus...")}
 			end
 		end
 	end

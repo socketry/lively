@@ -13,12 +13,12 @@ class HelloWorldView < Live::View
 	def initialize(...)
 		super
 	end
-
+	
 	def bind(page)
 		super
 		self.update!
 	end
-
+	
 	def render(builder)
 		builder.tag(:p) do
 			builder.text("Hello, World!")

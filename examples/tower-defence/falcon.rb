@@ -12,6 +12,6 @@ service "tower-defense" do
 	
 	# Bind to all interfaces:
 	url {"http://[::]:9292"}
-
+	
 	count 1
 end

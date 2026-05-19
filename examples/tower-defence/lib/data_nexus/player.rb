@@ -7,17 +7,17 @@ module DataNexus
 		BRAKE = 800.0 # px / second² (retrograde)
 		DRAG = 3.0 # friction coefficient — velocity decays by this factor per second
 		MAX_SPEED = 300.0 # px / second (hard cap)
-
+		
 		PICKUP_RANGE = 20.0
 		ATTRACT_RANGE = 150.0  # 3× pickup range — cubes are pulled in from here
 		DEPOSIT_RANGE = 80.0
 		UPGRADE_RANGE = 30.0
-
-
+		
+		
 		COLORS = %w[#00ffcc #ff00ff #00ccff #ffdd00 #ff6600 #88ff44 #ff4488 #44ffcc].freeze
-
+		
 		attr_reader :id, :x, :y, :vx, :vy, :color, :name, :inventory, :score, :level, :angle
-
+		
 		def initialize(id, x = 0.0, y = 0.0)
 			@id = id
 			@x = x.to_f
@@ -32,11 +32,11 @@ module DataNexus
 			@score = 0
 			@level = 1
 		end
-
+		
 		def handle_key(key, down)
 			@keys[key] = down
 		end
-
+		
 		# Slots available for a given cube type at the current level.
 		# Common types grow quickly; rare types grow slowly. See CARRY_SCHEDULE.
 		def carry_limit(type)
@@ -44,43 +44,43 @@ module DataNexus
 			return 0 unless sched
 			sched[:base] + ((@level - 1) / sched[:every]) * sched[:gain]
 		end
-
+		
 		# Total capacity across all types (for HUD summary).
 		def max_carry
-			CARRY_SCHEDULE.keys.sum { |t| carry_limit(t) }
+			CARRY_SCHEDULE.keys.sum{|t| carry_limit(t)}
 		end
-
+		
 		def level_up!
 			@level += 1
 		end
-
+		
 		def carrying_total
 			@inventory.values.sum
 		end
-
+		
 		def add_cube(type, count = 1)
 			space = carry_limit(type) - @inventory[type]
 			actual = [count, [space, 0].max].min
 			@inventory[type] += actual if actual > 0
 			actual
 		end
-
+		
 		def remove_cubes(type, count)
 			actual = [@inventory[type], count].min
 			@inventory[type] -= actual
 			@inventory.delete(type) if @inventory[type] <= 0
 			actual
 		end
-
+		
 		def speed
 			Math.sqrt(@vx ** 2 + @vy ** 2)
 		end
-
+		
 		def tick(dt, speed_multiplier: 1.0)
 			# Rotation
 			@angle -= ROTATION_SPEED * dt if @keys["ArrowLeft"] || @keys["a"]
 			@angle += ROTATION_SPEED * dt if @keys["ArrowRight"] || @keys["d"]
-
+			
 			# Thrust (forward in facing direction)
 			if @keys["ArrowUp"] || @keys["w"]
 				rad = @angle * Math::PI / 180.0
@@ -88,7 +88,7 @@ module DataNexus
 				@vx += Math.sin(rad) * thrust * dt
 				@vy -= Math.cos(rad) * thrust * dt
 			end
-
+			
 			# Brake (retrograde deceleration)
 			if @keys["ArrowDown"] || @keys["s"]
 				spd = speed
@@ -98,12 +98,12 @@ module DataNexus
 					@vy -= (@vy / spd) * brake
 				end
 			end
-
+			
 			# Drag — always applies, bleeds off velocity over time
 			drag_factor = Math.exp(-DRAG * dt)
 			@vx *= drag_factor
 			@vy *= drag_factor
-
+			
 			# Speed cap
 			spd = speed
 			max = MAX_SPEED * speed_multiplier
@@ -112,24 +112,24 @@ module DataNexus
 				@vx *= scale
 				@vy *= scale
 			end
-
+			
 			# Integrate position
 			@x += @vx * dt
 			@y += @vy * dt
-
+			
 			# Zero out tiny velocities (for stationary detection)
 			if speed < 0.5
 				@vx = 0.0
 				@vy = 0.0
 			end
 		end
-
+		
 		def reset!
 			@inventory.clear
 			@score = 0
 			@level = 1
 		end
-
+		
 		def to_h
 			{
 				x: @x.round(1), y: @y.round(1),
@@ -139,7 +139,7 @@ module DataNexus
 				color: @color, name: @name,
 				score: @score, level: @level,
 				inventory: @inventory.transform_keys(&:to_s),
-				carry_limits: CARRY_SCHEDULE.keys.to_h { |t| [t.to_s, carry_limit(t)] },
+				carry_limits: CARRY_SCHEDULE.keys.to_h{|t| [t.to_s, carry_limit(t)]},
 				carrying: carrying_total,
 				max_carry: max_carry,
 			}
