@@ -3,6 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2021-2025, by Samuel Williams.
 
+require "uri"
 require "protocol/http/middleware"
 require "protocol/http/body/file"
 require "console"

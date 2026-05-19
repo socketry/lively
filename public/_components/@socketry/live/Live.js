@@ -44,7 +44,7 @@ export class Live {
 		let base = options.base || window.location.href;
 		
 		let url = new URL(path, base);
-		url.protocol = url.protocol.replace('http', 'ws');
+		url.protocol = url.protocol.replace(/^(htty|http)(s?):$/, 'ws$2:');
 		
 		window.live = new this(window, url);
 		if (!window.customElements.get('live-view')) {

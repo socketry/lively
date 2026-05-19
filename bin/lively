@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "async/service"
+require "async/container/threaded"
 require_relative "../lib/lively/environment/application"
 
 ARGV.each do |path|
@@ -11,7 +12,7 @@ end
 configuration = Async::Service::Configuration.build do
 	service "lively" do
 		include Lively::Environment::Application
-	end	
+	end
 end
 
-Async::Service::Controller.run(configuration)
+Async::Service::Controller.run(configuration, container_class: Async::Container::Threaded)
