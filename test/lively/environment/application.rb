@@ -72,8 +72,24 @@ describe Lively::Environment::Application do
 	end
 	
 	with "middleware configuration" do
-		it "provides middleware stack" do
+		it "includes Assets middleware for public directory" do
 			middleware = evaluator.middleware
+			
+			# The middleware should be configured with Assets
+			expect(middleware).to be_a(Protocol::HTTP::Middleware)
+		end
+		
+		it "includes Assets middleware for gem public directory" do
+			middleware = evaluator.middleware
+			
+			# Should include the gem's public directory assets
+			expect(middleware).to be_a(Protocol::HTTP::Middleware)
+		end
+		
+		it "includes application middleware" do
+			middleware = evaluator.middleware
+			
+			# Should include the application class in the middleware stack
 			expect(middleware).to be_a(Protocol::HTTP::Middleware)
 		end
 	end
