@@ -60,7 +60,7 @@ module Lively
 			def make_service(environment)
 				combined = environment.with(transport_environment)
 				combined_evaluator = combined.evaluator
-
+				
 				# Call `service_class.new` directly rather than `Async::Service::Generic.wrap` — the combined evaluator still has `Application` (and therefore `make_service`) in its ancestor chain, so `wrap` would recurse back into this method.
 				return combined_evaluator.service_class.new(combined, combined_evaluator)
 			end
