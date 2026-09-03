@@ -5,6 +5,7 @@
 
 require_relative "lively/version"
 
+require_relative "lively/page"
 require_relative "lively/assets"
 require_relative "lively/application"
 

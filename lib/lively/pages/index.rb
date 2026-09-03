@@ -3,7 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2021-2026, by Samuel Williams.
 
-require "xrb/template"
+require_relative "../page"
 
 # @namespace
 module Lively
@@ -14,31 +14,31 @@ module Lively
 		# This class renders the initial HTML page that users see when they visit
 		# a Lively application. It uses an XRB template to generate the page structure
 		# and embeds the Live view component for dynamic content.
-		class Index
+		class Index < Page
+			ICON = "/_static/icon.png"
+			STYLESHEETS = [
+				{href: "/_static/site.css", media: "screen"}.freeze,
+				{href: "/_static/index.css", media: "screen"}.freeze,
+			].freeze
+			IMPORTS = {
+				"live" => "/_components/@socketry/live/Live.js",
+				"live-audio" => "/_components/@socketry/live-audio/Live/Audio.js",
+				"morphdom" => "/_components/morphdom/morphdom-esm.js",
+			}.freeze
+			MODULES = ["/application.js"].freeze
+			
 			# Initialize a new index page.
 			# @parameter title [String] The title of the page.
 			# @parameter body [Object] The body content of the page.
 			def initialize(title: "Lively", body: nil)
-				@title = title
-				@body = body
-				
-				path = File.expand_path("index.xrb", __dir__)
-				@template = XRB::Template.load_file(path)
-			end
-			
-			# @attribute [String] The title of the page.
-			attr :title
-			
-			# @attribute [Object] The body content of the page.
-			attr :body
-			
-			# @attribute [XRB::Template] The XRB template for rendering the page.
-			attr :template
-			
-			# Render this page to a string.
-			# @returns [String] The rendered HTML for this page.
-			def call
-				@template.to_string(self)
+				super(
+					title: title,
+					body: body,
+					icon: ICON,
+					stylesheets: STYLESHEETS,
+					imports: IMPORTS,
+					modules: MODULES,
+				)
 			end
 		end
 	end
