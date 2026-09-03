@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>#{self.title}</title>
+		
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		
+		<?r if self.icon ?>
+		<link rel="icon" type="image/png" href="#{self.icon}" />
+		<?r end ?>
+		<?r self.stylesheets.each do |stylesheet| ?>
+		#{self.stylesheet_tag(stylesheet)}
+		<?r end ?>
+		
+		<?r unless self.imports.empty? ?>
+		<script type="importmap">
+		#{self.import_map}
+		</script>
+		<?r end ?>
+		
+		<?r self.modules.each do |source| ?>
+		<script type="module" src="#{source}"></script>
+		<?r end ?>
+	</head>
+	
+	#{self.body_tag}
+		#{self.body_content}
+	</body>
+</html>

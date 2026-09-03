@@ -128,8 +128,8 @@ describe Lively::Pages::Index do
 	end
 	
 	with "template file" do
-		let(:root) {File.expand_path("../../../lib/lively/pages", __dir__)}
-		let(:template_path) {File.join(root, "index.xrb")}
+		let(:root) {File.expand_path("../../../lib/lively", __dir__)}
+		let(:template_path) {File.join(root, "page.xrb")}
 		
 		it "template file exists" do
 			expect(File.exist?(template_path)).to be == true
@@ -139,8 +139,8 @@ describe Lively::Pages::Index do
 			content = File.read(template_path)
 			
 			expect(content).to be(:include?, "<!DOCTYPE html>")
-			expect(content).to be(:include?, "/_static/")
-			expect(content).to be(:include?, "application.js")
+			expect(content).to be(:include?, "self.stylesheets")
+			expect(content).to be(:include?, "self.modules")
 		end
 	end
 end
