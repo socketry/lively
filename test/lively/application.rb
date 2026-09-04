@@ -231,6 +231,30 @@ describe Lively::Application do
 		end
 	end
 	
+	with "#router" do
+		it "is memoized" do
+			expect(application.router).to be_equal(application.router)
+		end
+		
+		it "can be extended by subclasses" do
+			application_class = Class.new(Lively::Application) do
+				def configure_routes(router)
+					super
+					
+					router.get("/example") do |_request, parameters|
+						Protocol::HTTP::Response[200, [], [parameters.fetch("message")]]
+					end
+				end
+			end
+			
+			application = application_class.new(delegate)
+			response = application.call(Protocol::HTTP::Request.new("http", "localhost", "GET", "/example?message=Hello"))
+			
+			expect(response.status).to be == 200
+			expect(response.read).to be == "Hello"
+		end
+	end
+	
 	with "#call" do
 		it "handles /live path for WebSocket connections" do
 			request = Protocol::HTTP::Request.new("http", "localhost", "GET", "/live")
@@ -240,6 +264,16 @@ describe Lively::Application do
 			response = application.call(request)
 			
 			expect(response).to be_a(Protocol::HTTP::Response)
+			expect(response.status).to be == 101
+		end
+		
+		it "handles a query on the /live path" do
+			request = Protocol::HTTP::Request.new("http", "localhost", "GET", "/live?connection=test")
+			
+			expect(Async::WebSocket::Adapters::HTTP).to receive(:open).and_return(Protocol::HTTP::Response[101, [["upgrade", "websocket"]], []])
+			
+			response = application.call(request)
+			
 			expect(response.status).to be == 101
 		end
 		
