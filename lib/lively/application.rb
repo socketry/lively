@@ -8,6 +8,7 @@ require "protocol/http/middleware"
 require "async/websocket/adapters/http"
 
 require_relative "resolver"
+require_relative "router"
 require_relative "pages/index"
 require_relative "hello_world"
 
@@ -22,7 +23,7 @@ module Lively
 	#
 	# Use {.[]} to create a simple application class for a single view, optionally
 	# with shared state. For more complex applications, subclass and override
-	# {#allowed_views}, {#state}, and {#body}.
+	# {#allowed_views}, {#state}, and {#configure_routes}.
 	class Application < Protocol::HTTP::Middleware
 		VIEWS = [HelloWorld].freeze
 		STATE = {}.freeze
@@ -98,22 +99,36 @@ module Lively
 			Pages::Index.new(title: self.title, body: self.body)
 		end
 		
-		# Handle a standard HTTP request.
+		# Handle a standard HTTP request which did not match a configured route.
 		# @parameter request [Protocol::HTTP::Request] The incoming HTTP request.
 		# @returns [Protocol::HTTP::Response] The HTTP response with the rendered page.
 		def handle(request)
 			return Protocol::HTTP::Response[200, [], [self.index.call]]
 		end
 		
+		# Add the standard application routes to the given router.
+		# Override this method and call `super` to add application-specific routes.
+		# @parameter router [Router] The router to configure.
+		def configure_routes(router)
+			router.route("/live") do |request|
+				Async::WebSocket::Adapters::HTTP.open(request, &self.method(:live)) || Protocol::HTTP::Response[400]
+			end
+		end
+		
+		# The router for this application. Unmatched requests are handled separately
+		# by {#handle}.
+		# @returns [Router] The configured router.
+		def router
+			@router ||= Router.new.tap do |router|
+				configure_routes(router)
+			end
+		end
+		
 		# Process an incoming HTTP request.
 		# @parameter request [Protocol::HTTP::Request] The incoming HTTP request.
 		# @returns [Protocol::HTTP::Response] The appropriate response for the request.
 		def call(request)
-			if request.path == "/live"
-				return Async::WebSocket::Adapters::HTTP.open(request, &self.method(:live)) || Protocol::HTTP::Response[400]
-			else
-				return handle(request)
-			end
+			return router.call(request) || handle(request)
 		end
 	end
 end

@@ -99,7 +99,7 @@ Application = Lively::Application[GameView, game_state: GameState.new]
 
 The `game_state:` keyword is passed to every `GameView` instance — whether created by the initial page load or by a WebSocket reconnection. This means all connected browsers share the same `GameState` object.
 
-For more complex applications, subclass {ruby Lively::Application} and override `#state`, `#allowed_views`, and `#body`:
+For more complex applications, subclass {ruby Lively::Application} and add routes with `#configure_routes`:
 
 ```ruby
 class Application < Lively::Application
@@ -116,25 +116,33 @@ class Application < Lively::Application
 		super
 	end
 	
-	def body(request)
-		case request.path
-		when "/"
-			DisplayView.new(**state)
-		when "/control"
-			ControlView.new(**state)
+	def configure_routes(router)
+		super
+		
+		router.get("/") do
+			render(DisplayView.new(**state))
+		end
+		
+		router.get("/control") do |_request, parameters|
+			render(ControlView.new(**state, mode: parameters["mode"]))
 		end
 	end
 	
+	# Unmatched routes are passed here:
 	def handle(request)
-		if body = self.body(request)
-			page = Lively::Pages::Index.new(title: "My App", body: body)
-			Protocol::HTTP::Response[200, [], [page.call]]
-		else
-			Protocol::HTTP::Response[404, [], ["Not Found"]]
-		end
+		delegate.call(request)
+	end
+	
+	private
+	
+	def render(body)
+		page = Lively::Pages::Index.new(title: "My App", body: body)
+		Protocol::HTTP::Response[200, [], [page.call]]
 	end
 end
 ```
+
+Routes match exact paths and may accept one or more HTTP methods. Query parameters are decoded using `protocol-url` and passed to the handler as its second argument. Routes without an explicit method accept every method.
 
 ## Live Reloading
 

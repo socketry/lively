@@ -15,6 +15,7 @@ describe Lively do
 	
 	it "loads all required components" do
 		expect(defined?(Lively::Page)).to be_truthy
+		expect(defined?(Lively::Router)).to be_truthy
 		expect(defined?(Lively::Assets)).to be_truthy
 		expect(defined?(Lively::Application)).to be_truthy
 		expect(defined?(Lively::HelloWorld)).to be_truthy
