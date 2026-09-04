@@ -101,15 +101,19 @@ module Lively
 		
 		# Handle a standard HTTP request which did not match a configured route.
 		# @parameter request [Protocol::HTTP::Request] The incoming HTTP request.
-		# @returns [Protocol::HTTP::Response] The HTTP response with the rendered page.
+		# @returns [Protocol::HTTP::Response] The delegate response.
 		def handle(request)
-			return Protocol::HTTP::Response[200, [], [self.index.call]]
+			return delegate.call(request)
 		end
 		
 		# Add the standard application routes to the given router.
 		# Override this method and call `super` to add application-specific routes.
 		# @parameter router [Router] The router to configure.
 		def configure_routes(router)
+			router.get("/") do
+				Protocol::HTTP::Response[200, [], [self.index.call]]
+			end
+			
 			router.route("/live") do |request|
 				Async::WebSocket::Adapters::HTTP.open(request, &self.method(:live)) || Protocol::HTTP::Response[400]
 			end

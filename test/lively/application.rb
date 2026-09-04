@@ -207,33 +207,27 @@ describe Lively::Application do
 	end
 	
 	with "#handle" do
-		it "returns a 200 response" do
-			response = application.handle(Protocol::HTTP::Request.new("http", "localhost", "GET", "/"))
+		it "delegates unmatched requests" do
+			response = application.handle(Protocol::HTTP::Request.new("http", "localhost", "GET", "/unknown"))
 			
 			expect(response).to be_a(Protocol::HTTP::Response)
-			expect(response.status).to be == 200
-		end
-		
-		it "returns HTML content" do
-			response = application.handle(Protocol::HTTP::Request.new("http", "localhost", "GET", "/"))
-			
-			expect(response.body).to be_a(Protocol::HTTP::Body::Buffered)
-			html = response.body.read
-			expect(html).to be_a(String)
-			expect(html).to be(:include?, "<!DOCTYPE html>")
-		end
-		
-		it "includes application title in response" do
-			response = application.handle(Protocol::HTTP::Request.new("http", "localhost", "GET", "/"))
-			html = response.body.read
-			
-			expect(html).to be(:include?, "Lively::Application")
+			expect(response.status).to be == 404
+			expect(response.read).to be == "Not Found"
 		end
 	end
 	
 	with "#router" do
 		it "is memoized" do
 			expect(application.router).to be_equal(application.router)
+		end
+		
+		it "routes the application index explicitly" do
+			response = application.router.call(Protocol::HTTP::Request.new("http", "localhost", "GET", "/"))
+			html = response.read
+			
+			expect(response.status).to be == 200
+			expect(html).to be(:include?, "<!DOCTYPE html>")
+			expect(html).to be(:include?, "Lively::Application")
 		end
 		
 		it "can be extended by subclasses" do
@@ -320,11 +314,11 @@ describe Lively::Application do
 			expect(response.read).to be(:include?, "Hello, I'm Lively!")
 		end
 		
-		it "handles different paths correctly" do
+		it "delegates unmatched paths" do
 			response = client.get("/some/other/path")
 			
-			expect(response.status).to be == 200
-			expect(response.read).to be(:include?, "Hello, I'm Lively!")
+			expect(response.status).to be == 404
+			expect(response.read).to be == "Not Found"
 		end
 	end
 end
