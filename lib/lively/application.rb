@@ -31,7 +31,7 @@ module Lively
 		# Create a new application class configured for a specific Live view tag,
 		# optionally with shared state that is passed to all views.
 		#
-		# @parameter tag [Class] The Live view class to use as the application body.
+		# @parameter tag [Class] The Live view class to render at the root route.
 		# @parameter state [Hash] Shared state to pass to all views as keyword arguments.
 		# @returns [Class] A new application class configured for the specified tag.
 		def self.[](*tags, **state)
@@ -87,16 +87,29 @@ module Lively
 			self.class.name
 		end
 		
-		# Create the body content for this application.
+		# Construct a view with shared application state.
+		# @parameter view_class [Class] The view class to construct.
+		# @parameter arguments [Hash] Additional keyword arguments for the view.
 		# @returns [Live::View] A new view instance.
-		def body
-			self.allowed_views.first.new(**self.state)
+		def make_view(view_class, **arguments)
+			view_class.new(**self.state, **arguments)
 		end
 		
-		# Create the index page for this application.
-		# @returns [Pages::Index] A new index page instance.
-		def index
-			Pages::Index.new(title: self.title, body: self.body)
+		# Construct the default page for a view.
+		# Override this to customize the document surrounding live views.
+		# @parameter view [Live::View] The root view for the page.
+		# @returns [Page] A new page instance.
+		def make_page(view)
+			Pages::Index.new(title: self.title, body: view)
+		end
+		
+		# Construct a view and its default page, then render an HTTP response.
+		# @parameter request [Protocol::HTTP::Request] The incoming request.
+		# @parameter view_class [Class] The view class to render.
+		# @parameter arguments [Hash] Additional keyword arguments for the view.
+		# @returns [Protocol::HTTP::Response] A successful HTML response.
+		def render_view(request, view_class, **arguments)
+			make_page(make_view(view_class, **arguments)).call(request)
 		end
 		
 		# Handle a standard HTTP request which did not match a configured route.
@@ -106,16 +119,12 @@ module Lively
 			return delegate.call(request)
 		end
 		
-		# Add the standard application routes to the given router.
-		# Override this method and call `super` to add application-specific routes.
+		# Add application routes to the given router.
+		# Override this method to map paths to views or other handlers.
 		# @parameter router [Router] The router to configure.
 		def configure_routes(router)
-			router.get("/") do
-				Protocol::HTTP::Response[200, [], [self.index.call]]
-			end
-			
-			router.route("/live") do |request|
-				Async::WebSocket::Adapters::HTTP.open(request, &self.method(:live)) || Protocol::HTTP::Response[400]
+			router.get("/") do |request|
+				self.render_view(request, self.allowed_views.first)
 			end
 		end
 		
@@ -124,6 +133,7 @@ module Lively
 		# @returns [Router] The configured router.
 		def router
 			@router ||= Router.new.tap do |router|
+				configure_system_routes(router)
 				configure_routes(router)
 			end
 		end
@@ -133,6 +143,16 @@ module Lively
 		# @returns [Protocol::HTTP::Response] The appropriate response for the request.
 		def call(request)
 			return router.call(request) || handle(request)
+		end
+		
+		private
+		
+		# Add framework-owned routes to the given router.
+		# @parameter router [Router] The router to configure.
+		def configure_system_routes(router)
+			router.route("/live") do |request|
+				Async::WebSocket::Adapters::HTTP.open(request, &self.method(:live)) || Protocol::HTTP::Response[400]
+			end
 		end
 	end
 end

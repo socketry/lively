@@ -117,29 +117,22 @@ class Application < Lively::Application
 	end
 	
 	def configure_routes(router)
-		super
-		
-		router.get("/") do
-			render(DisplayView.new(**state))
+		router.get("/") do |request|
+			render_view(request, DisplayView)
 		end
 		
-		router.get("/control") do |_request, parameters|
-			render(ControlView.new(**state, mode: parameters["mode"]))
+		router.get("/control") do |request, parameters|
+			render_view(request, ControlView, mode: parameters["mode"])
 		end
-	end
-	
-	private
-	
-	def render(body)
-		page = Lively::Pages::Index.new(title: "My App", body: body)
-		Protocol::HTTP::Response[200, [], [page.call]]
 	end
 end
 ```
 
+`allowed_views` defines the view classes the live resolver may construct. Routes select which view to display at each path, including `/`. `make_view` constructs a view with shared state, `make_page` wraps it in the default page, and `render_view` composes both operations. A custom route can construct any {ruby Lively::Page} around `make_view` and call it with the request. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
+
 Routes match exact paths and may accept one or more HTTP methods. Query parameters are decoded using `protocol-url` and passed to the handler as its second argument. Routes without an explicit method accept every method.
 
-Requests which do not match a route are passed to the application's delegate. An application using client-side history routing can instead override `#handle` to return its index page for unmatched paths.
+Requests which do not match a route are passed to the application's delegate. An application using client-side history routing can instead override `#handle` to render an application page for unmatched paths.
 
 ## Live Reloading
 
