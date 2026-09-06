@@ -38,38 +38,24 @@ describe Lively::Application do
 			expect(application_class::STATE).to be == {game: game}
 		end
 		
-		it "defines body method on instance" do
-			tag_class = Class.new(Live::View)
-			application_class = Lively::Application[tag_class]
-			instance = application_class.new(delegate)
-			
-			expect(instance).to respond_to(:body)
-		end
-		
-		it "body method creates instance of custom tag" do
-			tag_class = Class.new(Live::View)
-			application_class = Lively::Application[tag_class]
-			instance = application_class.new(delegate)
-			
-			body_instance = instance.body
-			expect(body_instance).to be_a(tag_class)
-		end
-		
-		it "passes state to body" do
-			state_value = Object.new
+		it "renders the custom view at the root route with shared state" do
 			tag_class = Class.new(Live::View) do
-				def initialize(id = self.class.unique_id, data = {}, my_state: nil)
+				def initialize(id = self.class.unique_id, data = {}, message:)
 					super(id, data)
-					@my_state = my_state
+					@message = message
 				end
-				attr :my_state
+				
+				def render(builder)
+					builder.text(@message)
+				end
 			end
 			
-			application_class = Lively::Application[tag_class, my_state: state_value]
-			instance = application_class.new(delegate)
+			application_class = Lively::Application[tag_class, message: "Custom root view"]
+			request = Protocol::HTTP::Request.new("http", "localhost", "GET", "/")
+			response = application_class.new(delegate).call(request)
 			
-			body = instance.body
-			expect(body.my_state).to be == state_value
+			expect(response.status).to be == 200
+			expect(response.read).to be(:include?, "Custom root view")
 		end
 		
 		it "resolver allows the custom tag" do
@@ -178,31 +164,60 @@ describe Lively::Application do
 		end
 	end
 	
-	with "#body" do
-		it "returns a HelloWorld instance" do
-			body = application.body
+	with "#make_view" do
+		it "constructs a view with shared state and route arguments" do
+			view_class = Class.new(Live::View) do
+				def initialize(id = self.class.unique_id, data = {}, message:, prefix:)
+					super(id, data)
+					@text = "#{prefix}: #{message}"
+				end
+				
+				attr :text
+			end
 			
-			expect(body).to be_a(Lively::HelloWorld)
+			application_class = Class.new(Lively::Application) do
+				define_method(:state) {{prefix: "Shared"}}
+			end
+			
+			view = application_class.new(delegate).make_view(view_class, message: "Hello")
+			
+			expect(view.text).to be == "Shared: Hello"
 		end
 	end
 	
-	with "#index" do
-		it "returns a Pages::Index instance" do
-			index = application.index
+	with "#make_page" do
+		it "constructs the default page around a view" do
+			view = Lively::HelloWorld.new
+			page = application.make_page(view)
 			
-			expect(index).to be_a(Lively::Pages::Index)
+			expect(page).to be_a(Lively::Pages::Index)
+			expect(page.title).to be == application.title
+			expect(page.body).to be == view
+		end
+	end
+	
+	with "#render_view" do
+		it "renders a view as an HTTP response" do
+			request = Protocol::HTTP::Request["GET", "/"]
+			response = application.render_view(request, Lively::HelloWorld)
+			
+			expect(response.status).to be == 200
+			expect(response.read).to be(:include?, "Hello, I'm Lively!")
 		end
 		
-		it "uses application title" do
-			index = application.index
+		it "uses the application page" do
+			application_class = Class.new(Lively::Application) do
+				private
+				
+				def make_page(view)
+					Lively::Pages::Index.new(title: "Custom Page", body: view)
+				end
+			end
 			
-			expect(index.title).to be == application.title
-		end
-		
-		it "uses application body" do
-			index = application.index
+			request = Protocol::HTTP::Request["GET", "/"]
+			response = application_class.new(delegate).render_view(request, Lively::HelloWorld)
 			
-			expect(index.body).to be_a(Lively::HelloWorld)
+			expect(response.read).to be(:include?, "<title>Custom Page</title>")
 		end
 	end
 	
@@ -221,7 +236,7 @@ describe Lively::Application do
 			expect(application.router).to be_equal(application.router)
 		end
 		
-		it "routes the application index explicitly" do
+		it "routes the default view explicitly" do
 			response = application.router.call(Protocol::HTTP::Request.new("http", "localhost", "GET", "/"))
 			html = response.read
 			
@@ -247,9 +262,50 @@ describe Lively::Application do
 			expect(response.status).to be == 200
 			expect(response.read).to be == "Hello"
 		end
+		
+		it "allows the root view to be selected by its route" do
+			other_view = Class.new(Live::View)
+			root_view = Class.new(Live::View) do
+				def render(builder)
+					builder.text("Selected root view")
+				end
+			end
+			
+			application_class = Class.new(Lively::Application) do
+				define_method(:allowed_views) {[other_view, root_view]}
+				
+				define_method(:configure_routes) do |router|
+					router.get("/") do |request|
+						render_view(request, root_view)
+					end
+				end
+			end
+			
+			response = application_class.new(delegate).call(Protocol::HTTP::Request.new("http", "localhost", "GET", "/"))
+			
+			expect(response.status).to be == 200
+			expect(response.read).to be(:include?, "Selected root view")
+		end
 	end
 	
 	with "#call" do
+		it "preserves system routes when application routes are replaced" do
+			application_class = Class.new(Lively::Application) do
+				def configure_routes(router)
+					router.get("/") do |request|
+						render_view(request, Lively::HelloWorld)
+					end
+				end
+			end
+			
+			request = Protocol::HTTP::Request.new("http", "localhost", "GET", "/live")
+			expect(Async::WebSocket::Adapters::HTTP).to receive(:open).and_return(Protocol::HTTP::Response[101, [["upgrade", "websocket"]], []])
+			
+			response = application_class.new(delegate).call(request)
+			
+			expect(response.status).to be == 101
+		end
+		
 		it "handles /live path for WebSocket connections" do
 			request = Protocol::HTTP::Request.new("http", "localhost", "GET", "/live")
 			

@@ -4,6 +4,7 @@
 # Copyright, 2026, by Samuel Williams.
 
 require "json"
+require "protocol/http/response"
 require "xrb/markup"
 require "xrb/tag"
 require "xrb/template"
@@ -94,10 +95,17 @@ module Lively
 			XRB::MarkupString.raw(json)
 		end
 		
-		# Render this page to a string.
+		# Render this page to an HTML string.
 		# @returns [String]
-		def call
+		def to_html
 			@template.to_string(self)
+		end
+		
+		# Render this page as an HTTP response.
+		# @parameter request [Protocol::HTTP::Request] The incoming request.
+		# @returns [Protocol::HTTP::Response] A successful HTML response.
+		def call(request)
+			Protocol::HTTP::Response[200, {"content-type" => "text/html; charset=utf-8"}, [to_html]]
 		end
 	end
 end

@@ -33,10 +33,10 @@ describe Lively::Pages::Index do
 		end
 	end
 	
-	with "#call" do
+	with "#to_html" do
 		it "generates HTML string" do
 			index = Lively::Pages::Index.new
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:is_a?, String)
 			expect(html).not.to be(:empty?)
@@ -44,14 +44,14 @@ describe Lively::Pages::Index do
 		
 		it "includes DOCTYPE declaration" do
 			index = Lively::Pages::Index.new
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, "<!DOCTYPE html>")
 		end
 		
 		it "includes html structure" do
 			index = Lively::Pages::Index.new
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, "<html>")
 			expect(html).to be(:include?, "<head>")
@@ -61,14 +61,14 @@ describe Lively::Pages::Index do
 		
 		it "includes the title in head" do
 			index = Lively::Pages::Index.new(title: "Test Title")
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, "<title>Test Title</title>")
 		end
 		
 		it "includes viewport meta tag" do
 			index = Lively::Pages::Index.new
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, 'name="viewport"')
 			expect(html).to be(:include?, "width=device-width")
@@ -76,14 +76,14 @@ describe Lively::Pages::Index do
 		
 		it "includes charset meta tag" do
 			index = Lively::Pages::Index.new
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, 'charset="UTF-8"')
 		end
 		
 		it "includes static asset links" do
 			index = Lively::Pages::Index.new
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, 'href="/_static/icon.png"')
 			expect(html).to be(:include?, 'href="/_static/site.css"')
@@ -92,7 +92,7 @@ describe Lively::Pages::Index do
 		
 		it "includes import map" do
 			index = Lively::Pages::Index.new
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, 'type="importmap"')
 			expect(html).to be(:include?, '"live"')
@@ -101,7 +101,7 @@ describe Lively::Pages::Index do
 		
 		it "includes Live.js initialization" do
 			index = Lively::Pages::Index.new
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, 'type="module"')
 			expect(html).to be(:include?, "application.js")
@@ -114,14 +114,14 @@ describe Lively::Pages::Index do
 			end
 			
 			index = Lively::Pages::Index.new(body: mock_body)
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, "&lt;div&gt;Custom Body HTML&lt;/div&gt;")
 		end
 		
 		it "shows fallback message when body is nil" do
 			index = Lively::Pages::Index.new(body: nil)
-			html = index.call
+			html = index.to_html
 			
 			expect(html).to be(:include?, "No body specified!")
 		end

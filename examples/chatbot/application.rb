@@ -140,7 +140,7 @@ class Application < Lively::Application
 		else
 			body = ChatbotView.root(conversation_id: conversation_id)
 			page = Pages::Index.new(title: self.title, body: body)
-			return Protocol::HTTP::Response[200, [], [page.call]]
+			return page.call(request)
 		end
 	end
 end
