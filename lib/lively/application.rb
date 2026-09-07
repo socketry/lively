@@ -96,7 +96,7 @@ module Lively
 		
 		# Add application routes to the given router.
 		# Override this method to map paths to views or other handlers.
-		# @parameter router [Router] The router to configure.
+		# @parameter router [Router::Builder] The router to configure.
 		def configure_routes(router)
 			page = Pages::Index.new(title: self.title, resolver: self.resolver) do |page|
 				page.view(self.allowed_views.first)
@@ -109,7 +109,7 @@ module Lively
 		# by {#handle}.
 		# @returns [Router] The configured router.
 		def router
-			@router ||= Router.new.tap do |router|
+			@router ||= Router.build(Protocol::HTTP::Middleware.for(&method(:handle))) do |router|
 				configure_system_routes(router)
 				configure_routes(router)
 			end
@@ -119,13 +119,13 @@ module Lively
 		# @parameter request [Protocol::HTTP::Request] The incoming HTTP request.
 		# @returns [Protocol::HTTP::Response] The appropriate response for the request.
 		def call(request)
-			return router.call(request) || handle(request)
+			return router.call(request)
 		end
 		
 		private
 		
 		# Add framework-owned routes to the given router.
-		# @parameter router [Router] The router to configure.
+		# @parameter router [Router::Builder] The router to configure.
 		def configure_system_routes(router)
 			router.route("/live") do |request|
 				Async::WebSocket::Adapters::HTTP.open(request, &self.method(:live)) || Protocol::HTTP::Response[400]
