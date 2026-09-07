@@ -136,7 +136,7 @@ class Application < Lively::Application
 			
 			conversation_id = Integer(parameters.fetch("conversation_id"))
 			body = self.resolver.make(ChatbotView, data: {conversation_id: conversation_id})
-			Pages::Index.new(title: self.title, body: body).call(request)
+			Pages::Index.new(title: self.title, body: body).call
 		end
 	end
 end

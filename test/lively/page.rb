@@ -4,7 +4,6 @@
 # Copyright, 2026, by Samuel Williams.
 
 require "lively/page"
-require "protocol/http/request"
 
 describe Lively::Page do
 	with "#initialize" do
@@ -33,17 +32,6 @@ describe Lively::Page do
 	end
 	
 	with "#to_html" do
-		it "renders through a per-request context" do
-			page = subject.new
-			request = Protocol::HTTP::Request["GET", "/"]
-			body = Object.new
-			context = subject::Context.new(page, request, body)
-			
-			expect(context.page).to be_equal(page)
-			expect(context.request).to be_equal(request)
-			expect(context.body).to be_equal(body)
-		end
-		
 		it "renders the configured document" do
 			body = Object.new
 			def body.to_html
@@ -120,8 +108,7 @@ describe Lively::Page do
 	
 	with "#call" do
 		it "returns an HTML response" do
-			request = Protocol::HTTP::Request["GET", "/"]
-			response = subject.new(title: "Example").call(request)
+			response = subject.new(title: "Example").call
 			
 			expect(response.status).to be == 200
 			expect(response.headers["content-type"]).to be == "text/html; charset=utf-8"

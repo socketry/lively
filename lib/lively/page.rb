@@ -14,31 +14,9 @@ module Lively
 	#
 	# A page combines a renderable body with the stylesheets, import map,
 	# JavaScript modules, and body attributes required to present it.
-	# Pages are callable route handlers.
+	# Pages render complete HTTP responses after a route has selected their content.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
-		
-		# The per-request state used to render a page template.
-		class Context
-			# Initialize a rendering context.
-			# @parameter page [Page] The page being rendered.
-			# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-			# @parameter body [Object | Nil] The renderable document body.
-			def initialize(page, request, body)
-				@page = page
-				@request = request
-				@body = body
-			end
-			
-			# @attribute [Page] The page being rendered.
-			attr :page
-			
-			# @attribute [Protocol::HTTP::Request | Nil] The incoming request.
-			attr :request
-			
-			# @attribute [Object | Nil] The renderable document body.
-			attr :body
-		end
 		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
@@ -112,17 +90,15 @@ module Lively
 		end
 		
 		# Render this page to an HTML string.
-		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		# @returns [String]
-		def to_html(request = nil)
-			@template.to_string(Context.new(self, request, @body))
+		def to_html
+			@template.to_string(self)
 		end
 		
 		# Render this page as an HTTP response.
-		# @parameter request [Protocol::HTTP::Request] The incoming request.
 		# @returns [Protocol::HTTP::Response] A successful HTML response.
-		def call(request)
-			Protocol::HTTP::Response[200, {"content-type" => "text/html; charset=utf-8"}, [to_html(request)]]
+		def call
+			Protocol::HTTP::Response[200, {"content-type" => "text/html; charset=utf-8"}, [to_html]]
 		end
 	end
 end

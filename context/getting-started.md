@@ -117,20 +117,20 @@ class Application < Lively::Application
 	end
 	
 	def configure_routes(router)
-		router.get("/") do |request|
+		router.get("/") do
 			body = resolver.make(DisplayView)
-			Lively::Pages::Index.new(title: title, body: body).call(request)
+			Lively::Pages::Index.new(title: title, body: body).call
 		end
 		
-		router.get("/control") do |request|
+		router.get("/control") do
 			body = resolver.make(ControlView)
-			Lively::Pages::Index.new(title: title, body: body).call(request)
+			Lively::Pages::Index.new(title: title, body: body).call
 		end
 	end
 end
 ```
 
-`allowed_views` defines the view classes the shared resolver may construct. Each matched route constructs its root view using the shared resolver, wraps that concrete body in a page, and invokes `Page#call(request)` to produce the response. This keeps view construction lazy without making the page body itself callable. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
+`allowed_views` defines the view classes the shared resolver may construct. Each matched route constructs its root view using the shared resolver, wraps that concrete body in a page, and invokes `Page#call` to produce the response. This keeps view construction lazy without making the page body itself callable. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
 
 Routes match exact paths and may accept one or more HTTP methods. Handlers receive the original request and can parse query parameters when needed. Routes without an explicit method accept every method.
 
