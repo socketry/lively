@@ -33,22 +33,14 @@ module Lively
 			# 	@parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 			# 	@returns [Object | Nil] The document body.
 			def initialize(title: "Lively", &body)
-				@body = body
-				
 				super(
 					title: title,
+					body: body,
 					icon: ICON,
 					stylesheets: STYLESHEETS,
 					imports: IMPORTS,
 					modules: MODULES
 				)
-			end
-			
-			# Construct the renderable document body.
-			# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-			# @returns [Object | Nil] The body, which must respond to `to_html`.
-			def body(request = nil)
-				return @body&.call(request)
 			end
 		end
 	end

@@ -12,10 +12,9 @@ require "xrb/template"
 module Lively
 	# Represents a complete HTML document.
 	#
-	# A page combines a renderable body with the stylesheets,
+	# A page combines a callable body with the stylesheets,
 	# import map, JavaScript modules, and body attributes required to present it.
-	# Pages are callable route handlers. Subclasses can override {#body} to construct
-	# content for each request.
+	# Pages are callable route handlers. The body is constructed for each request.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
@@ -24,10 +23,11 @@ module Lively
 			# Initialize a rendering context.
 			# @parameter page [Page] The page being rendered.
 			# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-			def initialize(page, request)
+			# @parameter body [Object | Nil] The renderable document body.
+			def initialize(page, request, body)
 				@page = page
 				@request = request
-				@body_content = page.body_content(request)
+				@body = body
 			end
 			
 			# @attribute [Page] The page being rendered.
@@ -36,19 +36,21 @@ module Lively
 			# @attribute [Protocol::HTTP::Request | Nil] The incoming request.
 			attr :request
 			
-			# @attribute [Object] The rendered document body.
-			attr :body_content
+			# @attribute [Object | Nil] The renderable document body.
+			attr :body
 		end
 		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
+		# @parameter body [Interface(:call) | Nil] Constructs the document body for a request.
 		# @parameter icon [String | Nil] The favicon URL.
 		# @parameter stylesheets [Array(String | Hash)] Stylesheets in document order. Hash entries specify link attributes.
 		# @parameter imports [Hash] JavaScript import map entries.
 		# @parameter modules [Array(String)] JavaScript module URLs in document order.
 		# @parameter body_attributes [Hash] Attributes applied to the body element.
-		def initialize(title: "Lively", icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {})
+		def initialize(title: "Lively", body: nil, icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {})
 			@title = title
+			@body = body
 			@icon = icon
 			@stylesheets = stylesheets
 			@imports = imports
@@ -59,13 +61,6 @@ module Lively
 		
 		# @attribute [String] The document title.
 		attr :title
-		
-		# Construct the renderable document body.
-		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-		# @returns [Object | Nil] The body, which must respond to `to_html`.
-		def body(request = nil)
-			return nil
-		end
 		
 		# @attribute [String | Nil] The favicon URL.
 		attr :icon
@@ -104,13 +99,6 @@ module Lively
 			XRB::Tag.closed("link", {rel: "stylesheet", type: "text/css"}.merge(attributes))
 		end
 		
-		# The rendered document body.
-		# @returns [Object]
-		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-		def body_content(request = nil)
-			return self.body(request)&.to_html || ""
-		end
-		
 		# The serialized JavaScript import map.
 		# @returns [XRB::MarkupString]
 		def import_map
@@ -124,7 +112,8 @@ module Lively
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		# @returns [String]
 		def to_html(request = nil)
-			@template.to_string(Context.new(self, request))
+			body = @body&.call(request)
+			@template.to_string(Context.new(self, request, body))
 		end
 		
 		# Render this page as an HTTP response.

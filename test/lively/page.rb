@@ -19,7 +19,6 @@ describe Lively::Page do
 			)
 			
 			expect(page.title).to be == "Example"
-			expect(page.body).to be_nil
 			expect(page.icon).to be == "/icon.png"
 			expect(page.stylesheets).to be == [{href: "/site.css", media: "screen"}]
 			expect(page.imports).to be == {"example" => "/example.js"}
@@ -34,14 +33,15 @@ describe Lively::Page do
 		it "renders through a per-request context" do
 			page = subject.new
 			request = Protocol::HTTP::Request["GET", "/"]
-			context = subject::Context.new(page, request)
+			body = Object.new
+			context = subject::Context.new(page, request, body)
 			
 			expect(context.page).to be_equal(page)
 			expect(context.request).to be_equal(request)
-			expect(context.body_content).to be == ""
+			expect(context.body).to be_equal(body)
 		end
 		
-		it "passes the request to the body method" do
+		it "passes the request to the body callable" do
 			body_class = Class.new do
 				def initialize(content)
 					@content = content
@@ -51,12 +51,10 @@ describe Lively::Page do
 					@content
 				end
 			end
-			page_class = Class.new(subject) do
-				define_method(:body) do |request|
-					body_class.new("#{request.method}:#{request.path}")
-				end
+			body = proc do |request|
+				body_class.new("#{request.method}:#{request.path}")
 			end
-			page = page_class.new
+			page = subject.new(body: body)
 			request = Protocol::HTTP::Request["GET", "/?message=Hello"]
 			
 			html = page.to_html(request)
@@ -70,13 +68,9 @@ describe Lively::Page do
 				XRB::MarkupString.raw("<main>Example</main>")
 			end
 			
-			page_class = Class.new(subject) do
-				define_method(:body) do |_request = nil|
-					body
-				end
-			end
-			page = page_class.new(
+			page = subject.new(
 				title: "Example",
+				body: proc{body},
 				icon: "/icon.png",
 				stylesheets: ["/site.css", {href: "/theme.css", media: "print"}],
 				imports: {"example" => "/example.js"},
@@ -126,13 +120,9 @@ describe Lively::Page do
 				"<main>Example</main>"
 			end
 			
-			page_class = Class.new(subject) do
-				define_method(:body) do |_request = nil|
-					body
-				end
-			end
-			page = page_class.new(
+			page = subject.new(
 				title: "<Example>",
+				body: proc{body},
 				stylesheets: ["/site.css?one=1&two=2"],
 				body_attributes: {title: 'one & "two"'}
 			)

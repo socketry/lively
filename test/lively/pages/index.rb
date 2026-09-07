@@ -15,7 +15,6 @@ describe Lively::Pages::Index do
 			index = Lively::Pages::Index.new
 			
 			expect(index.title).to be == "Lively"
-			expect(index.body).to be_nil
 		end
 		
 		it "accepts a custom title" do
@@ -24,17 +23,15 @@ describe Lively::Pages::Index do
 			expect(index.title).to be == "Custom Title"
 		end
 		
-		it "constructs fresh bodies using a block" do
-			index = Lively::Pages::Index.new{Object.new}
-			
-			expect(index.body).not.to be_equal(index.body)
-		end
-		
 		it "passes the request to the body block" do
 			request = Protocol::HTTP::Request["GET", "/example?message=Hello"]
-			index = Lively::Pages::Index.new{|request| request.path}
+			index = Lively::Pages::Index.new do |request|
+				body = Object.new
+				body.define_singleton_method(:to_html){request.path}
+				body
+			end
 			
-			expect(index.body(request)).to be == "/example?message=Hello"
+			expect(index.to_html(request)).to be(:include?, "/example?message=Hello")
 		end
 		
 		it "loads the XRB template" do
