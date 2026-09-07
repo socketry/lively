@@ -29,7 +29,7 @@ module Lively
 			
 			# Initialize a new index page.
 			# @parameter title [String] The title of the page.
-			# @parameter body [Object] The body content of the page.
+			# @parameter body [Object | Nil] The renderable document body.
 			def initialize(title: "Lively", body: nil)
 				super(
 					title: title,
@@ -37,7 +37,7 @@ module Lively
 					icon: ICON,
 					stylesheets: STYLESHEETS,
 					imports: IMPORTS,
-					modules: MODULES,
+					modules: MODULES
 				)
 			end
 		end

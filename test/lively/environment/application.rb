@@ -72,8 +72,22 @@ describe Lively::Environment::Application do
 	end
 	
 	with "middleware configuration" do
+		it "uses the current directory as its default root" do
+			instance = Object.new.extend(Lively::Environment::Middleware)
+			
+			expect(instance.root).to be == Dir.pwd
+		end
+		
 		it "provides a middleware stack" do
 			expect(evaluator.middleware).to be_a(Protocol::HTTP::Middleware)
+		end
+	end
+	
+	with "service construction" do
+		it "constructs the selected transport service" do
+			service = evaluator.make_service(environment)
+			
+			expect(service).to be_a(Falcon::Service::Server)
 		end
 	end
 end

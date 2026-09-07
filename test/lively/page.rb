@@ -4,23 +4,23 @@
 # Copyright, 2026, by Samuel Williams.
 
 require "lively/page"
-require "protocol/http/request"
 
 describe Lively::Page do
 	with "#initialize" do
 		it "accepts document content and assets" do
+			body = Object.new
 			page = subject.new(
 				title: "Example",
-				body: "Body",
+				body: body,
 				icon: "/icon.png",
 				stylesheets: [{href: "/site.css", media: "screen"}],
 				imports: {"example" => "/example.js"},
 				modules: ["/application.js"],
-				body_attributes: {class: "example"},
+				body_attributes: {class: "example"}
 			)
 			
 			expect(page.title).to be == "Example"
-			expect(page.body).to be == "Body"
+			expect(page.body).to be_equal(body)
 			expect(page.icon).to be == "/icon.png"
 			expect(page.stylesheets).to be == [{href: "/site.css", media: "screen"}]
 			expect(page.imports).to be == {"example" => "/example.js"}
@@ -28,6 +28,7 @@ describe Lively::Page do
 			expect(page.body_attributes).to be == {class: "example"}
 			expect(page.template).to be_a(XRB::Template)
 		end
+		
 	end
 	
 	with "#to_html" do
@@ -47,7 +48,7 @@ describe Lively::Page do
 				body_attributes: {
 					class: "playback",
 					data: {autoplay: "true", controls: "false"},
-				},
+				}
 			)
 			
 			html = page.to_html
@@ -80,7 +81,7 @@ describe Lively::Page do
 			expect(html).not.to be(:include?, 'rel="stylesheet"')
 			expect(html).not.to be(:include?, 'type="importmap"')
 			expect(html).not.to be(:include?, 'type="module"')
-			expect(html).to be(:include?, "No body specified!")
+			expect(html).not.to be(:include?, "No body specified!")
 		end
 		
 		it "escapes document values" do
@@ -89,12 +90,14 @@ describe Lively::Page do
 				"<main>Example</main>"
 			end
 			
-			html = subject.new(
+			page = subject.new(
 				title: "<Example>",
 				body: body,
 				stylesheets: ["/site.css?one=1&two=2"],
-				body_attributes: {title: 'one & "two"'},
-			).to_html
+				body_attributes: {title: 'one & "two"'}
+			)
+			
+			html = page.to_html
 			
 			expect(html).to be(:include?, "<title>&lt;Example&gt;</title>")
 			expect(html).to be(:include?, 'href="/site.css?one=1&amp;two=2"')
@@ -105,8 +108,7 @@ describe Lively::Page do
 	
 	with "#call" do
 		it "returns an HTML response" do
-			request = Protocol::HTTP::Request["GET", "/"]
-			response = subject.new(title: "Example").call(request)
+			response = subject.new(title: "Example").call
 			
 			expect(response.status).to be == 200
 			expect(response.headers["content-type"]).to be == "text/html; charset=utf-8"

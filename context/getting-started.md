@@ -82,7 +82,7 @@ class GameState
 end
 
 class GameView < Live::View
-	def initialize(id = self.class.unique_id, data = {}, game_state: nil)
+	def initialize(id, data, game_state: nil)
 		super(id, data)
 		@game_state = game_state
 	end
@@ -117,22 +117,24 @@ class Application < Lively::Application
 	end
 	
 	def configure_routes(router)
-		router.get("/") do |request|
-			render_view(request, DisplayView)
+		router.get("/") do
+			body = resolver.root(DisplayView)
+			Lively::Pages::Index.new(title: title, body: body).call
 		end
 		
-		router.get("/control") do |request, parameters|
-			render_view(request, ControlView, mode: parameters["mode"])
+		router.get("/control") do
+			body = resolver.root(ControlView)
+			Lively::Pages::Index.new(title: title, body: body).call
 		end
 	end
 end
 ```
 
-`allowed_views` defines the view classes the live resolver may construct. Routes select which view to display at each path, including `/`. `make_view` constructs a view with shared state, `make_page` wraps it in the default page, and `render_view` composes both operations. A custom route can construct any {ruby Lively::Page} around `make_view` and call it with the request. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
+`allowed_views` defines the view classes the shared resolver may construct. Each matched route constructs its root view using the shared resolver, wraps that concrete body in a page, and invokes `Page#call` to produce the response. This keeps view construction lazy without making the page body itself callable. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
 
-Routes match exact paths and may accept one or more HTTP methods. Query parameters are decoded using `protocol-url` and passed to the handler as its second argument. Routes without an explicit method accept every method.
+Routes match exact paths and may accept one or more HTTP methods. Handlers receive the original request and can parse query parameters when needed. Routes without an explicit method accept every method.
 
-Requests which do not match a route are passed to the application's delegate. An application using client-side history routing can instead override `#handle` to render an application page for unmatched paths.
+Requests which do not match a route are passed to the application's delegate. Applications that need custom fallback behavior can supply an appropriate delegate when they are constructed.
 
 ## Live Reloading
 

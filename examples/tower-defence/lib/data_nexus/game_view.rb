@@ -8,7 +8,7 @@ module DataNexus
 			"data-nexus-game"
 		end
 		
-		def initialize(id = self.class.unique_id, data = {}, controller:)
+		def initialize(id, data, controller:)
 			super(id, data)
 			@controller = controller
 			@field_width = 1280

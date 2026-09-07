@@ -6,7 +6,7 @@
 
 require "async/ollama"
 require "markly"
-require "xrb/reference"
+require "protocol/url"
 
 require_relative "conversation"
 require_relative "toolbox"
@@ -122,25 +122,21 @@ class Application < Lively::Application
 		[ChatbotView]
 	end
 	
-	def handle(request)
-		reference = ::XRB::Reference(request.path)
-		
-		if value = reference.query[:conversation_id]
-			conversation_id = Integer(value)
-		else
-			conversation_id = nil
-		end
-		
-		unless conversation_id
-			reference.query[:conversation_id] = Conversation.create!(model: "llama3.1:latest").id
+	def configure_routes(router)
+		router.get("/") do |request|
+			reference = ::Protocol::URL::Reference[request.path]
+			parameters = reference.parse_query!
+			unless parameters.key?("conversation_id")
+				parameters["conversation_id"] = Conversation.create!(model: "llama3.1:latest").id
+				
+				Console.info(self, "Redirecting to new conversation", reference: reference)
+				
+				next ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
+			end
 			
-			Console.info(self, "Redirecting to new conversation", reference: reference)
-			
-			return ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
-		else
-			body = ChatbotView.root(conversation_id: conversation_id)
-			page = Pages::Index.new(title: self.title, body: body)
-			return page.call(request)
+			conversation_id = Integer(parameters.fetch("conversation_id"))
+			body = self.resolver.root(ChatbotView, data: {conversation_id: conversation_id})
+			Pages::Index.new(title: self.title, body: body).call
 		end
 	end
 end

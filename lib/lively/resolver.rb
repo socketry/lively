@@ -21,14 +21,11 @@ module Lively
 		# @attribute [Hash] The shared state passed to view constructors.
 		attr :state
 		
-		# Resolve a client-side element to a server-side instance with shared state.
-		# @parameter id [String] The unique element identifier.
-		# @parameter data [Hash] The element data attributes.
-		# @returns [Live::Element | Nil] The resolved element, or `nil`.
-		def call(id, data)
-			if klass = @allowed[data[:class]]
-				return klass.new(id, data, **@state)
-			end
+		private
+		
+		# Construct a view with shared application state.
+		def make(view_class, id, data, **options)
+			super(view_class, id, data, **@state, **options)
 		end
 	end
 end

@@ -25,6 +25,6 @@
 	</head>
 	
 	#{self.body_tag}
-		#{self.body_content}
+		#{self.body&.to_html}
 	</body>
 </html>

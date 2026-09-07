@@ -12,15 +12,15 @@ require "xrb/template"
 module Lively
 	# Represents a complete HTML document.
 	#
-	# A page combines application content with the stylesheets, import map,
-	# JavaScript modules, and body attributes required to present it. Applications
-	# can use this class directly or subclass it to provide shared defaults.
+	# A page combines a renderable body with the stylesheets, import map,
+	# JavaScript modules, and body attributes required to present it.
+	# Pages render complete HTTP responses after a route has selected their content.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
-		# @parameter body [Object | Nil] The document body. The result of `to_html` is interpolated into the template.
+		# @parameter body [Object | Nil] The renderable document body.
 		# @parameter icon [String | Nil] The favicon URL.
 		# @parameter stylesheets [Array(String | Hash)] Stylesheets in document order. Hash entries specify link attributes.
 		# @parameter imports [Hash] JavaScript import map entries.
@@ -40,7 +40,7 @@ module Lively
 		# @attribute [String] The document title.
 		attr :title
 		
-		# @attribute [Object | Nil] The document body.
+		# @attribute [Object | Nil] The renderable document body.
 		attr :body
 		
 		# @attribute [String | Nil] The favicon URL.
@@ -80,12 +80,6 @@ module Lively
 			XRB::Tag.closed("link", {rel: "stylesheet", type: "text/css"}.merge(attributes))
 		end
 		
-		# The rendered body content.
-		# @returns [Object]
-		def body_content
-			@body&.to_html || "No body specified!"
-		end
-		
 		# The serialized JavaScript import map.
 		# @returns [XRB::MarkupString]
 		def import_map
@@ -102,9 +96,8 @@ module Lively
 		end
 		
 		# Render this page as an HTTP response.
-		# @parameter request [Protocol::HTTP::Request] The incoming request.
 		# @returns [Protocol::HTTP::Response] A successful HTML response.
-		def call(request)
+		def call
 			Protocol::HTTP::Response[200, {"content-type" => "text/html; charset=utf-8"}, [to_html]]
 		end
 	end

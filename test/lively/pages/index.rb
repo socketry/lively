@@ -14,14 +14,14 @@ describe Lively::Pages::Index do
 			index = Lively::Pages::Index.new
 			
 			expect(index.title).to be == "Lively"
-			expect(index.body).to be_nil
 		end
 		
-		it "accepts custom title and body" do
-			index = Lively::Pages::Index.new(title: "Custom Title", body: "Custom Body")
+		it "accepts a custom title and body" do
+			body = Object.new
+			index = Lively::Pages::Index.new(title: "Custom Title", body: body)
 			
 			expect(index.title).to be == "Custom Title"
-			expect(index.body).to be == "Custom Body"
+			expect(index.body).to be_equal(body)
 		end
 		
 		it "loads the XRB template" do
@@ -107,24 +107,24 @@ describe Lively::Pages::Index do
 			expect(html).to be(:include?, "application.js")
 		end
 		
-		it "includes body content when body responds to to_html" do
-			mock_body = Object.new
-			def mock_body.to_html
-				"<div>Custom Body HTML</div>"
-			end
-			
-			index = Lively::Pages::Index.new(body: mock_body)
+		it "supports pages without a root view" do
+			index = Lively::Pages::Index.new
 			html = index.to_html
 			
-			expect(html).to be(:include?, "&lt;div&gt;Custom Body HTML&lt;/div&gt;")
+			expect(html).not.to be(:include?, "No body specified!")
 		end
 		
-		it "shows fallback message when body is nil" do
-			index = Lively::Pages::Index.new(body: nil)
-			html = index.to_html
+		it "includes a renderable body" do
+			body = Object.new
+			def body.to_html
+				XRB::MarkupString.raw("<main>Example</main>")
+			end
 			
-			expect(html).to be(:include?, "No body specified!")
+			index = Lively::Pages::Index.new(body: body)
+			
+			expect(index.to_html).to be(:include?, "<main>Example</main>")
 		end
+		
 	end
 	
 	with "template file" do
