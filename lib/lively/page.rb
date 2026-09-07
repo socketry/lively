@@ -14,8 +14,8 @@ module Lively
 	#
 	# A page combines a renderable body with the stylesheets,
 	# import map, JavaScript modules, and body attributes required to present it.
-	# Pages are callable route handlers. The body is constructed for each request
-	# using a block.
+	# Pages are callable route handlers. Subclasses can override {#body} to construct
+	# content for each request.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
@@ -26,13 +26,8 @@ module Lively
 		# @parameter imports [Hash] JavaScript import map entries.
 		# @parameter modules [Array(String)] JavaScript module URLs in document order.
 		# @parameter body_attributes [Hash] Attributes applied to the body element.
-		# @yields {|request, parameters| ...} Constructs the document body for a request.
-		# 	@parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-		# 	@parameter parameters [Hash] The decoded query parameters.
-		# 	@returns [Object | Nil] The document body.
-		def initialize(title: "Lively", icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {}, &body)
+		def initialize(title: "Lively", icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {})
 			@title = title
-			@body = body || proc{nil}
 			@icon = icon
 			@stylesheets = stylesheets
 			@imports = imports
@@ -50,7 +45,7 @@ module Lively
 		# @parameter parameters [Hash] The decoded query parameters.
 		# @returns [Object | Nil] The body, which must respond to `to_html`.
 		def body(request = nil, parameters = {})
-			return @body.call(request, parameters)
+			return nil
 		end
 		
 		# @attribute [String | Nil] The favicon URL.

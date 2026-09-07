@@ -34,14 +34,23 @@ module Lively
 			# 	@parameter parameters [Hash] The decoded query parameters.
 			# 	@returns [Object | Nil] The document body.
 			def initialize(title: "Lively", &body)
+				@body = body
+				
 				super(
 					title: title,
 					icon: ICON,
 					stylesheets: STYLESHEETS,
 					imports: IMPORTS,
-					modules: MODULES,
-					&body
+					modules: MODULES
 				)
+			end
+			
+			# Construct the renderable document body.
+			# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
+			# @parameter parameters [Hash] The decoded query parameters.
+			# @returns [Object | Nil] The body, which must respond to `to_html`.
+			def body(request = nil, parameters = {})
+				return @body&.call(request, parameters)
 			end
 		end
 	end

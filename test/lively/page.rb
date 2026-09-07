@@ -8,7 +8,7 @@ require "protocol/http/request"
 
 describe Lively::Page do
 	with "#initialize" do
-		it "accepts document content and assets" do
+		it "accepts document assets" do
 			page = subject.new(
 				title: "Example",
 				icon: "/icon.png",
@@ -16,12 +16,10 @@ describe Lively::Page do
 				imports: {"example" => "/example.js"},
 				modules: ["/application.js"],
 				body_attributes: {class: "example"}
-			) do
-				"Body"
-			end
+			)
 			
 			expect(page.title).to be == "Example"
-			expect(page.body).to be == "Body"
+			expect(page.body).to be_nil
 			expect(page.icon).to be == "/icon.png"
 			expect(page.stylesheets).to be == [{href: "/site.css", media: "screen"}]
 			expect(page.imports).to be == {"example" => "/example.js"}
@@ -30,14 +28,6 @@ describe Lively::Page do
 			expect(page.template).to be_a(XRB::Template)
 		end
 		
-		it "accepts a request-aware body block" do
-			request = Protocol::HTTP::Request["GET", "/"]
-			page = subject.new do |request, parameters|
-				"#{request.method}:#{parameters.fetch("message")}"
-			end
-			
-			expect(page.body(request, {"message" => "Hello"})).to be == "GET:Hello"
-		end
 	end
 	
 	with "#to_html" do
@@ -51,9 +41,12 @@ describe Lively::Page do
 					@content
 				end
 			end
-			page = subject.new do |request, parameters|
-				body_class.new("#{request.method}:#{parameters.fetch("message")}")
+			page_class = Class.new(subject) do
+				define_method(:body) do |request, parameters|
+					body_class.new("#{request.method}:#{parameters.fetch("message")}")
+				end
 			end
+			page = page_class.new
 			request = Protocol::HTTP::Request["GET", "/"]
 			
 			html = page.to_html(request, {"message" => "Hello"})
@@ -67,7 +60,12 @@ describe Lively::Page do
 				XRB::MarkupString.raw("<main>Example</main>")
 			end
 			
-			page = subject.new(
+			page_class = Class.new(subject) do
+				define_method(:body) do |_request = nil, _parameters = {}|
+					body
+				end
+			end
+			page = page_class.new(
 				title: "Example",
 				icon: "/icon.png",
 				stylesheets: ["/site.css", {href: "/theme.css", media: "print"}],
@@ -77,9 +75,7 @@ describe Lively::Page do
 					class: "playback",
 					data: {autoplay: "true", controls: "false"},
 				}
-			) do
-				body
-			end
+			)
 			
 			html = page.to_html
 			
@@ -120,13 +116,16 @@ describe Lively::Page do
 				"<main>Example</main>"
 			end
 			
-			page = subject.new(
+			page_class = Class.new(subject) do
+				define_method(:body) do |_request = nil, _parameters = {}|
+					body
+				end
+			end
+			page = page_class.new(
 				title: "<Example>",
 				stylesheets: ["/site.css?one=1&two=2"],
 				body_attributes: {title: 'one & "two"'}
-			) do
-				body
-			end
+			)
 			
 			html = page.to_html
 			
