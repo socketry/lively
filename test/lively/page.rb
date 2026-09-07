@@ -11,13 +11,14 @@ describe Lively::Page do
 		it "accepts document content and assets" do
 			page = subject.new(
 				title: "Example",
-				body: "Body",
 				icon: "/icon.png",
 				stylesheets: [{href: "/site.css", media: "screen"}],
 				imports: {"example" => "/example.js"},
 				modules: ["/application.js"],
-				body_attributes: {class: "example"},
-			)
+				body_attributes: {class: "example"}
+			) do
+				"Body"
+			end
 			
 			expect(page.title).to be == "Example"
 			expect(page.body).to be == "Body"
@@ -36,12 +37,6 @@ describe Lively::Page do
 			end
 			
 			expect(page.body(request, {"message" => "Hello"})).to be == "GET:Hello"
-		end
-		
-		it "rejects a body and block together" do
-			expect do
-				subject.new(body: "Body"){"Other body"}
-			end.to raise_exception(ArgumentError, message: be =~ /body or block/)
 		end
 	end
 	
@@ -74,7 +69,6 @@ describe Lively::Page do
 			
 			page = subject.new(
 				title: "Example",
-				body: body,
 				icon: "/icon.png",
 				stylesheets: ["/site.css", {href: "/theme.css", media: "print"}],
 				imports: {"example" => "/example.js"},
@@ -82,8 +76,10 @@ describe Lively::Page do
 				body_attributes: {
 					class: "playback",
 					data: {autoplay: "true", controls: "false"},
-				},
-			)
+				}
+			) do
+				body
+			end
 			
 			html = page.to_html
 			
@@ -124,12 +120,15 @@ describe Lively::Page do
 				"<main>Example</main>"
 			end
 			
-			html = subject.new(
+			page = subject.new(
 				title: "<Example>",
-				body: body,
 				stylesheets: ["/site.css?one=1&two=2"],
-				body_attributes: {title: 'one & "two"'},
-			).to_html
+				body_attributes: {title: 'one & "two"'}
+			) do
+				body
+			end
+			
+			html = page.to_html
 			
 			expect(html).to be(:include?, "<title>&lt;Example&gt;</title>")
 			expect(html).to be(:include?, 'href="/site.css?one=1&amp;two=2"')

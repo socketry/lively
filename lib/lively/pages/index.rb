@@ -29,20 +29,18 @@ module Lively
 			
 			# Initialize a new index page.
 			# @parameter title [String] The title of the page.
-			# @parameter body [Object | Nil] The document body. It must respond to `to_html`.
 			# @yields {|request, parameters| ...} Constructs the document body for a request.
 			# 	@parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 			# 	@parameter parameters [Hash] The decoded query parameters.
 			# 	@returns [Object | Nil] The document body.
-			def initialize(title: "Lively", body: nil, &block)
+			def initialize(title: "Lively", &body)
 				super(
 					title: title,
-					body: body,
 					icon: ICON,
 					stylesheets: STYLESHEETS,
 					imports: IMPORTS,
 					modules: MODULES,
-					&block
+					&body
 				)
 			end
 		end

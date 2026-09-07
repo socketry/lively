@@ -14,14 +14,13 @@ module Lively
 	#
 	# A page combines a renderable body with the stylesheets,
 	# import map, JavaScript modules, and body attributes required to present it.
-	# Pages are callable route handlers. The body can be a fixed object or constructed
-	# for each request using a block.
+	# Pages are callable route handlers. The body is constructed for each request
+	# using a block.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
-		# @parameter body [Object | Nil] The document body. It must respond to `to_html`.
 		# @parameter icon [String | Nil] The favicon URL.
 		# @parameter stylesheets [Array(String | Hash)] Stylesheets in document order. Hash entries specify link attributes.
 		# @parameter imports [Hash] JavaScript import map entries.
@@ -31,11 +30,9 @@ module Lively
 		# 	@parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		# 	@parameter parameters [Hash] The decoded query parameters.
 		# 	@returns [Object | Nil] The document body.
-		def initialize(title: "Lively", body: nil, icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {}, &block)
-			raise ArgumentError, "Provide a body or block, not both!" if body && block
-			
+		def initialize(title: "Lively", icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {}, &body)
 			@title = title
-			@body = block || proc{|_request, _parameters| body}
+			@body = body || proc{nil}
 			@icon = icon
 			@stylesheets = stylesheets
 			@imports = imports
