@@ -4,7 +4,6 @@
 # Copyright, 2025-2026, by Samuel Williams.
 
 require "lively/pages/index"
-require "lively/resolver"
 require "sus/fixtures/console"
 
 describe Lively::Pages::Index do
@@ -16,7 +15,6 @@ describe Lively::Pages::Index do
 			
 			expect(index.title).to be == "Lively"
 			expect(index.body).to be_nil
-			expect(index.resolver).to be_nil
 		end
 		
 		it "accepts a custom title" do
@@ -25,30 +23,10 @@ describe Lively::Pages::Index do
 			expect(index.title).to be == "Custom Title"
 		end
 		
-		it "accepts a root view class" do
-			resolver = Lively::Resolver.new.allow(Lively::HelloWorld)
-			index = Lively::Pages::Index.new(Lively::HelloWorld, resolver: resolver)
+		it "constructs fresh bodies using a block" do
+			index = Lively::Pages::Index.new{Object.new}
 			
-			expect(index.body).to be_a(Lively::HelloWorld)
-		end
-		
-		it "constructs fresh root views using the resolver" do
-			message = Object.new
-			view_class = Class.new(Live::View) do
-				def initialize(id = self.class.unique_id, data = {}, message: nil, suffix: nil)
-					super(id, data)
-					@message = [message, suffix]
-				end
-				
-				attr :message
-			end
-			resolver = Lively::Resolver.new(message: message).allow(view_class)
-			index = Lively::Pages::Index.new(view_class, resolver: resolver, view_arguments: {suffix: "Root"})
-			first = index.body
-			second = index.body
-			
-			expect(first.message).to be == [message, "Root"]
-			expect(first).not.to be_equal(second)
+			expect(index.body).not.to be_equal(index.body)
 		end
 		
 		it "loads the XRB template" do
@@ -141,13 +119,6 @@ describe Lively::Pages::Index do
 			expect(html).not.to be(:include?, "No body specified!")
 		end
 		
-		it "requires a resolver to construct live views" do
-			index = Lively::Pages::Index.new(Lively::HelloWorld)
-			
-			expect do
-				index.to_html
-			end.to raise_exception(ArgumentError, message: be =~ /resolver/)
-		end
 	end
 	
 	with "template file" do

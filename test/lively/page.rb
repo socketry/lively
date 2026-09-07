@@ -4,7 +4,6 @@
 # Copyright, 2026, by Samuel Williams.
 
 require "lively/page"
-require "lively/resolver"
 require "protocol/http/request"
 
 describe Lively::Page do
@@ -29,31 +28,37 @@ describe Lively::Page do
 			expect(page.body_attributes).to be == {class: "example"}
 			expect(page.template).to be_a(XRB::Template)
 		end
+		
+		it "accepts a request-aware body block" do
+			request = Protocol::HTTP::Request["GET", "/"]
+			page = subject.new do |request, parameters|
+				"#{request.method}:#{parameters.fetch("message")}"
+			end
+			
+			expect(page.body(request, {"message" => "Hello"})).to be == "GET:Hello"
+		end
+		
+		it "rejects a body and block together" do
+			expect do
+				subject.new(body: "Body"){"Other body"}
+			end.to raise_exception(ArgumentError, message: be =~ /body or block/)
+		end
 	end
 	
 	with "#to_html" do
-		it "passes the request and parameters to the page subclass" do
-			view_class = Class.new(Live::View) do
-				def self.name
-					"RequestView"
+		it "passes the request and parameters to the body block" do
+			body_class = Class.new do
+				def initialize(content)
+					@content = content
 				end
 				
-				def initialize(id = self.class.unique_id, data = {}, message:)
-					super(id, data)
-					@message = message
-				end
-				
-				def render(builder)
-					builder.text(@message)
+				def to_html
+					@content
 				end
 			end
-			page_class = Class.new(subject) do
-				define_method(:body) do |request, parameters|
-					resolver.make(view_class, message: "#{request.method}:#{parameters.fetch("message")}")
-				end
+			page = subject.new do |request, parameters|
+				body_class.new("#{request.method}:#{parameters.fetch("message")}")
 			end
-			resolver = Lively::Resolver.new.allow(view_class)
-			page = page_class.new(resolver: resolver)
 			request = Protocol::HTTP::Request["GET", "/"]
 			
 			html = page.to_html(request, {"message" => "Hello"})

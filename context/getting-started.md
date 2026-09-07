@@ -117,9 +117,13 @@ class Application < Lively::Application
 	end
 	
 	def configure_routes(router)
-		display_page = Lively::Pages::Index.new(DisplayView, title: title, resolver: resolver)
+		display_page = Lively::Pages::Index.new(title: title) do
+			resolver.make(DisplayView)
+		end
 		
-		control_page = Lively::Pages::Index.new(ControlView, title: title, resolver: resolver)
+		control_page = Lively::Pages::Index.new(title: title) do
+			resolver.make(ControlView)
+		end
 		
 		router.get("/", display_page)
 		router.get("/control", control_page)
@@ -127,7 +131,7 @@ class Application < Lively::Application
 end
 ```
 
-`allowed_views` defines the view classes the shared resolver may construct. Routes select a callable page for each path. `Pages::Index` implements the default page behavior: it takes the root view class and exposes a fresh instance as the page body for every request. Custom page classes can override `body(request, parameters)` when request-specific content is needed. The page and WebSocket connection use the same resolver, so initial rendering and reconnection construct views with the same shared state and allowed classes. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
+`allowed_views` defines the view classes the shared resolver may construct. Routes select a callable page for each path. `Pages::Index` invokes its body block for every request, allowing the application to construct a fresh root view using the shared resolver. The page itself is independent of view resolution. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
 
 Routes match exact paths and may accept one or more HTTP methods. Query parameters are decoded using `protocol-url` and passed to the handler as its second argument. Routes without an explicit method accept every method.
 

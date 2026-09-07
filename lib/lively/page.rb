@@ -14,24 +14,28 @@ module Lively
 	#
 	# A page combines a renderable body with the stylesheets,
 	# import map, JavaScript modules, and body attributes required to present it.
-	# Pages are callable route handlers. Subclasses can override {#body} to
-	# construct fresh content for each request.
+	# Pages are callable route handlers. The body can be a fixed object or constructed
+	# for each request using a block.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
-		# @parameter resolver [Resolver | Nil] The resolver used to construct live views.
 		# @parameter body [Object | Nil] The document body. It must respond to `to_html`.
 		# @parameter icon [String | Nil] The favicon URL.
 		# @parameter stylesheets [Array(String | Hash)] Stylesheets in document order. Hash entries specify link attributes.
 		# @parameter imports [Hash] JavaScript import map entries.
 		# @parameter modules [Array(String)] JavaScript module URLs in document order.
 		# @parameter body_attributes [Hash] Attributes applied to the body element.
-		def initialize(title: "Lively", resolver: nil, body: nil, icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {})
+		# @yields {|request, parameters| ...} Constructs the document body for a request.
+		# 	@parameter request [Protocol::HTTP::Request | Nil] The incoming request.
+		# 	@parameter parameters [Hash] The decoded query parameters.
+		# 	@returns [Object | Nil] The document body.
+		def initialize(title: "Lively", body: nil, icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {}, &block)
+			raise ArgumentError, "Provide a body or block, not both!" if body && block
+			
 			@title = title
-			@resolver = resolver
-			@body = body
+			@body = block || proc{|_request, _parameters| body}
 			@icon = icon
 			@stylesheets = stylesheets
 			@imports = imports
@@ -44,16 +48,12 @@ module Lively
 		# @attribute [String] The document title.
 		attr :title
 		
-		# @attribute [Resolver | Nil] The resolver used to construct live views.
-		attr :resolver
-		
-		# The renderable document body. Subclasses can override this method to
-		# construct request-specific content.
+		# Construct the renderable document body.
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		# @parameter parameters [Hash] The decoded query parameters.
 		# @returns [Object | Nil] The body, which must respond to `to_html`.
 		def body(request = nil, parameters = {})
-			return @body
+			return @body.call(request, parameters)
 		end
 		
 		# @attribute [String | Nil] The favicon URL.
