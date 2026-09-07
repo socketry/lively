@@ -297,8 +297,10 @@ export class Live {
 	forwardFormEvent(id, event, detail, preventDefault = true) {
 		if (preventDefault) event.preventDefault();
 		
-		let form = event.form;
-		let formData = new FormData(form);
+		let form = event.target;
+		let formData = event.submitter ?
+			new this.#window.FormData(form, event.submitter) :
+			new this.#window.FormData(form);
 		
 		this.forward(id, {type: event.type, detail: detail, formData: [...formData]});
 	}
