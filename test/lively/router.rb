@@ -35,8 +35,8 @@ describe Lively::Router do
 	with "exact routes" do
 		it "dispatches to callable handlers" do
 			handler = Object.new
-			def handler.call(request, parameters)
-				Protocol::HTTP::Response[200, [], ["#{request.method}:#{parameters.fetch("message")}"]]
+			def handler.call(request)
+				Protocol::HTTP::Response[200, [], ["#{request.method}:#{request.path}"]]
 			end
 			
 			router = subject.build do |router|
@@ -45,32 +45,32 @@ describe Lively::Router do
 			
 			response = router.call(request("GET", "/example?message=Hello"))
 			
-			expect(response.read).to be == "GET:Hello"
+			expect(response.read).to be == "GET:/example?message=Hello"
 		end
 		
 		it "dispatches by path and method" do
 			router = subject.build do |router|
-				router.get("/example") do |request, parameters|
-					Protocol::HTTP::Response[200, [], ["#{request.method}:#{parameters.fetch("message")}"]]
+				router.get("/example") do |request|
+					Protocol::HTTP::Response[200, [], ["#{request.method}:#{request.path}"]]
 				end
 			end
 			
 			response = router.call(request("GET", "/example?message=Hello%20World"))
 			
 			expect(response.status).to be == 200
-			expect(response.read).to be == "GET:Hello World"
+			expect(response.read).to be == "GET:/example?message=Hello%20World"
 		end
 		
-		it "supports nested query parameters" do
+		it "does not parse query parameters" do
 			router = subject.build do |router|
-				router.get("/example") do |_request, parameters|
-					Protocol::HTTP::Response[200, [], [parameters.dig("user", "name")]]
+				router.get("/example") do |request|
+					Protocol::HTTP::Response[200, [], [request.path]]
 				end
 			end
 			
-			response = router.call(request("GET", "/example?user[name]=Sam"))
+			response = router.call(request("GET", "/example?broken=%"))
 			
-			expect(response.read).to be == "Sam"
+			expect(response.read).to be == "/example?broken=%"
 		end
 		
 		it "supports routes accepting every method" do
@@ -154,12 +154,5 @@ describe Lively::Router do
 			end.to raise_exception(ArgumentError)
 		end
 		
-		it "returns bad request for malformed query parameters" do
-			router = subject.build do |router|
-				router.get("/example"){Protocol::HTTP::Response[200]}
-			end
-			
-			expect(router.call(request("GET", "/example?broken=%")).status).to be == 400
-		end
 	end
 end

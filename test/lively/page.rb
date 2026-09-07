@@ -31,7 +31,7 @@ describe Lively::Page do
 	end
 	
 	with "#to_html" do
-		it "passes the request and parameters to the body block" do
+		it "passes the request to the body method" do
 			body_class = Class.new do
 				def initialize(content)
 					@content = content
@@ -42,16 +42,16 @@ describe Lively::Page do
 				end
 			end
 			page_class = Class.new(subject) do
-				define_method(:body) do |request, parameters|
-					body_class.new("#{request.method}:#{parameters.fetch("message")}")
+				define_method(:body) do |request|
+					body_class.new("#{request.method}:#{request.path}")
 				end
 			end
 			page = page_class.new
-			request = Protocol::HTTP::Request["GET", "/"]
+			request = Protocol::HTTP::Request["GET", "/?message=Hello"]
 			
-			html = page.to_html(request, {"message" => "Hello"})
+			html = page.to_html(request)
 			
-			expect(html).to be(:include?, "GET:Hello")
+			expect(html).to be(:include?, "GET:/?message=Hello")
 		end
 		
 		it "renders the configured document" do
@@ -61,7 +61,7 @@ describe Lively::Page do
 			end
 			
 			page_class = Class.new(subject) do
-				define_method(:body) do |_request = nil, _parameters = {}|
+				define_method(:body) do |_request = nil|
 					body
 				end
 			end
@@ -117,7 +117,7 @@ describe Lively::Page do
 			end
 			
 			page_class = Class.new(subject) do
-				define_method(:body) do |_request = nil, _parameters = {}|
+				define_method(:body) do |_request = nil|
 					body
 				end
 			end

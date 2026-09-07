@@ -4,6 +4,7 @@
 # Copyright, 2025-2026, by Samuel Williams.
 
 require "lively/pages/index"
+require "protocol/http/request"
 require "sus/fixtures/console"
 
 describe Lively::Pages::Index do
@@ -27,6 +28,13 @@ describe Lively::Pages::Index do
 			index = Lively::Pages::Index.new{Object.new}
 			
 			expect(index.body).not.to be_equal(index.body)
+		end
+		
+		it "passes the request to the body block" do
+			request = Protocol::HTTP::Request["GET", "/example?message=Hello"]
+			index = Lively::Pages::Index.new{|request| request.path}
+			
+			expect(index.body(request)).to be == "/example?message=Hello"
 		end
 		
 		it "loads the XRB template" do

@@ -29,9 +29,8 @@ module Lively
 			
 			# Initialize a new index page.
 			# @parameter title [String] The title of the page.
-			# @yields {|request, parameters| ...} Constructs the document body for a request.
+			# @yields {|request| ...} Constructs the document body for a request.
 			# 	@parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-			# 	@parameter parameters [Hash] The decoded query parameters.
 			# 	@returns [Object | Nil] The document body.
 			def initialize(title: "Lively", &body)
 				@body = body
@@ -47,10 +46,9 @@ module Lively
 			
 			# Construct the renderable document body.
 			# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-			# @parameter parameters [Hash] The decoded query parameters.
 			# @returns [Object | Nil] The body, which must respond to `to_html`.
-			def body(request = nil, parameters = {})
-				return @body&.call(request, parameters)
+			def body(request = nil)
+				return @body&.call(request)
 			end
 		end
 	end

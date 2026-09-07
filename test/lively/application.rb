@@ -183,8 +183,8 @@ describe Lively::Application do
 				def configure_routes(router)
 					super
 					
-					router.get("/example") do |_request, parameters|
-						Protocol::HTTP::Response[200, [], [parameters.fetch("message")]]
+					router.get("/example") do |request|
+						Protocol::HTTP::Response[200, [], [request.path]]
 					end
 				end
 			end
@@ -193,7 +193,7 @@ describe Lively::Application do
 			response = application.call(Protocol::HTTP::Request.new("http", "localhost", "GET", "/example?message=Hello"))
 			
 			expect(response.status).to be == 200
-			expect(response.read).to be == "Hello"
+			expect(response.read).to be == "/example?message=Hello"
 		end
 		
 		it "allows the root view to be selected by its route" do

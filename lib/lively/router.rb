@@ -10,11 +10,10 @@ module Lively
 	# Dispatches HTTP requests to handlers using exact path and method matches.
 	#
 	# Request targets are parsed with {Protocol::URL::Reference}. Handlers receive
-	# the original request and the decoded query parameters.
+	# the original request.
 	class Router < Protocol::HTTP::Middleware
-		EMPTY_PARAMETERS = {}.freeze
 		ANY_METHOD = nil
-		private_constant :EMPTY_PARAMETERS, :ANY_METHOD
+		private_constant :ANY_METHOD
 		
 		# Builds an immutable route table.
 		class Builder
@@ -39,9 +38,8 @@ module Lively
 			# @parameter path [String] The absolute path to match.
 			# @parameter handler [Interface(:call) | Nil] A callable route handler.
 			# @parameter methods [String | Symbol | Array(String | Symbol) | Nil] The accepted HTTP methods.
-			# @yields {|request, parameters| ...} The route handler.
+			# @yields {|request| ...} The route handler.
 			# 	@parameter request [Protocol::HTTP::Request] The original request.
-			# 	@parameter parameters [Hash] The decoded query parameters.
 			# @returns [Builder] The builder.
 			def route(path, handler = nil, methods: nil, &block)
 				raise ArgumentError, "Provide a route handler or block, not both!" if handler && block
@@ -66,7 +64,7 @@ module Lively
 			Protocol::HTTP::Methods.each do |name, method|
 				# Add a route for this HTTP method.
 				# @parameter path [String] The absolute path to match.
-				# @yields {|request, parameters| ...} The route handler.
+				# @yields {|request| ...} The route handler.
 				# @returns [Builder] The builder.
 				define_method(name) do |path, handler = nil, &block|
 					route(path, handler, methods: method, &block)
@@ -143,10 +141,7 @@ module Lively
 				return Protocol::HTTP::Response[405, [["allow", allowed_methods]]]
 			end
 			
-			parameters = parse_query(reference)
-			return Protocol::HTTP::Response[400] unless parameters
-			
-			return handler.call(request, parameters)
+			return handler.call(request)
 		end
 		
 		private
@@ -160,10 +155,5 @@ module Lively
 			nil
 		end
 		
-		def parse_query(reference)
-			reference.parse_query! || EMPTY_PARAMETERS
-		rescue ArgumentError
-			nil
-		end
 	end
 end

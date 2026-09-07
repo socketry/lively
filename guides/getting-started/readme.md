@@ -133,7 +133,7 @@ end
 
 `allowed_views` defines the view classes the shared resolver may construct. Routes select a callable page for each path. `Pages::Index` invokes its body block for every request, allowing the application to construct a fresh root view using the shared resolver. The page itself is independent of view resolution. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
 
-Routes match exact paths and may accept one or more HTTP methods. Query parameters are decoded using `protocol-url` and passed to the handler as its second argument. Routes without an explicit method accept every method.
+Routes match exact paths and may accept one or more HTTP methods. Handlers receive the original request and can parse query parameters when needed. Routes without an explicit method accept every method.
 
 Requests which do not match a route are passed to the application's delegate. Applications that need custom fallback behavior can supply an appropriate delegate when they are constructed.
 

@@ -42,9 +42,8 @@ module Lively
 		
 		# Construct the renderable document body.
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-		# @parameter parameters [Hash] The decoded query parameters.
 		# @returns [Object | Nil] The body, which must respond to `to_html`.
-		def body(request = nil, parameters = {})
+		def body(request = nil)
 			return nil
 		end
 		
@@ -88,11 +87,10 @@ module Lively
 		# The rendered document body.
 		# @returns [Object]
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-		# @parameter parameters [Hash] The decoded query parameters.
-		def body_content(request = nil, parameters = {})
+		def body_content(request = nil)
 			return @rendered_body if @rendered_body
 			
-			return self.body(request, parameters)&.to_html || ""
+			return self.body(request)&.to_html || ""
 		end
 		
 		# The serialized JavaScript import map.
@@ -106,11 +104,10 @@ module Lively
 		
 		# Render this page to an HTML string.
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-		# @parameter parameters [Hash] The decoded query parameters.
 		# @returns [String]
-		def to_html(request = nil, parameters = {})
+		def to_html(request = nil)
 			rendering = self.dup
-			rendering.instance_variable_set(:@rendered_body, body_content(request, parameters))
+			rendering.instance_variable_set(:@rendered_body, body_content(request))
 			
 			@template.to_string(rendering)
 		end
@@ -118,9 +115,8 @@ module Lively
 		# Render this page as an HTTP response.
 		# @parameter request [Protocol::HTTP::Request] The incoming request.
 		# @returns [Protocol::HTTP::Response] A successful HTML response.
-		# @parameter parameters [Hash] The decoded query parameters.
-		def call(request, parameters = {})
-			Protocol::HTTP::Response[200, {"content-type" => "text/html; charset=utf-8"}, [to_html(request, parameters)]]
+		def call(request)
+			Protocol::HTTP::Response[200, {"content-type" => "text/html; charset=utf-8"}, [to_html(request)]]
 		end
 	end
 end

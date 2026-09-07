@@ -123,14 +123,15 @@ class Application < Lively::Application
 	end
 	
 	def configure_routes(router)
-		page = Pages::Index.new(title: self.title) do |_request, parameters|
-			conversation_id = Integer(parameters.fetch("conversation_id"))
+		page = Pages::Index.new(title: self.title) do |request|
+			reference = ::XRB::Reference(request.path)
+			conversation_id = Integer(reference.query.fetch(:conversation_id))
 			self.resolver.make(ChatbotView, data: {conversation_id: conversation_id})
 		end
 		
-		router.get("/") do |request, parameters|
-			unless parameters.key?("conversation_id")
-				reference = ::XRB::Reference(request.path)
+		router.get("/") do |request|
+			reference = ::XRB::Reference(request.path)
+			unless reference.query.key?(:conversation_id)
 				reference.query[:conversation_id] = Conversation.create!(model: "llama3.1:latest").id
 				
 				Console.info(self, "Redirecting to new conversation", reference: reference)
@@ -138,7 +139,7 @@ class Application < Lively::Application
 				next ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
 			end
 			
-			page.call(request, parameters)
+			page.call(request)
 		end
 	end
 end
