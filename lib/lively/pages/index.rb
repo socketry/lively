@@ -29,10 +29,8 @@ module Lively
 			
 			# Initialize a new index page.
 			# @parameter title [String] The title of the page.
-			# @yields {|request| ...} Constructs the document body for a request.
-			# 	@parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-			# 	@returns [Object | Nil] The document body.
-			def initialize(title: "Lively", &body)
+			# @parameter body [Object | Nil] The renderable document body.
+			def initialize(title: "Lively", body: nil)
 				super(
 					title: title,
 					body: body,

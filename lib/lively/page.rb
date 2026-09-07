@@ -12,9 +12,9 @@ require "xrb/template"
 module Lively
 	# Represents a complete HTML document.
 	#
-	# A page combines a callable body with the stylesheets,
-	# import map, JavaScript modules, and body attributes required to present it.
-	# Pages are callable route handlers. The body is constructed for each request.
+	# A page combines a renderable body with the stylesheets, import map,
+	# JavaScript modules, and body attributes required to present it.
+	# Pages are callable route handlers.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
@@ -42,7 +42,7 @@ module Lively
 		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
-		# @parameter body [Interface(:call) | Nil] Constructs the document body for a request.
+		# @parameter body [Object | Nil] The renderable document body.
 		# @parameter icon [String | Nil] The favicon URL.
 		# @parameter stylesheets [Array(String | Hash)] Stylesheets in document order. Hash entries specify link attributes.
 		# @parameter imports [Hash] JavaScript import map entries.
@@ -61,6 +61,9 @@ module Lively
 		
 		# @attribute [String] The document title.
 		attr :title
+		
+		# @attribute [Object | Nil] The renderable document body.
+		attr :body
 		
 		# @attribute [String | Nil] The favicon URL.
 		attr :icon
@@ -112,8 +115,7 @@ module Lively
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		# @returns [String]
 		def to_html(request = nil)
-			body = @body&.call(request)
-			@template.to_string(Context.new(self, request, body))
+			@template.to_string(Context.new(self, request, @body))
 		end
 		
 		# Render this page as an HTTP response.

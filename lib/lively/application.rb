@@ -83,11 +83,11 @@ module Lively
 		# @parameter router [Router::Builder] The router to configure.
 		def configure_routes(router)
 			view_class = self.allowed_views.first
-			page = Pages::Index.new(title: self.title) do
-				self.resolver.make(view_class) if view_class
-			end
 			
-			router.get("/", page)
+			router.get("/") do |request|
+				body = self.resolver.make(view_class) if view_class
+				Pages::Index.new(title: self.title, body: body).call(request)
+			end
 		end
 		
 		# The router for this application. Unmatched requests are passed to the

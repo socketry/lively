@@ -123,13 +123,6 @@ class Application < Lively::Application
 	end
 	
 	def configure_routes(router)
-		page = Pages::Index.new(title: self.title) do |request|
-			reference = ::Protocol::URL::Reference[request.path]
-			parameters = reference.parse_query!
-			conversation_id = Integer(parameters.fetch("conversation_id"))
-			self.resolver.make(ChatbotView, data: {conversation_id: conversation_id})
-		end
-		
 		router.get("/") do |request|
 			reference = ::Protocol::URL::Reference[request.path]
 			parameters = reference.parse_query!
@@ -141,7 +134,9 @@ class Application < Lively::Application
 				next ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
 			end
 			
-			page.call(request)
+			conversation_id = Integer(parameters.fetch("conversation_id"))
+			body = self.resolver.make(ChatbotView, data: {conversation_id: conversation_id})
+			Pages::Index.new(title: self.title, body: body).call(request)
 		end
 	end
 end

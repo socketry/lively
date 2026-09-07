@@ -8,9 +8,11 @@ require "protocol/http/request"
 
 describe Lively::Page do
 	with "#initialize" do
-		it "accepts document assets" do
+		it "accepts document content and assets" do
+			body = Object.new
 			page = subject.new(
 				title: "Example",
+				body: body,
 				icon: "/icon.png",
 				stylesheets: [{href: "/site.css", media: "screen"}],
 				imports: {"example" => "/example.js"},
@@ -19,6 +21,7 @@ describe Lively::Page do
 			)
 			
 			expect(page.title).to be == "Example"
+			expect(page.body).to be_equal(body)
 			expect(page.icon).to be == "/icon.png"
 			expect(page.stylesheets).to be == [{href: "/site.css", media: "screen"}]
 			expect(page.imports).to be == {"example" => "/example.js"}
@@ -41,27 +44,6 @@ describe Lively::Page do
 			expect(context.body).to be_equal(body)
 		end
 		
-		it "passes the request to the body callable" do
-			body_class = Class.new do
-				def initialize(content)
-					@content = content
-				end
-				
-				def to_html
-					@content
-				end
-			end
-			body = proc do |request|
-				body_class.new("#{request.method}:#{request.path}")
-			end
-			page = subject.new(body: body)
-			request = Protocol::HTTP::Request["GET", "/?message=Hello"]
-			
-			html = page.to_html(request)
-			
-			expect(html).to be(:include?, "GET:/?message=Hello")
-		end
-		
 		it "renders the configured document" do
 			body = Object.new
 			def body.to_html
@@ -70,7 +52,7 @@ describe Lively::Page do
 			
 			page = subject.new(
 				title: "Example",
-				body: proc{body},
+				body: body,
 				icon: "/icon.png",
 				stylesheets: ["/site.css", {href: "/theme.css", media: "print"}],
 				imports: {"example" => "/example.js"},
@@ -122,7 +104,7 @@ describe Lively::Page do
 			
 			page = subject.new(
 				title: "<Example>",
-				body: proc{body},
+				body: body,
 				stylesheets: ["/site.css?one=1&two=2"],
 				body_attributes: {title: 'one & "two"'}
 			)

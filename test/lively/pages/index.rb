@@ -4,7 +4,6 @@
 # Copyright, 2025-2026, by Samuel Williams.
 
 require "lively/pages/index"
-require "protocol/http/request"
 require "sus/fixtures/console"
 
 describe Lively::Pages::Index do
@@ -17,21 +16,12 @@ describe Lively::Pages::Index do
 			expect(index.title).to be == "Lively"
 		end
 		
-		it "accepts a custom title" do
-			index = Lively::Pages::Index.new(title: "Custom Title")
+		it "accepts a custom title and body" do
+			body = Object.new
+			index = Lively::Pages::Index.new(title: "Custom Title", body: body)
 			
 			expect(index.title).to be == "Custom Title"
-		end
-		
-		it "passes the request to the body block" do
-			request = Protocol::HTTP::Request["GET", "/example?message=Hello"]
-			index = Lively::Pages::Index.new do |request|
-				body = Object.new
-				body.define_singleton_method(:to_html){request.path}
-				body
-			end
-			
-			expect(index.to_html(request)).to be(:include?, "/example?message=Hello")
+			expect(index.body).to be_equal(body)
 		end
 		
 		it "loads the XRB template" do
@@ -122,6 +112,17 @@ describe Lively::Pages::Index do
 			html = index.to_html
 			
 			expect(html).not.to be(:include?, "No body specified!")
+		end
+		
+		it "includes a renderable body" do
+			body = Object.new
+			def body.to_html
+				XRB::MarkupString.raw("<main>Example</main>")
+			end
+			
+			index = Lively::Pages::Index.new(body: body)
+			
+			expect(index.to_html).to be(:include?, "<main>Example</main>")
 		end
 		
 	end

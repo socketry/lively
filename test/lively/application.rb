@@ -169,6 +169,26 @@ describe Lively::Application do
 			expect(application.router).to be_equal(application.router)
 		end
 		
+		it "constructs the root view only when its route is requested" do
+			resolved = []
+			resolver = Object.new
+			resolver.define_singleton_method(:make) do |view_class|
+				resolved << view_class
+				view_class.new
+			end
+			
+			application_class = Class.new(Lively::Application) do
+				define_method(:resolver) {resolver}
+			end
+			application = application_class.new(delegate)
+			
+			application.router
+			expect(resolved).to be(:empty?)
+			
+			application.call(Protocol::HTTP::Request.new("http", "localhost", "GET", "/"))
+			expect(resolved).to be == [Lively::HelloWorld]
+		end
+		
 		it "routes the default view explicitly" do
 			response = application.router.call(Protocol::HTTP::Request.new("http", "localhost", "GET", "/"))
 			html = response.read
@@ -208,11 +228,10 @@ describe Lively::Application do
 				define_method(:allowed_views) {[other_view, root_view]}
 				
 				define_method(:configure_routes) do |router|
-					page = Lively::Pages::Index.new(title: title) do
-						resolver.make(root_view)
+					router.get("/") do |request|
+						body = resolver.make(root_view)
+						Lively::Pages::Index.new(title: title, body: body).call(request)
 					end
-					
-					router.get("/", page)
 				end
 			end
 			
@@ -235,11 +254,10 @@ describe Lively::Application do
 		it "preserves system routes when application routes are replaced" do
 			application_class = Class.new(Lively::Application) do
 				def configure_routes(router)
-					page = Lively::Pages::Index.new(title: title) do
-						resolver.make(Lively::HelloWorld)
+					router.get("/") do |request|
+						body = resolver.make(Lively::HelloWorld)
+						Lively::Pages::Index.new(title: title, body: body).call(request)
 					end
-					
-					router.get("/", page)
 				end
 			end
 			
