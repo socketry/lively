@@ -1,11 +1,14 @@
 PATH
   remote: ../..
   specs:
-    lively (0.16.1)
+    lively (0.21.0)
       agent-context
+      async-htty
+      async-service (~> 0.23)
       falcon (~> 0.47)
       io-watch
       live (~> 0.18)
+      protocol-url (~> 0.19)
       xrb
 
 GEM
@@ -31,12 +34,10 @@ GEM
       tzinfo (~> 2.0, >= 2.0.5)
     agent-context (0.3.0)
       bake (>= 0.23)
-    async (2.38.0)
+    async (2.45.1)
       console (~> 1.29)
       fiber-annotation
-      io-event (~> 1.11)
-      metrics (~> 0.12)
-      traces (~> 0.18)
+      io-event (~> 1.21)
     async-container (0.34.3)
       async (~> 2.22)
     async-http (0.94.2)
@@ -52,6 +53,11 @@ GEM
       traces (~> 0.10)
     async-http-cache (0.4.6)
       async-http (~> 0.56)
+    async-htty (0.5.0)
+      async (~> 2.39)
+      async-http (~> 0.88)
+      protocol-http (~> 0.62)
+      protocol-htty (~> 0.4)
     async-ollama (0.10.1)
       async
       async-rest
@@ -60,7 +66,7 @@ GEM
     async-rest (0.20.0)
       async-http (~> 0.42)
       protocol-url (~> 0.2)
-    async-service (0.21.0)
+    async-service (0.25.0)
       async
       async-container (~> 0.34)
       string-format (~> 0.2)
@@ -104,7 +110,7 @@ GEM
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
     io-endpoint (0.17.2)
-    io-event (1.14.4)
+    io-event (1.21.1)
     io-stream (0.11.1)
     io-watch (0.6.3)
     json (2.19.1)
@@ -126,17 +132,19 @@ GEM
     openssl (4.0.1)
     prism (1.9.0)
     protocol-hpack (1.5.1)
-    protocol-http (0.60.0)
+    protocol-http (0.71.0)
     protocol-http1 (0.37.0)
       protocol-http (~> 0.58)
     protocol-http2 (0.24.0)
       protocol-hpack (~> 1.4)
       protocol-http (~> 0.47)
+    protocol-htty (0.5.0)
+      protocol-http2
     protocol-rack (0.21.1)
       io-stream (>= 0.10)
       protocol-http (~> 0.58)
       rack (>= 1.0)
-    protocol-url (0.4.0)
+    protocol-url (0.19.0)
     protocol-websocket (0.20.2)
       protocol-http (~> 0.2)
     rack (3.2.5)
