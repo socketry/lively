@@ -1,30 +1,31 @@
 <!DOCTYPE html>
+<?r page = self.page ?>
 <html>
 	<head>
-		<title>#{self.title}</title>
+		<title>#{page.title}</title>
 		
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		
-		<?r if self.icon ?>
-		<link rel="icon" type="image/png" href="#{self.icon}" />
+		<?r if page.icon ?>
+		<link rel="icon" type="image/png" href="#{page.icon}" />
 		<?r end ?>
-		<?r self.stylesheets.each do |stylesheet| ?>
-		#{self.stylesheet_tag(stylesheet)}
+		<?r page.stylesheets.each do |stylesheet| ?>
+		#{page.stylesheet_tag(stylesheet)}
 		<?r end ?>
 		
-		<?r unless self.imports.empty? ?>
+		<?r unless page.imports.empty? ?>
 		<script type="importmap">
-		#{self.import_map}
+		#{page.import_map}
 		</script>
 		<?r end ?>
 		
-		<?r self.modules.each do |source| ?>
+		<?r page.modules.each do |source| ?>
 		<script type="module" src="#{source}"></script>
 		<?r end ?>
 	</head>
 	
-	#{self.body_tag}
+	#{page.body_tag}
 		#{self.body_content}
 	</body>
 </html>

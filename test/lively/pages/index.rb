@@ -141,8 +141,8 @@ describe Lively::Pages::Index do
 			content = File.read(template_path)
 			
 			expect(content).to be(:include?, "<!DOCTYPE html>")
-			expect(content).to be(:include?, "self.stylesheets")
-			expect(content).to be(:include?, "self.modules")
+			expect(content).to be(:include?, "page.stylesheets")
+			expect(content).to be(:include?, "page.modules")
 		end
 	end
 end

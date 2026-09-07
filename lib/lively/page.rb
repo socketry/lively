@@ -19,6 +19,27 @@ module Lively
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
+		# The per-request state used to render a page template.
+		class Context
+			# Initialize a rendering context.
+			# @parameter page [Page] The page being rendered.
+			# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
+			def initialize(page, request)
+				@page = page
+				@request = request
+				@body_content = page.body_content(request)
+			end
+			
+			# @attribute [Page] The page being rendered.
+			attr :page
+			
+			# @attribute [Protocol::HTTP::Request | Nil] The incoming request.
+			attr :request
+			
+			# @attribute [Object] The rendered document body.
+			attr :body_content
+		end
+		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
 		# @parameter icon [String | Nil] The favicon URL.
@@ -34,7 +55,6 @@ module Lively
 			@modules = modules
 			@body_attributes = body_attributes
 			@template = TEMPLATE
-			@rendered_body = nil
 		end
 		
 		# @attribute [String] The document title.
@@ -88,8 +108,6 @@ module Lively
 		# @returns [Object]
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		def body_content(request = nil)
-			return @rendered_body if @rendered_body
-			
 			return self.body(request)&.to_html || ""
 		end
 		
@@ -106,10 +124,7 @@ module Lively
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		# @returns [String]
 		def to_html(request = nil)
-			rendering = self.dup
-			rendering.instance_variable_set(:@rendered_body, body_content(request))
-			
-			@template.to_string(rendering)
+			@template.to_string(Context.new(self, request))
 		end
 		
 		# Render this page as an HTTP response.

@@ -31,6 +31,16 @@ describe Lively::Page do
 	end
 	
 	with "#to_html" do
+		it "renders through a per-request context" do
+			page = subject.new
+			request = Protocol::HTTP::Request["GET", "/"]
+			context = subject::Context.new(page, request)
+			
+			expect(context.page).to be_equal(page)
+			expect(context.request).to be_equal(request)
+			expect(context.body_content).to be == ""
+		end
+		
 		it "passes the request to the body method" do
 			body_class = Class.new do
 				def initialize(content)
