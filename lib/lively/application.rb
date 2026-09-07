@@ -43,15 +43,6 @@ module Lively
 			return klass
 		end
 		
-		# Initialize a new Lively application.
-		# @parameter delegate [Protocol::HTTP::Middleware] The next middleware in the chain.
-		def initialize(delegate)
-			super(delegate)
-		end
-		
-		# @attribute [Protocol::HTTP::Middleware] The delegate middleware for request handling.
-		attr :delegate
-		
 		# The shared state for this application, passed to all views via the resolver.
 		# Override this in subclasses to provide custom state.
 		# @returns [Hash] Key-value pairs passed as keyword arguments to view constructors.
@@ -87,13 +78,6 @@ module Lively
 			self.class.name
 		end
 		
-		# Handle a standard HTTP request which did not match a configured route.
-		# @parameter request [Protocol::HTTP::Request] The incoming HTTP request.
-		# @returns [Protocol::HTTP::Response] The delegate response.
-		def handle(request)
-			return delegate.call(request)
-		end
-		
 		# Add application routes to the given router.
 		# Override this method to map paths to views or other handlers.
 		# @parameter router [Router::Builder] The router to configure.
@@ -106,11 +90,11 @@ module Lively
 			router.get("/", page)
 		end
 		
-		# The router for this application. Unmatched requests are handled separately
-		# by {#handle}.
+		# The router for this application. Unmatched requests are passed to the
+		# application delegate.
 		# @returns [Router] The configured router.
 		def router
-			@router ||= Router.build(Protocol::HTTP::Middleware.for(&method(:handle))) do |router|
+			@router ||= Router.build(delegate) do |router|
 				configure_system_routes(router)
 				configure_routes(router)
 			end

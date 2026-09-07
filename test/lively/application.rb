@@ -164,16 +164,6 @@ describe Lively::Application do
 		end
 	end
 	
-	with "#handle" do
-		it "delegates unmatched requests" do
-			response = application.handle(Protocol::HTTP::Request.new("http", "localhost", "GET", "/unknown"))
-			
-			expect(response).to be_a(Protocol::HTTP::Response)
-			expect(response.status).to be == 404
-			expect(response.read).to be == "Not Found"
-		end
-	end
-	
 	with "#router" do
 		it "is memoized" do
 			expect(application.router).to be_equal(application.router)
@@ -234,6 +224,14 @@ describe Lively::Application do
 	end
 	
 	with "#call" do
+		it "delegates unmatched requests" do
+			response = application.call(Protocol::HTTP::Request.new("http", "localhost", "GET", "/unknown"))
+			
+			expect(response).to be_a(Protocol::HTTP::Response)
+			expect(response.status).to be == 404
+			expect(response.read).to be == "Not Found"
+		end
+		
 		it "preserves system routes when application routes are replaced" do
 			application_class = Class.new(Lively::Application) do
 				def configure_routes(router)

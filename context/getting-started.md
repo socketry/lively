@@ -135,7 +135,7 @@ end
 
 Routes match exact paths and may accept one or more HTTP methods. Query parameters are decoded using `protocol-url` and passed to the handler as its second argument. Routes without an explicit method accept every method.
 
-Requests which do not match a route are passed to the application's delegate. An application using client-side history routing can instead override `#handle` to render an application page for unmatched paths.
+Requests which do not match a route are passed to the application's delegate. Applications that need custom fallback behavior can supply an appropriate delegate when they are constructed.
 
 ## Live Reloading
 

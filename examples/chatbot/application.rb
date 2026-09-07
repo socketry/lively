@@ -122,28 +122,23 @@ class Application < Lively::Application
 		[ChatbotView]
 	end
 	
-	def handle(request)
-		reference = ::XRB::Reference(request.path)
-		
-		if value = reference.query[:conversation_id]
-			conversation_id = Integer(value)
-		else
-			conversation_id = nil
+	def configure_routes(router)
+		page = Pages::Index.new(title: self.title) do |_request, parameters|
+			conversation_id = Integer(parameters.fetch("conversation_id"))
+			self.resolver.make(ChatbotView, data: {conversation_id: conversation_id})
 		end
 		
-		unless conversation_id
-			reference.query[:conversation_id] = Conversation.create!(model: "llama3.1:latest").id
-			
-			Console.info(self, "Redirecting to new conversation", reference: reference)
-			
-			return ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
-		else
-			page = Pages::Index.new(
-				title: self.title
-			) do
-				self.resolver.make(ChatbotView, data: {conversation_id: conversation_id})
+		router.get("/") do |request, parameters|
+			unless parameters.key?("conversation_id")
+				reference = ::XRB::Reference(request.path)
+				reference.query[:conversation_id] = Conversation.create!(model: "llama3.1:latest").id
+				
+				Console.info(self, "Redirecting to new conversation", reference: reference)
+				
+				next ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
 			end
-			return page.call(request)
+			
+			page.call(request, parameters)
 		end
 	end
 end
