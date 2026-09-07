@@ -138,9 +138,12 @@ class Application < Lively::Application
 			
 			return ::Protocol::HTTP::Response[302, {"location" => reference.to_s}]
 		else
-			page = Pages::Index.new(title: self.title, resolver: self.resolver) do |page|
-				page.view(ChatbotView, data: {conversation_id: conversation_id})
-			end
+			page = Pages::Index.new(
+				ChatbotView,
+				title: self.title,
+				resolver: self.resolver,
+				view_arguments: {data: {conversation_id: conversation_id}}
+			)
 			return page.call(request)
 		end
 	end

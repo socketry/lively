@@ -14,8 +14,8 @@ module Lively
 	#
 	# A page combines application content and live views with the stylesheets,
 	# import map, JavaScript modules, and body attributes required to present it.
-	# Pages are callable route handlers. A page may be registered once with a
-	# router; its composition block constructs fresh live views for each request.
+	# Pages are callable route handlers. Subclasses can override {#views} to
+	# construct fresh live views for each request.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
@@ -28,9 +28,7 @@ module Lively
 		# @parameter imports [Hash] JavaScript import map entries.
 		# @parameter modules [Array(String)] JavaScript module URLs in document order.
 		# @parameter body_attributes [Hash] Attributes applied to the body element.
-		# @yields {|page| ...} Configures the live views composed by this page.
-		# 	@parameter page [Page] The page being configured.
-		def initialize(title: "Lively", resolver: nil, body: nil, icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {}, &composition)
+		def initialize(title: "Lively", resolver: nil, body: nil, icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {})
 			@title = title
 			@resolver = resolver
 			@body = body
@@ -40,8 +38,6 @@ module Lively
 			@modules = modules
 			@body_attributes = body_attributes
 			@template = TEMPLATE
-			@composition = composition
-			@views = nil
 			@rendered_body = nil
 		end
 		
@@ -72,33 +68,24 @@ module Lively
 		# @attribute [XRB::Template] The document template.
 		attr :template
 		
-		# Construct and append a live view to the page.
+		# Construct a live view for the page.
 		# @parameter view_class [Class] The view class to construct.
 		# @parameter arguments [Hash] Additional keyword arguments for the view.
 		# @returns [Live::View] The constructed view.
 		# @raises [ArgumentError] If no resolver was provided or the view is not allowed.
 		def view(view_class, **arguments)
 			raise ArgumentError, "A resolver is required to construct views!" unless @resolver
-			raise RuntimeError, "Views can only be constructed while composing a page!" unless @views
 			
-			view = @resolver.make(view_class, **arguments)
-			@views << view
-			
-			return view
+			return @resolver.make(view_class, **arguments)
 		end
 		
-		# The live views composed by this page.
+		# Construct the live views for a request. Subclasses can override this method
+		# to return zero or more views in document order.
 		# @returns [Array(Live::View)] The views in document order.
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		# @parameter parameters [Hash] The decoded query parameters.
 		def views(request = nil, parameters = {})
-			composition = self.dup
-			composition.instance_variable_set(:@views, [])
-			composition.instance_variable_set(:@composition, nil)
-			
-			@composition&.call(composition, request, parameters)
-			
-			return composition.instance_variable_get(:@views)
+			return []
 		end
 		
 		# The opening body tag including configured attributes.

@@ -98,9 +98,7 @@ module Lively
 		# Override this method to map paths to views or other handlers.
 		# @parameter router [Router::Builder] The router to configure.
 		def configure_routes(router)
-			page = Pages::Index.new(title: self.title, resolver: self.resolver) do |page|
-				page.view(self.allowed_views.first)
-			end
+			page = Pages::Index.new(self.allowed_views.first, title: self.title, resolver: self.resolver)
 			
 			router.get("/", page)
 		end

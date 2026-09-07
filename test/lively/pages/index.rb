@@ -27,27 +27,30 @@ describe Lively::Pages::Index do
 			expect(index.body).to be == "Custom Body"
 		end
 		
-		it "composes live views lazily using the resolver" do
+		it "accepts a root view class" do
+			resolver = Lively::Resolver.new.allow(Lively::HelloWorld)
+			index = Lively::Pages::Index.new(Lively::HelloWorld, resolver: resolver)
+			
+			expect(index.views.first).to be_a(Lively::HelloWorld)
+		end
+		
+		it "constructs fresh root views using the resolver" do
 			message = Object.new
 			view_class = Class.new(Live::View) do
-				def initialize(id = self.class.unique_id, data = {}, message: nil)
+				def initialize(id = self.class.unique_id, data = {}, message: nil, suffix: nil)
 					super(id, data)
-					@message = message
+					@message = [message, suffix]
 				end
 				
 				attr :message
 			end
 			resolver = Lively::Resolver.new(message: message).allow(view_class)
-			composed = false
+			index = Lively::Pages::Index.new(view_class, resolver: resolver, view_arguments: {suffix: "Root"})
+			first = index.views.first
+			second = index.views.first
 			
-			index = Lively::Pages::Index.new(resolver: resolver) do |page|
-				composed = true
-				page.view(view_class)
-			end
-			
-			expect(composed).to be_falsey
-			expect(index.views.first.message).to be_equal(message)
-			expect(composed).to be_truthy
+			expect(first.message).to be == [message, "Root"]
+			expect(first).not.to be_equal(second)
 		end
 		
 		it "loads the XRB template" do
@@ -152,66 +155,11 @@ describe Lively::Pages::Index do
 			expect(html).not.to be(:include?, "No body specified!")
 		end
 		
-		it "renders multiple live views in document order" do
-			first_view = Class.new(Live::View) do
-				def self.name
-					"FirstView"
-				end
-				
-				def render(builder)
-					builder.text("First view")
-				end
-			end
-			second_view = Class.new(Live::View) do
-				def self.name
-					"SecondView"
-				end
-				
-				def render(builder)
-					builder.text("Second view")
-				end
-			end
-			resolver = Lively::Resolver.new.allow(first_view, second_view)
-			index = Lively::Pages::Index.new(resolver: resolver) do |page|
-				page.view(first_view)
-				page.view(second_view)
-			end
-			
-			html = index.to_html
-			
-			expect(html.index("First view")).to be < html.index("Second view")
-			expect(index.views.size).to be == 2
-		end
-		
-		it "composes fresh views using each request and its parameters" do
-			view_class = Class.new(Live::View) do
-				def initialize(id = self.class.unique_id, data = {}, message:)
-					super(id, data)
-					@message = message
-				end
-				
-				def render(builder)
-					builder.text(@message)
-				end
-			end
-			resolver = Lively::Resolver.new.allow(view_class)
-			index = Lively::Pages::Index.new(resolver: resolver) do |page, request, parameters|
-				page.view(view_class, message: "#{request.method}:#{parameters.fetch("message")}")
-			end
-			
-			request = Protocol::HTTP::Request["GET", "/?message=First"]
-			first = index.call(request, {"message" => "First"}).read
-			second = index.call(request, {"message" => "Second"}).read
-			
-			expect(first).to be(:include?, "GET:First")
-			expect(second).to be(:include?, "GET:Second")
-		end
-		
 		it "requires a resolver to construct live views" do
-			index = Lively::Pages::Index.new
+			index = Lively::Pages::Index.new(Lively::HelloWorld)
 			
 			expect do
-				index.view(Lively::HelloWorld)
+				index.to_html
 			end.to raise_exception(ArgumentError, message: be =~ /resolver/)
 		end
 	end

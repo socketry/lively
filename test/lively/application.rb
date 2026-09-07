@@ -218,9 +218,7 @@ describe Lively::Application do
 				define_method(:allowed_views) {[other_view, root_view]}
 				
 				define_method(:configure_routes) do |router|
-					page = Lively::Pages::Index.new(title: title, resolver: resolver) do |page|
-						page.view(root_view)
-					end
+					page = Lively::Pages::Index.new(root_view, title: title, resolver: resolver)
 					
 					router.get("/", page)
 				end
@@ -237,9 +235,7 @@ describe Lively::Application do
 		it "preserves system routes when application routes are replaced" do
 			application_class = Class.new(Lively::Application) do
 				def configure_routes(router)
-					page = Lively::Pages::Index.new(title: title, resolver: resolver) do |page|
-						page.view(Lively::HelloWorld)
-					end
+					page = Lively::Pages::Index.new(Lively::HelloWorld, title: title, resolver: resolver)
 					
 					router.get("/", page)
 				end
