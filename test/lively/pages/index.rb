@@ -17,21 +17,19 @@ describe Lively::Pages::Index do
 			expect(index.title).to be == "Lively"
 			expect(index.body).to be_nil
 			expect(index.resolver).to be_nil
-			expect(index.views).to be(:empty?)
 		end
 		
-		it "accepts custom title and body" do
-			index = Lively::Pages::Index.new(title: "Custom Title", body: "Custom Body")
+		it "accepts a custom title" do
+			index = Lively::Pages::Index.new(title: "Custom Title")
 			
 			expect(index.title).to be == "Custom Title"
-			expect(index.body).to be == "Custom Body"
 		end
 		
 		it "accepts a root view class" do
 			resolver = Lively::Resolver.new.allow(Lively::HelloWorld)
 			index = Lively::Pages::Index.new(Lively::HelloWorld, resolver: resolver)
 			
-			expect(index.views.first).to be_a(Lively::HelloWorld)
+			expect(index.body).to be_a(Lively::HelloWorld)
 		end
 		
 		it "constructs fresh root views using the resolver" do
@@ -46,8 +44,8 @@ describe Lively::Pages::Index do
 			end
 			resolver = Lively::Resolver.new(message: message).allow(view_class)
 			index = Lively::Pages::Index.new(view_class, resolver: resolver, view_arguments: {suffix: "Root"})
-			first = index.views.first
-			second = index.views.first
+			first = index.body
+			second = index.body
 			
 			expect(first.message).to be == [message, "Root"]
 			expect(first).not.to be_equal(second)
@@ -136,20 +134,8 @@ describe Lively::Pages::Index do
 			expect(html).to be(:include?, "application.js")
 		end
 		
-		it "includes body content when body responds to to_html" do
-			mock_body = Object.new
-			def mock_body.to_html
-				"<div>Custom Body HTML</div>"
-			end
-			
-			index = Lively::Pages::Index.new(body: mock_body)
-			html = index.to_html
-			
-			expect(html).to be(:include?, "&lt;div&gt;Custom Body HTML&lt;/div&gt;")
-		end
-		
-		it "supports pages without a body or live views" do
-			index = Lively::Pages::Index.new(body: nil)
+		it "supports pages without a root view" do
+			index = Lively::Pages::Index.new
 			html = index.to_html
 			
 			expect(html).not.to be(:include?, "No body specified!")

@@ -127,7 +127,7 @@ class Application < Lively::Application
 end
 ```
 
-`allowed_views` defines the view classes the shared resolver may construct. Routes select a callable page for each path. `Pages::Index` takes the root view class and constructs a fresh instance for every request. Custom page classes can override `views(request, parameters)` to construct zero or more views with `view`. The page and WebSocket connection use the same resolver, so initial rendering and reconnection construct views with the same shared state and allowed classes. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
+`allowed_views` defines the view classes the shared resolver may construct. Routes select a callable page for each path. `Pages::Index` implements the default page behavior: it takes the root view class and exposes a fresh instance as the page body for every request. Custom page classes can override `body(request, parameters)` when request-specific content is needed. The page and WebSocket connection use the same resolver, so initial rendering and reconnection construct views with the same shared state and allowed classes. Lively installs its `/live` WebSocket route independently, so overriding `configure_routes` does not remove it.
 
 Routes match exact paths and may accept one or more HTTP methods. Query parameters are decoded using `protocol-url` and passed to the handler as its second argument. Routes without an explicit method accept every method.
 

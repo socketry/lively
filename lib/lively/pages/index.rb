@@ -32,15 +32,13 @@ module Lively
 			# @parameter view_arguments [Hash] Additional keyword arguments for the root view.
 			# @parameter title [String] The title of the page.
 			# @parameter resolver [Resolver | Nil] The resolver used to construct live views.
-			# @parameter body [Object | Nil] Static body content rendered before any live views.
-			def initialize(view_class = nil, view_arguments: {}, title: "Lively", resolver: nil, body: nil)
+			def initialize(view_class = nil, view_arguments: {}, title: "Lively", resolver: nil)
 				@view_class = view_class
 				@view_arguments = view_arguments
 				
 				super(
 					title: title,
 					resolver: resolver,
-					body: body,
 					icon: ICON,
 					stylesheets: STYLESHEETS,
 					imports: IMPORTS,
@@ -54,14 +52,15 @@ module Lively
 			# @attribute [Hash] Additional keyword arguments for the root view.
 			attr :view_arguments
 			
-			# Construct the root live view for a request.
+			# Construct the root live view as the document body.
 			# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 			# @parameter parameters [Hash] The decoded query parameters.
-			# @returns [Array(Live::View)] The root view, or an empty array when none was configured.
-			def views(request = nil, parameters = {})
-				return [] unless @view_class
+			# @returns [Live::View | Nil] The root view, if configured.
+			def body(request = nil, parameters = {})
+				return nil unless @view_class
+				raise ArgumentError, "A resolver is required to construct the root view!" unless @resolver
 				
-				return [view(@view_class, **@view_arguments)]
+				return @resolver.make(@view_class, **@view_arguments)
 			end
 		end
 	end

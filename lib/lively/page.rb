@@ -12,17 +12,17 @@ require "xrb/template"
 module Lively
 	# Represents a complete HTML document.
 	#
-	# A page combines application content and live views with the stylesheets,
+	# A page combines a renderable body with the stylesheets,
 	# import map, JavaScript modules, and body attributes required to present it.
-	# Pages are callable route handlers. Subclasses can override {#views} to
-	# construct fresh live views for each request.
+	# Pages are callable route handlers. Subclasses can override {#body} to
+	# construct fresh content for each request.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
 		# @parameter resolver [Resolver | Nil] The resolver used to construct live views.
-		# @parameter body [Object | Nil] Static document body content rendered before any live views.
+		# @parameter body [Object | Nil] The document body. It must respond to `to_html`.
 		# @parameter icon [String | Nil] The favicon URL.
 		# @parameter stylesheets [Array(String | Hash)] Stylesheets in document order. Hash entries specify link attributes.
 		# @parameter imports [Hash] JavaScript import map entries.
@@ -47,8 +47,14 @@ module Lively
 		# @attribute [Resolver | Nil] The resolver used to construct live views.
 		attr :resolver
 		
-		# @attribute [Object | Nil] The document body.
-		attr :body
+		# The renderable document body. Subclasses can override this method to
+		# construct request-specific content.
+		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
+		# @parameter parameters [Hash] The decoded query parameters.
+		# @returns [Object | Nil] The body, which must respond to `to_html`.
+		def body(request = nil, parameters = {})
+			return @body
+		end
 		
 		# @attribute [String | Nil] The favicon URL.
 		attr :icon
@@ -67,26 +73,6 @@ module Lively
 		
 		# @attribute [XRB::Template] The document template.
 		attr :template
-		
-		# Construct a live view for the page.
-		# @parameter view_class [Class] The view class to construct.
-		# @parameter arguments [Hash] Additional keyword arguments for the view.
-		# @returns [Live::View] The constructed view.
-		# @raises [ArgumentError] If no resolver was provided or the view is not allowed.
-		def view(view_class, **arguments)
-			raise ArgumentError, "A resolver is required to construct views!" unless @resolver
-			
-			return @resolver.make(view_class, **arguments)
-		end
-		
-		# Construct the live views for a request. Subclasses can override this method
-		# to return zero or more views in document order.
-		# @returns [Array(Live::View)] The views in document order.
-		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
-		# @parameter parameters [Hash] The decoded query parameters.
-		def views(request = nil, parameters = {})
-			return []
-		end
 		
 		# The opening body tag including configured attributes.
 		# @returns [XRB::Tag]
@@ -107,25 +93,14 @@ module Lively
 			XRB::Tag.closed("link", {rel: "stylesheet", type: "text/css"}.merge(attributes))
 		end
 		
-		# The rendered static body and live views.
+		# The rendered document body.
 		# @returns [Object]
 		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
 		# @parameter parameters [Hash] The decoded query parameters.
 		def body_content(request = nil, parameters = {})
 			return @rendered_body if @rendered_body
 			
-			views = self.views(request, parameters)
-			
-			XRB::Builder.fragment do |builder|
-				if @body
-					body = @body.respond_to?(:to_html) ? @body.to_html : @body
-					builder << body
-				end
-				
-				views.each do |view|
-					builder << view.to_html
-				end
-			end
+			return self.body(request, parameters)&.to_html || ""
 		end
 		
 		# The serialized JavaScript import map.

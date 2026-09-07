@@ -32,37 +32,6 @@ describe Lively::Page do
 	end
 	
 	with "#to_html" do
-		it "renders views supplied by a page subclass in document order" do
-			first_view = Class.new(Live::View) do
-				def self.name
-					"FirstView"
-				end
-				
-				def render(builder)
-					builder.text("First view")
-				end
-			end
-			second_view = Class.new(Live::View) do
-				def self.name
-					"SecondView"
-				end
-				
-				def render(builder)
-					builder.text("Second view")
-				end
-			end
-			page_class = Class.new(subject) do
-				define_method(:views) do |_request, _parameters|
-					[view(first_view), view(second_view)]
-				end
-			end
-			resolver = Lively::Resolver.new.allow(first_view, second_view)
-			
-			html = page_class.new(resolver: resolver).to_html
-			
-			expect(html.index("First view")).to be < html.index("Second view")
-		end
-		
 		it "passes the request and parameters to the page subclass" do
 			view_class = Class.new(Live::View) do
 				def self.name
@@ -79,8 +48,8 @@ describe Lively::Page do
 				end
 			end
 			page_class = Class.new(subject) do
-				define_method(:views) do |request, parameters|
-					[view(view_class, message: "#{request.method}:#{parameters.fetch("message")}")]
+				define_method(:body) do |request, parameters|
+					resolver.make(view_class, message: "#{request.method}:#{parameters.fetch("message")}")
 				end
 			end
 			resolver = Lively::Resolver.new.allow(view_class)
