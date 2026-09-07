@@ -25,15 +25,14 @@ module Lively
 		# @parameter view_class [Class] The view class to construct.
 		# @parameter id [String] The unique identifier for the view.
 		# @parameter data [Hash] The data associated with the view.
-		# @parameter arguments [Hash] Additional keyword arguments for the view.
 		# @returns [Live::View] A new view instance.
 		# @raises [ArgumentError] If the view class is not allowed.
-		def make(view_class, id: view_class.unique_id, data: {}, **arguments)
+		def make(view_class, id: view_class.unique_id, data: {})
 			unless @allowed[view_class.name].equal?(view_class)
 				raise ArgumentError, "View class is not allowed: #{view_class}!"
 			end
 			
-			view_class.new(id, data, **@state, **arguments)
+			view_class.new(id, data, **@state)
 		end
 		
 		# Resolve a client-side element to a server-side instance with shared state.
