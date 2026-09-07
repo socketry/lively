@@ -35,7 +35,7 @@ describe Lively::HelloWorld do
 	include Sus::Fixtures::Async
 	include Sus::Fixtures::Console
 	
-	let(:hello_world) {Lively::HelloWorld.new}
+	let(:hello_world) {Lively::HelloWorld.root}
 	
 	with "#initialize" do
 		it "creates a new HelloWorld instance" do
@@ -147,8 +147,8 @@ describe Lively::HelloWorld do
 			
 			code_example = builder.content.find{|c| c.include?("#!/usr/bin/env lively")}
 			expect(code_example).not.to be_nil
-			expect(code_example.include?("class Application")).to be == true
-			expect(code_example.include?("Lively::HelloWorld.new")).to be == true
+			expect(code_example.include?("Application =")).to be == true
+			expect(code_example.include?("Lively::Application[Lively::HelloWorld]")).to be == true
 		end
 		
 		it "includes examples directory reference" do

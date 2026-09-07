@@ -82,7 +82,7 @@ class GameState
 end
 
 class GameView < Live::View
-	def initialize(id = self.class.unique_id, data = {}, game_state: nil)
+	def initialize(id, data, game_state: nil)
 		super(id, data)
 		@game_state = game_state
 	end
@@ -118,12 +118,12 @@ class Application < Lively::Application
 	
 	def configure_routes(router)
 		router.get("/") do
-			body = resolver.make(DisplayView)
+			body = resolver.root(DisplayView)
 			Lively::Pages::Index.new(title: title, body: body).call
 		end
 		
 		router.get("/control") do
-			body = resolver.make(ControlView)
+			body = resolver.root(ControlView)
 			Lively::Pages::Index.new(title: title, body: body).call
 		end
 	end

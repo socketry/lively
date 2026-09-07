@@ -64,11 +64,7 @@ module Lively
 				builder.text(<<~TEXT)
 					#!/usr/bin/env lively
 					
-					class Application < Lively::Application
-						def body
-							Lively::HelloWorld.new
-						end
-					end
+					Application = Lively::Application[Lively::HelloWorld]
 				TEXT
 			end
 			

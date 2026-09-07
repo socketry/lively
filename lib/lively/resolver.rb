@@ -21,28 +21,11 @@ module Lively
 		# @attribute [Hash] The shared state passed to view constructors.
 		attr :state
 		
-		# Construct an allowed view with shared state.
-		# @parameter view_class [Class] The view class to construct.
-		# @parameter id [String] The unique identifier for the view.
-		# @parameter data [Hash] The data associated with the view.
-		# @returns [Live::View] A new view instance.
-		# @raises [ArgumentError] If the view class is not allowed.
-		def make(view_class, id: view_class.unique_id, data: {})
-			unless @allowed[view_class.name].equal?(view_class)
-				raise ArgumentError, "View class is not allowed: #{view_class}!"
-			end
-			
-			view_class.new(id, data, **@state)
-		end
+		private
 		
-		# Resolve a client-side element to a server-side instance with shared state.
-		# @parameter id [String] The unique element identifier.
-		# @parameter data [Hash] The element data attributes.
-		# @returns [Live::Element | Nil] The resolved element, or `nil`.
-		def call(id, data)
-			if klass = @allowed[data[:class]]
-				return self.make(klass, id: id, data: data)
-			end
+		# Construct a view with shared application state.
+		def make(view_class, id, data, **options)
+			super(view_class, id, data, **@state, **options)
 		end
 	end
 end

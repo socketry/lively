@@ -84,7 +84,7 @@ module Lively
 		def configure_routes(router)
 			router.get("/") do
 				view_class = self.allowed_views.first
-				body = self.resolver.make(view_class) if view_class
+				body = self.resolver.root(view_class) if view_class
 				Pages::Index.new(title: self.title, body: body).call
 			end
 		end

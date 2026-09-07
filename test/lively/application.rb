@@ -40,7 +40,7 @@ describe Lively::Application do
 		
 		it "renders the custom view at the root route with shared state" do
 			tag_class = Class.new(Live::View) do
-				def initialize(id = self.class.unique_id, data = {}, message:)
+				def initialize(id, data, message:)
 					super(id, data)
 					@message = message
 				end
@@ -172,9 +172,9 @@ describe Lively::Application do
 		it "constructs the root view only when its route is requested" do
 			resolved = []
 			resolver = Object.new
-			resolver.define_singleton_method(:make) do |view_class|
+			resolver.define_singleton_method(:root) do |view_class|
 				resolved << view_class
-				view_class.new
+				view_class.root
 			end
 			
 			application_class = Class.new(Lively::Application) do
@@ -229,7 +229,7 @@ describe Lively::Application do
 				
 				define_method(:configure_routes) do |router|
 					router.get("/") do
-						body = resolver.make(root_view)
+						body = resolver.root(root_view)
 						Lively::Pages::Index.new(title: title, body: body).call
 					end
 				end
@@ -255,7 +255,7 @@ describe Lively::Application do
 			application_class = Class.new(Lively::Application) do
 				def configure_routes(router)
 					router.get("/") do
-						body = resolver.make(Lively::HelloWorld)
+						body = resolver.root(Lively::HelloWorld)
 						Lively::Pages::Index.new(title: title, body: body).call
 					end
 				end
