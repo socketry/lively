@@ -151,8 +151,6 @@ module Lively
 			return if reference&.fragment?
 			
 			return reference
-		rescue ArgumentError
-			nil
 		end
 		
 	end
