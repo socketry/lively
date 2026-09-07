@@ -80,7 +80,7 @@ describe Lively::Page do
 			expect(html).not.to be(:include?, 'rel="stylesheet"')
 			expect(html).not.to be(:include?, 'type="importmap"')
 			expect(html).not.to be(:include?, 'type="module"')
-			expect(html).to be(:include?, "No body specified!")
+			expect(html).not.to be(:include?, "No body specified!")
 		end
 		
 		it "escapes document values" do

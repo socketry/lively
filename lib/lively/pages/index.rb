@@ -29,15 +29,20 @@ module Lively
 			
 			# Initialize a new index page.
 			# @parameter title [String] The title of the page.
-			# @parameter body [Object] The body content of the page.
-			def initialize(title: "Lively", body: nil)
+			# @parameter resolver [Resolver | Nil] The resolver used to construct live views.
+			# @parameter body [Object | Nil] Static body content rendered before any live views.
+			# @yields {|page| ...} Configures the live views composed by this page.
+			# 	@parameter page [Page] The page being configured.
+			def initialize(title: "Lively", resolver: nil, body: nil, &block)
 				super(
 					title: title,
+					resolver: resolver,
 					body: body,
 					icon: ICON,
 					stylesheets: STYLESHEETS,
 					imports: IMPORTS,
 					modules: MODULES,
+					&block
 				)
 			end
 		end

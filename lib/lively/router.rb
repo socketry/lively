@@ -30,12 +30,15 @@ module Lively
 		# it may be a single method or an array of methods.
 		#
 		# @parameter path [String] The absolute path to match.
+		# @parameter handler [Interface(:call) | Nil] A callable route handler.
 		# @parameter methods [String | Symbol | Array(String | Symbol) | Nil] The accepted HTTP methods.
 		# @yields {|request, parameters| ...} The route handler.
 		# 	@parameter request [Protocol::HTTP::Request] The original request.
 		# 	@parameter parameters [Hash] The decoded query parameters.
 		# @returns [Router] The router.
-		def route(path, methods: nil, &handler)
+		def route(path, handler = nil, methods: nil, &block)
+			raise ArgumentError, "Provide a route handler or block, not both!" if handler && block
+			handler ||= block
 			raise ArgumentError, "A route handler is required!" unless handler
 			
 			path = route_path(path)
@@ -58,8 +61,8 @@ module Lively
 			# @parameter path [String] The absolute path to match.
 			# @yields {|request, parameters| ...} The route handler.
 			# @returns [Router] The router.
-			define_method(name) do |path, &handler|
-				route(path, methods: method, &handler)
+			define_method(name) do |path, handler = nil, &block|
+				route(path, handler, methods: method, &block)
 			end
 		end
 		

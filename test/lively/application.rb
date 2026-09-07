@@ -164,63 +164,6 @@ describe Lively::Application do
 		end
 	end
 	
-	with "#make_view" do
-		it "constructs a view with shared state and route arguments" do
-			view_class = Class.new(Live::View) do
-				def initialize(id = self.class.unique_id, data = {}, message:, prefix:)
-					super(id, data)
-					@text = "#{prefix}: #{message}"
-				end
-				
-				attr :text
-			end
-			
-			application_class = Class.new(Lively::Application) do
-				define_method(:state) {{prefix: "Shared"}}
-			end
-			
-			view = application_class.new(delegate).make_view(view_class, message: "Hello")
-			
-			expect(view.text).to be == "Shared: Hello"
-		end
-	end
-	
-	with "#make_page" do
-		it "constructs the default page around a view" do
-			view = Lively::HelloWorld.new
-			page = application.make_page(view)
-			
-			expect(page).to be_a(Lively::Pages::Index)
-			expect(page.title).to be == application.title
-			expect(page.body).to be == view
-		end
-	end
-	
-	with "#render_view" do
-		it "renders a view as an HTTP response" do
-			request = Protocol::HTTP::Request["GET", "/"]
-			response = application.render_view(request, Lively::HelloWorld)
-			
-			expect(response.status).to be == 200
-			expect(response.read).to be(:include?, "Hello, I'm Lively!")
-		end
-		
-		it "uses the application page" do
-			application_class = Class.new(Lively::Application) do
-				private
-				
-				def make_page(view)
-					Lively::Pages::Index.new(title: "Custom Page", body: view)
-				end
-			end
-			
-			request = Protocol::HTTP::Request["GET", "/"]
-			response = application_class.new(delegate).render_view(request, Lively::HelloWorld)
-			
-			expect(response.read).to be(:include?, "<title>Custom Page</title>")
-		end
-	end
-	
 	with "#handle" do
 		it "delegates unmatched requests" do
 			response = application.handle(Protocol::HTTP::Request.new("http", "localhost", "GET", "/unknown"))
@@ -275,9 +218,11 @@ describe Lively::Application do
 				define_method(:allowed_views) {[other_view, root_view]}
 				
 				define_method(:configure_routes) do |router|
-					router.get("/") do |request|
-						render_view(request, root_view)
+					page = Lively::Pages::Index.new(title: title, resolver: resolver) do |page|
+						page.view(root_view)
 					end
+					
+					router.get("/", page)
 				end
 			end
 			
@@ -292,9 +237,11 @@ describe Lively::Application do
 		it "preserves system routes when application routes are replaced" do
 			application_class = Class.new(Lively::Application) do
 				def configure_routes(router)
-					router.get("/") do |request|
-						render_view(request, Lively::HelloWorld)
+					page = Lively::Pages::Index.new(title: title, resolver: resolver) do |page|
+						page.view(Lively::HelloWorld)
 					end
+					
+					router.get("/", page)
 				end
 			end
 			

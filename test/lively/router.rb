@@ -11,6 +11,21 @@ describe Lively::Router do
 	end
 	
 	with "exact routes" do
+		it "dispatches to callable handlers" do
+			handler = Object.new
+			def handler.call(request, parameters)
+				Protocol::HTTP::Response[200, [], ["#{request.method}:#{parameters.fetch("message")}"]]
+			end
+			
+			router = subject.new do |router|
+				router.get("/example", handler)
+			end
+			
+			response = router.call(request("GET", "/example?message=Hello"))
+			
+			expect(response.read).to be == "GET:Hello"
+		end
+		
 		it "dispatches by path and method" do
 			router = subject.new do |router|
 				router.get("/example") do |request, parameters|
@@ -79,6 +94,14 @@ describe Lively::Router do
 	end
 	
 	with "invalid input" do
+		it "rejects a handler and block together" do
+			handler = proc{Protocol::HTTP::Response[200]}
+			
+			expect do
+				subject.new{|router| router.get("/example", handler){Protocol::HTTP::Response[201]}}
+			end.to raise_exception(ArgumentError)
+		end
+		
 		it "rejects relative route paths" do
 			expect do
 				subject.new{|router| router.get("example"){}}

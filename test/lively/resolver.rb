@@ -51,5 +51,34 @@ describe Lively::Resolver do
 			expect(view).to be_a(view_class)
 			expect(view.controller).to be == state_value
 		end
+		
+		it "constructs allowed views with state and page arguments" do
+			view_class = Class.new(Live::View) do
+				def initialize(id = self.class.unique_id, data = {}, controller: nil, message:)
+					super(id, data)
+					@controller = controller
+					@message = message
+				end
+				
+				attr :controller
+				attr :message
+			end
+			
+			resolver.allow(view_class)
+			view = resolver.make(view_class, id: "root", data: {mode: "test"}, message: "Hello")
+			
+			expect(view.id).to be == "root"
+			expect(view.data[:mode]).to be == "test"
+			expect(view.controller).to be == state_value
+			expect(view.message).to be == "Hello"
+		end
+		
+		it "rejects views which are not allowed" do
+			view_class = Class.new(Live::View)
+			
+			expect do
+				resolver.make(view_class)
+			end.to raise_exception(ArgumentError, message: be =~ /not allowed/)
+		end
 	end
 end

@@ -12,22 +12,27 @@ require "xrb/template"
 module Lively
 	# Represents a complete HTML document.
 	#
-	# A page combines application content with the stylesheets, import map,
-	# JavaScript modules, and body attributes required to present it. Applications
-	# can use this class directly or subclass it to provide shared defaults.
+	# A page combines application content and live views with the stylesheets,
+	# import map, JavaScript modules, and body attributes required to present it.
+	# Pages are callable route handlers. A page may be registered once with a
+	# router; its composition block constructs fresh live views for each request.
 	class Page
 		TEMPLATE = XRB::Template.load_file(File.expand_path("page.xrb", __dir__))
 		
 		# Initialize a new page.
 		# @parameter title [String] The document title.
-		# @parameter body [Object | Nil] The document body. The result of `to_html` is interpolated into the template.
+		# @parameter resolver [Resolver | Nil] The resolver used to construct live views.
+		# @parameter body [Object | Nil] Static document body content rendered before any live views.
 		# @parameter icon [String | Nil] The favicon URL.
 		# @parameter stylesheets [Array(String | Hash)] Stylesheets in document order. Hash entries specify link attributes.
 		# @parameter imports [Hash] JavaScript import map entries.
 		# @parameter modules [Array(String)] JavaScript module URLs in document order.
 		# @parameter body_attributes [Hash] Attributes applied to the body element.
-		def initialize(title: "Lively", body: nil, icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {})
+		# @yields {|page| ...} Configures the live views composed by this page.
+		# 	@parameter page [Page] The page being configured.
+		def initialize(title: "Lively", resolver: nil, body: nil, icon: nil, stylesheets: [], imports: {}, modules: [], body_attributes: {}, &composition)
 			@title = title
+			@resolver = resolver
 			@body = body
 			@icon = icon
 			@stylesheets = stylesheets
@@ -35,10 +40,16 @@ module Lively
 			@modules = modules
 			@body_attributes = body_attributes
 			@template = TEMPLATE
+			@composition = composition
+			@views = nil
+			@rendered_body = nil
 		end
 		
 		# @attribute [String] The document title.
 		attr :title
+		
+		# @attribute [Resolver | Nil] The resolver used to construct live views.
+		attr :resolver
 		
 		# @attribute [Object | Nil] The document body.
 		attr :body
@@ -61,6 +72,35 @@ module Lively
 		# @attribute [XRB::Template] The document template.
 		attr :template
 		
+		# Construct and append a live view to the page.
+		# @parameter view_class [Class] The view class to construct.
+		# @parameter arguments [Hash] Additional keyword arguments for the view.
+		# @returns [Live::View] The constructed view.
+		# @raises [ArgumentError] If no resolver was provided or the view is not allowed.
+		def view(view_class, **arguments)
+			raise ArgumentError, "A resolver is required to construct views!" unless @resolver
+			raise RuntimeError, "Views can only be constructed while composing a page!" unless @views
+			
+			view = @resolver.make(view_class, **arguments)
+			@views << view
+			
+			return view
+		end
+		
+		# The live views composed by this page.
+		# @returns [Array(Live::View)] The views in document order.
+		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
+		# @parameter parameters [Hash] The decoded query parameters.
+		def views(request = nil, parameters = {})
+			composition = self.dup
+			composition.instance_variable_set(:@views, [])
+			composition.instance_variable_set(:@composition, nil)
+			
+			@composition&.call(composition, request, parameters)
+			
+			return composition.instance_variable_get(:@views)
+		end
+		
 		# The opening body tag including configured attributes.
 		# @returns [XRB::Tag]
 		def body_tag
@@ -80,10 +120,25 @@ module Lively
 			XRB::Tag.closed("link", {rel: "stylesheet", type: "text/css"}.merge(attributes))
 		end
 		
-		# The rendered body content.
+		# The rendered static body and live views.
 		# @returns [Object]
-		def body_content
-			@body&.to_html || "No body specified!"
+		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
+		# @parameter parameters [Hash] The decoded query parameters.
+		def body_content(request = nil, parameters = {})
+			return @rendered_body if @rendered_body
+			
+			views = self.views(request, parameters)
+			
+			XRB::Builder.fragment do |builder|
+				if @body
+					body = @body.respond_to?(:to_html) ? @body.to_html : @body
+					builder << body
+				end
+				
+				views.each do |view|
+					builder << view.to_html
+				end
+			end
 		end
 		
 		# The serialized JavaScript import map.
@@ -96,16 +151,22 @@ module Lively
 		end
 		
 		# Render this page to an HTML string.
+		# @parameter request [Protocol::HTTP::Request | Nil] The incoming request.
+		# @parameter parameters [Hash] The decoded query parameters.
 		# @returns [String]
-		def to_html
-			@template.to_string(self)
+		def to_html(request = nil, parameters = {})
+			rendering = self.dup
+			rendering.instance_variable_set(:@rendered_body, body_content(request, parameters))
+			
+			@template.to_string(rendering)
 		end
 		
 		# Render this page as an HTTP response.
 		# @parameter request [Protocol::HTTP::Request] The incoming request.
 		# @returns [Protocol::HTTP::Response] A successful HTML response.
-		def call(request)
-			Protocol::HTTP::Response[200, {"content-type" => "text/html; charset=utf-8"}, [to_html]]
+		# @parameter parameters [Hash] The decoded query parameters.
+		def call(request, parameters = {})
+			Protocol::HTTP::Response[200, {"content-type" => "text/html; charset=utf-8"}, [to_html(request, parameters)]]
 		end
 	end
 end
