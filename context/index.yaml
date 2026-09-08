@@ -3,6 +3,8 @@
 ---
 description: A simple client-server SPA framework.
 metadata:
+  bug_tracker_uri: https://github.com/socketry/lively/issues
+  changelog_uri: https://github.com/socketry/lively/blob/main/releases.md
   documentation_uri: https://socketry.github.io/lively/
   source_code_uri: https://github.com/socketry/lively.git
 files:

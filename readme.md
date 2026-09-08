@@ -22,6 +22,10 @@ Please see the [project documentation](https://socketry.github.io/lively/) for m
 
 Please see the [project releases](https://socketry.github.io/lively/releases/index) for all releases.
 
+### v0.24.0
+
+  - [Web Packages](https://socketry.github.io/lively/releases/index#web-packages)
+
 ### v0.18.0
 
   - Add support for HTTY.
@@ -58,10 +62,6 @@ Please see the [project releases](https://socketry.github.io/lively/releases/ind
 ### v0.14.0
 
   - Fixed guide rendering and test suite.
-
-### v0.13.1
-
-  - Tidied up gem dependencies.
 
 ## See Also
 
