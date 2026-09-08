@@ -1,8 +1,10 @@
 getting-started:
   order: 1
-worms-tutorial:
+client-javascript-packages:
   order: 2
-flappy-bird-tutorial:
+worms-tutorial:
   order: 3
-game-audio-tutorial:
+flappy-bird-tutorial:
   order: 4
+game-audio-tutorial:
+  order: 5

@@ -266,6 +266,11 @@ var specialElHandlers = {
                 if (nodeName === 'OPTGROUP') {
                     optgroup = curChild;
                     curChild = optgroup.firstChild;
+                    // handle empty optgroups
+                    if (!curChild) {
+                        curChild = optgroup.nextSibling;
+                        optgroup = null;
+                    }
                 } else {
                     if (nodeName === 'OPTION') {
                         if (curChild.hasAttribute('selected')) {
@@ -308,10 +313,19 @@ function morphdomFactory(morphAttrs) {
     }
 
     if (typeof toNode === 'string') {
-      if (fromNode.nodeName === '#document' || fromNode.nodeName === 'HTML' || fromNode.nodeName === 'BODY') {
+      if (fromNode.nodeName === '#document' || fromNode.nodeName === 'HTML') {
         var toNodeHtml = toNode;
         toNode = doc.createElement('html');
         toNode.innerHTML = toNodeHtml;
+      } else if (fromNode.nodeName === 'BODY') {
+        var toNodeBody = toNode;
+        toNode = doc.createElement('html');
+        toNode.innerHTML = toNodeBody;
+        // Extract the body element from the created HTML structure
+        var bodyElement = toNode.querySelector('body');
+        if (bodyElement) {
+          toNode = bodyElement;
+        }
       } else {
         toNode = toElement(toNode);
       }
@@ -491,8 +505,16 @@ function morphdomFactory(morphAttrs) {
 
       if (!childrenOnly) {
         // optional
-        if (onBeforeElUpdated(fromEl, toEl) === false) {
+        var beforeUpdateResult = onBeforeElUpdated(fromEl, toEl);
+        if (beforeUpdateResult === false) {
           return;
+        } else if (beforeUpdateResult instanceof HTMLElement) {
+          fromEl = beforeUpdateResult;
+          // reindex the new fromEl in case it's not in the same
+          // tree as the original fromEl
+          // (Phoenix LiveView sometimes returns a cloned tree,
+          //  but keyed lookups would still point to the original tree)
+          indexTree(fromEl);
         }
 
         // update attributes on original DOM element first
