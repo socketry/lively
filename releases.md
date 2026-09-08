@@ -1,5 +1,11 @@
 # Releases
 
+## Unreleased
+
+### Web Packages
+
+Lively now uses `web-packages` v0.2 after the project was renamed from `bake-node`. Client package configuration now uses the `web-packages` key, package projections are managed through the `web:packages` Bake namespace, and the unchanged projection manifest is now stored as `.manifest.json`.
+
 ## v0.18.0
 
   - Add support for HTTY.
