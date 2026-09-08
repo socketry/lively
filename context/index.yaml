@@ -10,6 +10,10 @@ files:
   title: Getting Started
   description: This guide will help you get started with Lively, a framework for building
     real-time applications in Ruby.
+- path: client-javascript-packages.md
+  title: Client JavaScript Packages
+  description: This guide explains how to organize, test, and deploy client-side JavaScript
+    packages in a Lively application.
 - path: worms-tutorial.md
   title: Building a Worms Game with Lively
   description: This tutorial will guide you through creating a Worms-style game using

@@ -5,6 +5,7 @@
 /gems.locked
 /.covered.db
 /external
+/node_modules
 
 /.github/workflows/test-external.yaml
 /examples/*/*.sqlite3*

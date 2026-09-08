@@ -1,9 +1,36 @@
 {
+	"name": "lively",
+	"private": true,
 	"dependencies": {
 		"@socketry/live": "^0.17.0",
 		"@socketry/live-audio": "^0.5.0"
 	},
-	"scripts": {
-		"postinstall": "bundle exec bake utopia:node:update"
+	"bake-node": {
+		"packages": {
+			"@socketry/live": {
+				"include": [
+					"Live.js"
+				],
+				"imports": {
+					"live": "Live.js"
+				}
+			},
+			"@socketry/live-audio": {
+				"include": [
+					"Live/**/*.js"
+				],
+				"imports": {
+					"live-audio": "Live/Audio.js"
+				}
+			},
+			"morphdom": {
+				"include": [
+					"morphdom-esm.js"
+				],
+				"imports": {
+					"morphdom": "morphdom-esm.js"
+				}
+			}
+		}
 	}
 }

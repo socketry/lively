@@ -10,6 +10,8 @@ Please see the [project documentation](https://socketry.github.io/lively/) for m
 
   - [Getting Started](https://socketry.github.io/lively/guides/getting-started/index) - This guide will help you get started with Lively, a framework for building real-time applications in Ruby.
 
+  - [Client JavaScript Packages](https://socketry.github.io/lively/guides/client-javascript-packages/index) - This guide explains how to organize, test, and deploy client-side JavaScript packages in a Lively application.
+
   - [Building a Worms Game with Lively](https://socketry.github.io/lively/guides/worms-tutorial/index) - This tutorial will guide you through creating a Worms-style game using Lively, a Ruby framework for building real-time applications.
 
   - [Building a Flappy Bird Game with Live Views](https://socketry.github.io/lively/guides/flappy-bird-tutorial/index) - This tutorial will guide you through creating a complete Flappy Bird-style game using Live Views, a Ruby framework for building real-time interactive applications.

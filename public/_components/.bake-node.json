@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "base": "/_components/",
+  "imports": {
+    "live": "/_components/@socketry/live/Live.js",
+    "live-audio": "/_components/@socketry/live-audio/Live/Audio.js",
+    "morphdom": "/_components/morphdom/morphdom-esm.js"
+  },
+  "packages": {
+    "@socketry/live": {
+      "version": "0.17.0",
+      "source": ".",
+      "files": {
+        "Live.js": "c036db246f9530240788b499c197d65356e81c9022bf927e260a267b7729f256"
+      }
+    },
+    "@socketry/live-audio": {
+      "version": "0.5.1",
+      "source": ".",
+      "files": {
+        "Live/Audio.js": "786d04e3fef1ae228bbf9784c013c63f6a77fad3ec97e38de4627b7b6fae5fc6",
+        "Live/Audio/Controller.js": "808e70ce652227cf2db50f7a4a86c328026d8bd2d2971ed4b9cbab47c139b587",
+        "Live/Audio/Library.js": "5c42c2f88c80241f03e791627934ce4f4a07094d1e36b1a5e01a56c5ac657498",
+        "Live/Audio/Output.js": "7d38b7a8fea6c3225ff854c8fcc671e783fbe95bcfb7edaae37886d430cd52e0",
+        "Live/Audio/Sound.js": "5b43b81409bee5dc4a4ee78bf70fcfcf84014e8f1c6237fa4978760be4ff4b83",
+        "Live/Audio/Visualizer.js": "9d0fd06fb3d9dca70e3e1a29445ec34dc1818d0132f50b358450c44953a60a22"
+      }
+    },
+    "morphdom": {
+      "version": "2.7.8",
+      "source": "dist",
+      "files": {
+        "morphdom-esm.js": "b5ecceffde9493a3e5f6d1ca80277f580a1146ca3b3e0091cb3c398d6b2754b3"
+      }
+    }
+  },
+  "digest": "fdddf14f8aab179ed60bceeb4767c45132426324d05eb94301936397ca78e402"
+}
