@@ -19,13 +19,13 @@ group :maintenance, optional: true do
 	gem "agent-context"
 	
 	gem "utopia-project"
+	
+	gem "decode"
 end
 
 group :test do
 	gem "sus"
 	gem "covered"
-	gem "decode"
-	
 	gem "rubocop"
 	gem "rubocop-md"
 	gem "rubocop-socketry"
@@ -35,5 +35,4 @@ group :test do
 	gem "sus-fixtures-console"
 	
 	gem "bake-test"
-	gem "bake-test-external"
 end

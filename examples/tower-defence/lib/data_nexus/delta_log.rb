@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by Samuel Williams.
+
 module DataNexus
 	# A generic log-based key-value store with per-reader delta compression.
 	#

@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by Samuel Williams.
+
 module DataNexus
 	# Shared game controller — owns the GameWorld and the tick loop.
 	# Passed to all GameView instances via Lively's shared state mechanism.

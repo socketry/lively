@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by Samuel Williams.
+
 # End-to-end world tick benchmarks.
 #
 # Measures a complete GameWorld#tick(dt) at three game-state snapshots that

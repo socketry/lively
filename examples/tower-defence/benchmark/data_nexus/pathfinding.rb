@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by Samuel Williams.
+
 # Benchmarks for HexGrid A* pathfinding — the primary known bottleneck.
 #
 # Enemies recalculate their path every PATH_RECALC_INTERVAL seconds (5s).

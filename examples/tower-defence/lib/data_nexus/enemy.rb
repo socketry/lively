@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by Samuel Williams.
+
 module DataNexus
 	class Enemy
 		attr_reader :id, :x, :y, :hp, :max_hp, :type, :drops, :size, :color

@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by Samuel Williams.
+
 module DataNexus
 	# A firewall can be placed on any hex tile. It deals massive damage to
 	# enemies that pass through it, but takes damage proportional to the

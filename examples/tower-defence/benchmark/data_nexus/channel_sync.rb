@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by Samuel Williams.
+
 # Benchmarks for delta-channel state synchronisation.
 #
 # sync_channels() runs every tick and diffs all entity state into the DeltaLog

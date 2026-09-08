@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Released under the MIT License.
+# Copyright, 2026, by Samuel Williams.
+
 module DataNexus
 	class DroppedCube
 		attr_reader :id, :x, :y, :type, :count, :color
