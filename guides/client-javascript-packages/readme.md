@@ -6,7 +6,7 @@ This guide explains how to organize, test, and deploy client-side JavaScript pac
 
 Small application entry points can live directly in `public/`. As client behavior grows, keeping reusable modules, their dependencies, and their tests in a workspace package gives that code an explicit boundary independent of the Ruby application.
 
-Lively uses `bake-node` to maintain three distinct layers:
+Lively uses `web-packages` to maintain three distinct layers:
 
 ~~~ text
 components/                 # Authored JavaScript packages and their tests.
@@ -44,7 +44,7 @@ Define the package entry point and test command in `components/presentation/pack
 }
 ~~~
 
-The package can use any browser-ready JavaScript modules. `bake-node` projects those modules for static delivery; it does not require a bundling or transpilation step.
+The package can use any browser-ready JavaScript modules. `web-packages` projects those modules for static delivery; it does not require a bundling or transpilation step.
 
 ## Configure the Workspace
 
@@ -59,7 +59,7 @@ Register internal packages as workspaces in the application's root `package.json
   "scripts": {
     "test": "npm test --workspaces --if-present"
   },
-  "bake-node": {
+  "web-packages": {
     "packages": {
       "@example/presentation": {
         "include": [
@@ -77,8 +77,8 @@ Register internal packages as workspaces in the application's root `package.json
 Install dependencies and generate the browser-facing projection:
 
 ~~~ bash
-$ bundle exec bake node:install
-$ bundle exec bake node:packages:static
+$ bundle exec bake web:packages:install
+$ bundle exec bake web:packages:update
 ~~~
 
 The package is now available at `/_components/@example/presentation/Presentation.js`.
@@ -126,10 +126,10 @@ $ npm test
 When generated packages are committed or deployed with the application, verify that they match the lock file and package configuration:
 
 ~~~ bash
-$ bundle exec bake node:install frozen=true
-$ bundle exec bake node:packages:check
+$ bundle exec bake web:packages:install frozen=true
+$ bundle exec bake web:packages:check
 ~~~
 
 The first command checks that dependency installation is reproducible. The second checks both the generated manifest and the contents of `public/_components`.
 
-For details about package selection, import maps, and alternative package managers, see the [Bake Node documentation](https://socketry.github.io/bake-node/).
+For details about package selection, import maps, and alternative package managers, see the [Web Packages documentation](https://socketry.github.io/web-packages/).

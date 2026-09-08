@@ -24,7 +24,7 @@ jobs:
         cache: npm
 
     - name: Install dependencies
-      run: bundle exec bake node:install frozen=true
+      run: bundle exec bake web:packages:install frozen=true
 
     - name: Check static packages
-      run: bundle exec bake node:packages:check
+      run: bundle exec bake web:packages:check
