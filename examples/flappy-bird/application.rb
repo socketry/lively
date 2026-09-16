@@ -560,7 +560,6 @@ class FlappyBirdView < Live::View
 	end
 end
 
-
 class MultiplayerState
 	MINIMUM_PLAYERS = 1
 	GAME_START_TIMEOUT = 5
@@ -570,8 +569,7 @@ class MultiplayerState
 		@players = nil
 		
 		@player_joined = Async::Condition.new
-		
-		@game = self.run!
+		@game = nil
 	end
 	
 	attr :players
@@ -613,6 +611,7 @@ class MultiplayerState
 		# Console.info(self, "Adding player: #{player}")
 		@joined << player
 		player.preparing("Waiting for other players...")
+		@game ||= self.run!
 		@player_joined.signal
 	end
 	
