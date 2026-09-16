@@ -46,22 +46,20 @@ end
 
 # Character class: represents a person or creature you can talk to.
 class Character
-	attr_reader :name, :dialogue, :quest_item, :reward_item, :quest_complete
+	attr_reader :name, :dialogue, :quest_items, :reward_item, :quest_complete
 	attr_accessor :dialogue_index
 	
-	def initialize(name, dialogue, quest_item = nil, reward_item = nil)
+	def initialize(name, dialogue, quest_items = nil, reward_item = nil)
 		@name = name
 		@dialogue = dialogue.is_a?(Array) ? dialogue : [dialogue]
-		@quest_item = quest_item # Item they want
+		@quest_items = Array(quest_items) # Items they want
 		@reward_item = reward_item # Item they give
 		@dialogue_index = 0
 		@quest_complete = false
 	end
 	
 	def speak(player_inventory = [])
-		# Check if player has quest item
-		if @quest_item && !@quest_complete && player_inventory.any?{|item| item.name == @quest_item}
-			@quest_complete = true
+		if ready_to_complete?(player_inventory)
 			return "perfect_trade"
 		end
 		
@@ -74,6 +72,28 @@ class Character
 			current_dialogue
 		end
 	end
+	
+	def ready_to_complete?(player_inventory)
+		return false if @quest_complete || @quest_items.empty?
+		
+		available_items = player_inventory.map(&:name).tally
+		@quest_items.tally.all? do |name, quantity|
+			available_items.fetch(name, 0) >= quantity
+		end
+	end
+	
+	def complete_quest!(player_inventory)
+		return false unless ready_to_complete?(player_inventory)
+		
+		@quest_items.each do |name|
+			index = player_inventory.index{|item| item.name == name}
+			player_inventory.delete_at(index)
+		end
+		
+		player_inventory << @reward_item if @reward_item
+		@quest_complete = true
+		true
+	end
 end
 
 # The main adventure view.
@@ -82,6 +102,7 @@ class AdventureView < Live::View
 		super
 		@areas = build_world
 		@current_area = @areas[:forest]
+		@current_area.visited = true
 		@inventory = []
 		@messages = ["You awaken as a lost princess in a misty forest. Your beloved golden fish, Shimmer, is missing!", "You must find her before the curse becomes permanent!"]
 		@game_complete = false
@@ -120,10 +141,10 @@ class AdventureView < Live::View
 		
 		bridge.add_exit(:south, pond)
 		bridge.add_exit(:east, tower)
-		bridge.add_exit(:north, sanctuary)
+		bridge.add_exit(:west, sanctuary)
 		
 		sanctuary.add_exit(:south, garden)
-		sanctuary.add_exit(:south, bridge)
+		sanctuary.add_exit(:east, bridge)
 		
 		# Create items
 		magic_herbs = Item.new("Magic Herbs", "Glowing herbs that sparkle with magical energy.")
@@ -164,7 +185,7 @@ class AdventureView < Live::View
 			"Your fish... yes, I have her. She is safe from the curse.",
 			"But I am ANGRY! Someone stole my sacred lily!",
 			"Bring me a Crystal Shard and Moonstone, and I will return your fish."
-		], "Crystal Shard", nil) # Special character - needs multiple items
+		], ["Crystal Shard", "Moonstone"], nil)
 		
 		hermit = Character.new("Old Hermit", [
 			"*Looks up from ancient books* Princess, you seek what was lost.",
@@ -222,13 +243,14 @@ class AdventureView < Live::View
 		when "click"
 			if event[:detail][:direction]
 				dir = event[:detail][:direction].to_sym
-				if @current_area.exits[dir]
-					@current_area = @current_area.exits[dir]
+				if destination = @current_area.exits[dir]
+					first_visit = !destination.visited
+					@current_area = destination
 					@current_area.visited = true
 					@messages << "You walk #{dir} to the #{@current_area.name}."
 					
 					# Special discovery messages
-					unless @current_area.visited
+					if first_visit
 						case @current_area.name
 						when "Crystal Cave"
 							@messages << "The crystals hum with ancient magic..."
@@ -249,27 +271,17 @@ class AdventureView < Live::View
 					response = char.speak(@inventory)
 					
 					if response == "perfect_trade"
-						# Handle quest completion
-						if char.quest_item && char.reward_item
-							# Remove quest item from inventory
-							@inventory.reject!{|item| item.name == char.quest_item}
-							# Add reward item to inventory
-							@inventory << char.reward_item
-							@messages << "#{char.name} takes the #{char.quest_item} gratefully."
-							@messages << "#{char.name} gives you a #{char.reward_item.name}!"
-						elsif char.name == "Water Spirit"
-							# Special ending - needs both Crystal Shard and Moonstone
-							has_crystal = @inventory.any?{|item| item.name == "Crystal Shard"}
-							has_moonstone = @inventory.any?{|item| item.name == "Moonstone"}
-							
-							if has_crystal && has_moonstone
+						if char.complete_quest!(@inventory)
+							if char.name == "Water Spirit"
 								@messages << "The Water Spirit's eyes glow as you present both items."
 								@messages << "\"You have proven worthy, Princess. Your fish is returned!\""
 								@messages << "Shimmer swims joyfully around you - the curse is broken!"
 								@messages << "🐟✨ CONGRATULATIONS! You have completed your quest! ✨🐟"
 								@game_complete = true
-							else
-								@messages << "\"You need both a Crystal Shard AND a Moonstone to free your fish!\""
+							elsif char.reward_item
+								quest_items = char.quest_items.join(" and ")
+								@messages << "#{char.name} takes the #{quest_items} gratefully."
+								@messages << "#{char.name} gives you a #{char.reward_item.name}!"
 							end
 						end
 					else
