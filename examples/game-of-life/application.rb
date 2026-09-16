@@ -46,6 +46,10 @@ class Grid
 	def size
 		@values.size
 	end
+
+	def live_count
+		@values.count{|value| value}
+	end
 	
 	def get(x, y)
 		@values[@width * (y % @height) + (x % @width)]
@@ -204,6 +208,7 @@ class GameOfLifeView < Live::View
 			self.start
 		when "stop"
 			self.stop
+			self.update!
 		when "step"
 			self.step
 		when "reset"
@@ -229,44 +234,86 @@ class GameOfLifeView < Live::View
 	end
 	
 	def render(builder)
-		builder.tag("div", style: "text-align: center") do
-			builder.tag("button", onclick: forward_event(action: "start")) do
-				builder.text("Start")
+		builder.tag("div", class: "game-of-life") do
+			builder.tag("div", class: "game-header") do
+				builder.tag("p", class: "eyebrow") do
+					builder.text("Cellular automaton")
+				end
+
+				builder.tag("h1") do
+					builder.text("Conway's Game of Life")
+				end
+
+				builder.tag("p", class: "introduction") do
+					builder.text("Create a pattern, then watch a few simple rules bring it to life.")
+				end
 			end
-			
-			builder.tag("button", onclick: forward_event(action: "stop")) do
-				builder.text("Stop")
-			end
-			
-			builder.tag("button", onclick: forward_event(action: "step")) do
-				builder.text("Step")
-			end
-			
-			builder.tag("button", onclick: forward_event(action: "reset")) do
-				builder.text("Reset")
-			end
-			
-			builder.tag("button", onclick: forward_event(action: "randomize")) do
-				builder.text("Randomize")
-			end
-			
-			builder.tag("button", onclick: forward_event(action: "heart")) do
-				builder.text("Heart")
-			end
-		end
-		
-		builder.tag("table", onclick: forward_coordinate) do
-			@grid.rows do |y, row|
-				builder.tag("tr") do
-					row.count.times do |x|
-						style = []
-						
-						if color = @grid.get(x, y)
-							style << "background-color: #{color}"
-						end
-						
-						builder.inline("td", style: style.join(";"))
+
+			builder.tag("div", class: "game-panel") do
+				builder.tag("div", class: "game-meta", aria: {label: "Simulation status"}) do
+					status = @update ? "Running" : "Paused"
+					status_class = @update ? "status status-running" : "status"
+
+					builder.tag("span", class: status_class) do
+						builder.inline("span", class: "status-dot", aria: {hidden: "true"})
+						builder.text(status)
 					end
+
+					builder.tag("span", class: "population") do
+						builder.text("#{@grid.live_count} live cells · #{@grid.width} × #{@grid.height}")
+					end
+				end
+
+				builder.tag("div", class: "toolbar", aria: {label: "Simulation controls"}) do
+					builder.tag("div", class: "control-group") do
+						builder.tag("button", type: "button", class: "button button-primary", onclick: forward_event(action: "start")) do
+							builder.text("▶ Start")
+						end
+
+						builder.tag("button", type: "button", class: "button", onclick: forward_event(action: "stop")) do
+							builder.text("Pause")
+						end
+
+						builder.tag("button", type: "button", class: "button", onclick: forward_event(action: "step")) do
+							builder.text("Step")
+						end
+					end
+
+					builder.tag("div", class: "control-group") do
+						builder.tag("button", type: "button", class: "button", onclick: forward_event(action: "randomize")) do
+							builder.text("Randomize")
+						end
+
+						builder.tag("button", type: "button", class: "button", onclick: forward_event(action: "heart")) do
+							builder.text("Draw heart")
+						end
+
+						builder.tag("button", type: "button", class: "button button-quiet", onclick: forward_event(action: "reset")) do
+							builder.text("Clear")
+						end
+					end
+				end
+
+				builder.tag("div", class: "board-frame") do
+					builder.tag("table", class: "life-grid", aria: {label: "Game of Life grid"}, onclick: forward_coordinate) do
+						@grid.rows do |y, row|
+							builder.tag("tr") do
+								row.count.times do |x|
+									style = []
+
+									if color = @grid.get(x, y)
+										style << "background-color: #{color}"
+									end
+
+									builder.inline("td", style: style.join(";"))
+								end
+							end
+						end
+					end
+				end
+
+				builder.tag("p", class: "hint") do
+					builder.text("Tip: click any cell to toggle it. Editing automatically pauses the simulation.")
 				end
 			end
 		end

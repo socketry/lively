@@ -1,38 +1,266 @@
-table {
-	margin: 1rem;
-	margin: auto;
-	border-collapse: collapse;
-	border: 1px solid var(--main-color);
+.game-of-life {
+	--life-accent: #6d5dfc;
+	--life-accent-dark: #5747e8;
+	--life-surface: #ffffff;
+	--life-surface-soft: #f6f7fb;
+	--life-border: #dfe2ec;
+	--life-muted: #687086;
+	--life-board: #171924;
+	--life-grid-line: rgba(255, 255, 255, 0.09);
+	box-sizing: border-box;
+	max-width: 48rem;
+	margin: 0 auto;
+	padding: clamp(1.5rem, 5vw, 3.5rem) 1rem;
 }
 
-table td {
-	border: 1px solid var(--main-color);
-	width: 1rem;
-	height: 1rem;
+.game-of-life *,
+.game-of-life *::before,
+.game-of-life *::after {
+	box-sizing: border-box;
 }
 
-table thead {
-	background-color: var(--header-color);
-	border-bottom: 0.2rem solid var(--accent-color);
+.game-header {
+	max-width: 38rem;
+	margin: 0 auto 1.75rem;
+	text-align: center;
 }
 
-table tr:hover {
-	background-color: var(--header-color);
+.game-header .eyebrow {
+	margin: 0 0 0.4rem;
+	color: var(--life-accent-dark);
+	font-size: 0.72rem;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.game-header h1 {
+	margin: 0;
+	font-size: clamp(2rem, 7vw, 3.35rem);
+	line-height: 1.05;
+	letter-spacing: -0.04em;
+}
+
+.game-header .introduction {
+	margin: 0.8rem auto 0;
+	color: var(--life-muted);
+	font-size: 1rem;
+}
+
+.game-panel {
+	overflow: hidden;
+	background: var(--life-surface);
+	border: 1px solid var(--life-border);
+	border-radius: 1.25rem;
+	box-shadow: 0 1.25rem 3rem rgba(25, 30, 55, 0.12);
+}
+
+.game-meta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.85rem 1rem;
+	color: var(--life-muted);
+	background: var(--life-surface-soft);
+	border-bottom: 1px solid var(--life-border);
+	font-size: 0.78rem;
+}
+
+.status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	color: var(--life-muted);
+	font-weight: 700;
+}
+
+.status-dot {
+	width: 0.55rem;
+	height: 0.55rem;
+	background: #9aa1b2;
+	border-radius: 50%;
+}
+
+.status-running {
+	color: #19734a;
+}
+
+.status-running .status-dot {
+	background: #28b474;
+	box-shadow: 0 0 0 0.2rem rgba(40, 180, 116, 0.16);
+}
+
+.population {
+	font-variant-numeric: tabular-nums;
 }
 
 .toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 0.65rem 1rem;
+	padding: 1rem;
+	border-bottom: 1px solid var(--life-border);
+}
+
+.control-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+}
+
+.button {
+	appearance: none;
+	min-height: 2.35rem;
+	padding: 0.5rem 0.8rem;
+	color: #30364a;
+	background: var(--life-surface);
+	border: 1px solid var(--life-border);
+	border-radius: 0.65rem;
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.button:hover {
+	color: var(--life-accent-dark);
+	background: #f5f3ff;
+	border-color: #b9b1ff;
+}
+
+.button:active {
+	transform: translateY(1px);
+}
+
+.button:focus-visible {
+	outline: 3px solid rgba(109, 93, 252, 0.28);
+	outline-offset: 2px;
+}
+
+.button-primary {
+	color: #ffffff;
+	background: var(--life-accent);
+	border-color: var(--life-accent);
+}
+
+.button-primary:hover {
+	color: #ffffff;
+	background: var(--life-accent-dark);
+	border-color: var(--life-accent-dark);
+}
+
+.button-quiet {
+	color: var(--life-muted);
+	background: transparent;
+	border-color: transparent;
+}
+
+.board-frame {
+	display: grid;
+	place-items: center;
+	padding: clamp(0.75rem, 3vw, 1.35rem);
+	background: var(--life-board);
+}
+
+.life-grid {
+	width: auto;
+	margin: 0;
+	background: #10121a;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-collapse: collapse;
+	box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.25);
+	cursor: crosshair;
+	table-layout: fixed;
+	touch-action: manipulation;
+}
+
+.life-grid td {
+	width: clamp(0.48rem, 2.2vw, 1rem);
+	height: clamp(0.48rem, 2.2vw, 1rem);
+	padding: 0;
+	background: #1e2130;
+	border: 1px solid var(--life-grid-line);
+}
+
+.life-grid td:hover {
+	position: relative;
+	z-index: 1;
+	outline: 2px solid #ffffff;
+	outline-offset: -2px;
+}
+
+.hint {
+	margin: 0;
+	padding: 0.85rem 1rem;
+	color: var(--life-muted);
+	background: var(--life-surface-soft);
+	border-top: 1px solid var(--life-border);
+	font-size: 0.75rem;
 	text-align: center;
 }
 
-.equation {
-	text-align: center;
-	font-size: 4rem;
+@media (max-width: 37rem) {
+	.game-of-life {
+		padding-inline: 0.65rem;
+	}
+
+	.game-meta,
+	.toolbar {
+		justify-content: center;
+	}
+
+	.toolbar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.control-group {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+	}
+
+	.button {
+		padding-inline: 0.55rem;
+	}
 }
 
-input {
-	font-size: inherit;
+@media (prefers-color-scheme: dark) {
+	.game-of-life {
+		--life-accent: #8c7fff;
+		--life-accent-dark: #b2a9ff;
+		--life-surface: #181a23;
+		--life-surface-soft: #20232e;
+		--life-border: #353946;
+		--life-muted: #a8afc0;
+		--life-board: #0c0d12;
+	}
+
+	.button {
+		color: #e4e7ef;
+	}
+
+	.button:hover {
+		color: #ffffff;
+		background: #2b2842;
+		border-color: #665e9e;
+	}
+
+	.button-primary,
+	.button-primary:hover {
+		color: #11121a;
+	}
+
+	.status-running {
+		color: #61d69c;
+	}
 }
 
-.equation input {
-	width: 5rem;
+@media (prefers-reduced-motion: reduce) {
+	.button {
+		transition: none;
+	}
 }
