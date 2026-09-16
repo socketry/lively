@@ -4,7 +4,7 @@
 # Copyright, 2025-2026, by Samuel Williams.
 
 require "lively"
-require_relative "../../examples/adventure/application"
+require_relative "application"
 Object.send(:remove_const, :Application)
 
 class TestAdventureView < AdventureView
