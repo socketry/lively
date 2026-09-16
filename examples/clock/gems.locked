@@ -113,14 +113,12 @@ GEM
     xrb (0.12.0)
 
 PLATFORMS
+  arm64-darwin-24
   ruby
-  x86_64-linux
 
 DEPENDENCIES
-  agent-context
-  io-watch
   live
   lively
 
 BUNDLED WITH
-  4.0.18
+   2.6.9

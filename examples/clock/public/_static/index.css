@@ -1,0 +1,383 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root {color-scheme: dark;}
+
+html,
+body {
+	min-height: 100%;
+	margin: 0;
+	background: #07110f;
+}
+
+body {font-family: "Manrope", system-ui, sans-serif;}
+live-clock {display: block; min-height: 100vh;}
+
+.clock-page,
+.clock-page *,
+.clock-page *::before,
+.clock-page *::after {box-sizing: border-box;}
+
+.clock-page {
+	--ink: #f3f0e8;
+	--muted: #a5afa9;
+	--accent: #ffb45c;
+	--accent-bright: #ffd7a1;
+	--line: rgba(224, 235, 227, 0.12);
+	position: relative;
+	display: grid;
+	min-height: 100vh;
+	place-items: center;
+	overflow: hidden;
+	padding: clamp(1rem, 4vw, 3.5rem);
+	color: var(--ink);
+	background:
+		radial-gradient(circle at 48% 42%, rgba(31, 72, 61, 0.24), transparent 32rem),
+		linear-gradient(135deg, #091714 0%, #07110f 55%, #0a1512 100%);
+}
+
+.clock-page::before {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	content: "";
+	opacity: 0.055;
+	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.24'/%3E%3C/svg%3E");
+}
+
+.ambient {
+	position: absolute;
+	width: 34rem;
+	height: 34rem;
+	pointer-events: none;
+	border: 1px solid rgba(255, 180, 92, 0.1);
+	border-radius: 50%;
+	animation: drift 16s ease-in-out infinite alternate;
+}
+
+.ambient-one {top: -19rem; right: -8rem; box-shadow: 0 0 7rem rgba(255, 180, 92, 0.06) inset;}
+.ambient-two {bottom: -27rem; left: -6rem; width: 42rem; height: 42rem; animation-delay: -7s;}
+
+.clock-shell {
+	position: relative;
+	z-index: 1;
+	width: min(100%, 68rem);
+	padding: clamp(1.25rem, 3vw, 2.25rem);
+	background: rgba(10, 27, 22, 0.97);
+	border: 1px solid rgba(224, 235, 227, 0.16);
+	border-radius: clamp(1.5rem, 4vw, 2.4rem);
+	box-shadow: 0 2rem 7rem rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.clock-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 2rem;
+	padding-bottom: clamp(1.5rem, 3vw, 2.25rem);
+	background: transparent;
+	border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	margin: 0 0 0.75rem;
+	color: var(--accent-bright);
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.17em;
+	text-transform: uppercase;
+}
+
+.live-dot {
+	width: 0.45rem;
+	height: 0.45rem;
+	background: var(--accent);
+	border-radius: 50%;
+	box-shadow: 0 0 0 rgba(255, 180, 92, 0.35);
+	animation: pulse 2s ease-out infinite;
+}
+
+.clock-header h1 {
+	max-width: 31rem;
+	margin: 0;
+	font-size: clamp(1.4rem, 3.4vw, 2.4rem);
+	font-weight: 500;
+	line-height: 1.12;
+	letter-spacing: -0.045em;
+}
+
+.format-toggle {
+	-webkit-appearance: none;
+	appearance: none;
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	flex: none;
+	padding: 0.62rem 0.7rem 0.62rem 1rem;
+	color: var(--ink);
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	font: 600 0.72rem/1 "Manrope", sans-serif;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+	transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.format-toggle:hover {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: rgba(255, 180, 92, 0.42);
+	box-shadow: 0 0 0 3px rgba(255, 180, 92, 0.06);
+}
+
+.format-toggle:active {
+	background: rgba(255, 180, 92, 0.12);
+	border-color: rgba(255, 180, 92, 0.58);
+}
+.format-toggle:focus-visible {outline: 2px solid var(--accent); outline-offset: 3px;}
+
+.toggle-icon {
+	display: grid;
+	width: 1.75rem;
+	height: 1.75rem;
+	place-items: center;
+	color: #102019;
+	background: var(--accent);
+	border-radius: 50%;
+	font-size: 0.75rem;
+}
+
+.clock-content {
+	display: grid;
+	grid-template-columns: minmax(18rem, 0.92fr) minmax(22rem, 1.08fr);
+	gap: clamp(2rem, 6vw, 5rem);
+	align-items: center;
+	padding-top: clamp(2rem, 5vw, 4rem);
+}
+
+.analog-panel {position: relative; display: grid; place-items: center;}
+
+.dial-glow {
+	position: absolute;
+	width: 84%;
+	aspect-ratio: 1;
+	background: rgba(255, 180, 92, 0.065);
+	border-radius: 50%;
+	filter: blur(2rem);
+	animation: breathe 5s ease-in-out infinite alternate;
+}
+
+.dial {
+	position: relative;
+	width: min(100%, 22.5rem);
+	aspect-ratio: 1;
+	background:
+		radial-gradient(circle at 43% 38%, rgba(255, 255, 255, 0.055), transparent 34%),
+		linear-gradient(145deg, rgba(18, 43, 36, 0.94), rgba(8, 20, 17, 0.97));
+	border: 1px solid rgba(225, 235, 227, 0.13);
+	border-radius: 50%;
+	box-shadow: 0 2rem 4rem rgba(0, 0, 0, 0.35), inset 0 0 0 0.65rem rgba(255, 255, 255, 0.018), inset 0 0 3rem rgba(0, 0, 0, 0.3);
+}
+
+.dial::before,
+.dial::after {
+	position: absolute;
+	inset: 1.25rem;
+	content: "";
+	border-radius: 50%;
+	-webkit-mask: radial-gradient(circle, transparent 70%, #000 71%);
+	mask: radial-gradient(circle, transparent 70%, #000 71%);
+}
+
+.dial::before {background: repeating-conic-gradient(from -0.5deg, rgba(225, 235, 227, 0.32) 0 1deg, transparent 1deg 6deg);}
+.dial::after {background: repeating-conic-gradient(from -1deg, var(--accent) 0 2deg, transparent 2deg 30deg);}
+
+.numeral {
+	position: absolute;
+	z-index: 2;
+	color: rgba(243, 240, 232, 0.66);
+	font-family: "DM Mono", monospace;
+	font-size: clamp(0.65rem, 1.5vw, 0.82rem);
+	font-weight: 400;
+}
+
+.numeral-12 {top: 2.55rem; left: 50%; transform: translateX(-50%);}
+.numeral-3 {top: 50%; right: 2.75rem; transform: translateY(-50%);}
+.numeral-6 {bottom: 2.55rem; left: 50%; transform: translateX(-50%);}
+.numeral-9 {top: 50%; left: 2.75rem; transform: translateY(-50%);}
+
+.hand {
+	position: absolute;
+	z-index: 3;
+	bottom: 50%;
+	left: calc(50% - var(--width) / 2);
+	width: var(--width);
+	height: var(--length);
+	background: var(--color);
+	border-radius: 999px 999px 0 0;
+	box-shadow: 0 0.2rem 0.8rem rgba(0, 0, 0, 0.28);
+	transform: rotate(var(--angle));
+	transform-origin: 50% 100%;
+	transition: transform 250ms linear;
+	will-change: transform;
+}
+
+.hour-hand {--width: 0.38rem; --length: 26%; --color: #f2eee4;}
+.minute-hand {--width: 0.24rem; --length: 35%; --color: #c7d2cb;}
+
+.second-hand {
+	--width: 0.11rem;
+	--length: 39%;
+	--color: var(--accent);
+	bottom: 46%;
+	transform-origin: 50% 89.75%;
+	box-shadow: 0 0 0.8rem rgba(255, 180, 92, 0.28);
+}
+
+.hand-pin {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 4;
+	width: 0.9rem;
+	height: 0.9rem;
+	background: var(--accent);
+	border: 0.25rem solid #17342b;
+	border-radius: 50%;
+	box-shadow: 0 0 0 1px var(--accent);
+	transform: translate(-50%, -50%);
+}
+
+.digital-panel {min-width: 0;}
+
+.digital-time {
+	display: flex;
+	align-items: baseline;
+	font-family: "DM Mono", ui-monospace, monospace;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.075em;
+	white-space: nowrap;
+}
+
+.time-main {font-size: clamp(3.5rem, 9vw, 7rem); font-weight: 300; line-height: 0.9;}
+.time-seconds {margin-left: 0.65rem; color: var(--accent); font-size: clamp(1.25rem, 3vw, 2rem); font-weight: 400; letter-spacing: -0.04em;}
+.time-period {margin-left: 0.5rem; color: var(--muted); font-size: clamp(0.75rem, 1.5vw, 1rem); font-weight: 500; letter-spacing: 0.02em;}
+.time-period:empty {display: none;}
+
+.date-line {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	margin: 1.3rem 0 2.4rem;
+	padding-bottom: 1.25rem;
+	color: #c8d0cb;
+	border-bottom: 1px solid var(--line);
+	font-size: clamp(0.82rem, 1.5vw, 0.95rem);
+	letter-spacing: 0.015em;
+}
+
+.date-line span {color: var(--muted);}
+.day-progress {margin-bottom: 1.65rem;}
+
+.progress-label {
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 0.7rem;
+	color: var(--muted);
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.11em;
+	text-transform: uppercase;
+}
+
+.progress-track {height: 0.25rem; overflow: hidden; background: rgba(255, 255, 255, 0.07); border-radius: 999px;}
+
+.progress-track span {
+	display: block;
+	height: 100%;
+	background: linear-gradient(90deg, #bd7940, var(--accent));
+	border-radius: inherit;
+	box-shadow: 0 0 1rem rgba(255, 180, 92, 0.45);
+	transition: width 1s linear;
+}
+
+.clock-meta {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem;}
+
+.meta-card {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	min-width: 0;
+	padding: 0.85rem;
+	background: rgba(255, 255, 255, 0.025);
+	border: 1px solid rgba(255, 255, 255, 0.065);
+	border-radius: 0.9rem;
+}
+
+.meta-icon {
+	display: grid;
+	width: 2rem;
+	height: 2rem;
+	place-items: center;
+	flex: none;
+	color: var(--accent);
+	background: rgba(255, 180, 92, 0.08);
+	border-radius: 50%;
+	font-size: 0.85rem;
+}
+
+.sun-icon {animation: spin 12s linear infinite;}
+.meta-card div {display: grid; min-width: 0; gap: 0.18rem;}
+
+.meta-label {
+	color: var(--muted);
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.meta-card strong {
+	overflow: hidden;
+	font-family: "DM Mono", monospace;
+	font-size: 0.72rem;
+	font-weight: 400;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+@keyframes pulse {70% {box-shadow: 0 0 0 0.5rem rgba(255, 180, 92, 0);} 100% {box-shadow: 0 0 0 0 rgba(255, 180, 92, 0);}}
+@keyframes drift {to {transform: translate3d(-2rem, 2rem, 0) scale(1.06);}}
+@keyframes breathe {to {opacity: 0.65; transform: scale(1.08);}}
+@keyframes spin {to {transform: rotate(360deg);}}
+
+@media (max-width: 760px) {
+	.clock-page {place-items: start center;}
+	.clock-content {grid-template-columns: 1fr; gap: 2.75rem;}
+	.dial {width: min(82vw, 19rem);}
+	.digital-panel {width: min(100%, 29rem); margin: 0 auto;}
+}
+
+@media (max-width: 460px) {
+	.clock-page {padding: 0.65rem;}
+	.clock-shell {padding: 1.1rem; border-radius: 1.25rem;}
+	.clock-header {align-items: center; gap: 1rem;}
+	.clock-header h1 {font-size: 1.2rem;}
+	.format-toggle {padding-left: 0.7rem;}
+	.format-toggle > .format-label {display: none;}
+	.clock-content {padding-top: 2rem;}
+	.clock-meta {grid-template-columns: 1fr;}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ambient,
+	.dial-glow,
+	.live-dot,
+	.sun-icon {animation: none;}
+
+	.hand,
+	.progress-track span,
+	.format-toggle {transition: none;}
+}

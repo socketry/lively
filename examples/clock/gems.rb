@@ -6,6 +6,4 @@
 source "https://rubygems.org"
 
 gem "live"
-gem "lively", path: "../../"
-
-gem "thread-local"
+gem "lively"
