@@ -266,8 +266,8 @@ class AdventureView < Live::View
 				self.update!
 				
 			elsif event[:detail][:character]
-				idx = event[:detail][:character].to_i
-				if character = @current_area.characters[idx]
+				index = event[:detail][:character].to_i
+				if character = @current_area.characters[index]
 					response = character.speak(@inventory)
 					
 					if response == "perfect_trade"
@@ -293,8 +293,8 @@ class AdventureView < Live::View
 				self.update!
 				
 			elsif event[:detail][:item]
-				idx = event[:detail][:item].to_i
-				if item = @current_area.items[idx]
+				index = event[:detail][:item].to_i
+				if item = @current_area.items[index]
 					@inventory << item
 					@current_area.remove_item(item)
 					@messages << "You pick up the #{item.name}."
@@ -349,8 +349,8 @@ class AdventureView < Live::View
 			if @current_area.items.any?
 				builder.tag("div", class: "controls") do
 					builder.tag("span", class: "controls-label"){builder.text("Items:")}
-					@current_area.items.each_with_index do |item, idx|
-						builder.tag("button", class: "item-button", onclick: "live.forwardEvent('#{@id}', event, {item: #{idx}});"){builder.text("Take #{item.name}")}
+					@current_area.items.each_with_index do |item, index|
+						builder.tag("button", class: "item-button", onclick: "live.forwardEvent('#{@id}', event, {item: #{index}});"){builder.text("Take #{item.name}")}
 					end
 				end
 			end
@@ -358,8 +358,8 @@ class AdventureView < Live::View
 			if @current_area.characters.any?
 				builder.tag("div", class: "controls") do
 					builder.tag("span", class: "controls-label"){builder.text("Talk to:")}
-					@current_area.characters.each_with_index do |character, idx|
-						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {character: #{idx}});"){builder.text(character.name)}
+					@current_area.characters.each_with_index do |character, index|
+						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {character: #{index}});"){builder.text(character.name)}
 					end
 				end
 			end
