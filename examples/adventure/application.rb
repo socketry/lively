@@ -242,12 +242,12 @@ class AdventureView < Live::View
 		case event[:type]
 		when "click"
 			if event[:detail][:direction]
-				dir = event[:detail][:direction].to_sym
-				if destination = @current_area.exits[dir]
+				direction = event[:detail][:direction].to_sym
+				if destination = @current_area.exits[direction]
 					first_visit = !destination.visited
 					@current_area = destination
 					@current_area.visited = true
-					@messages << "You walk #{dir} to the #{@current_area.name}."
+					@messages << "You walk #{direction} to the #{@current_area.name}."
 					
 					# Special discovery messages
 					if first_visit
@@ -267,25 +267,25 @@ class AdventureView < Live::View
 				
 			elsif event[:detail][:character]
 				idx = event[:detail][:character].to_i
-				if char = @current_area.characters[idx]
-					response = char.speak(@inventory)
+				if character = @current_area.characters[idx]
+					response = character.speak(@inventory)
 					
 					if response == "perfect_trade"
-						if char.complete_quest!(@inventory)
-							if char.name == "Water Spirit"
+						if character.complete_quest!(@inventory)
+							if character.name == "Water Spirit"
 								@messages << "The Water Spirit's eyes glow as you present both items."
 								@messages << "\"You have proven worthy, Princess. Your fish is returned!\""
 								@messages << "Shimmer swims joyfully around you - the curse is broken!"
 								@messages << "🐟✨ CONGRATULATIONS! You have completed your quest! ✨🐟"
 								@game_complete = true
-							elsif char.reward_item
-								quest_items = char.quest_items.join(" and ")
-								@messages << "#{char.name} takes the #{quest_items} gratefully."
-								@messages << "#{char.name} gives you a #{char.reward_item.name}!"
+							elsif character.reward_item
+								quest_items = character.quest_items.join(" and ")
+								@messages << "#{character.name} takes the #{quest_items} gratefully."
+								@messages << "#{character.name} gives you a #{character.reward_item.name}!"
 							end
 						end
 					else
-						@messages << "#{char.name} says: \"#{response}\""
+						@messages << "#{character.name} says: \"#{response}\""
 					end
 				else
 					@messages << "There's no one to talk to."
@@ -340,8 +340,8 @@ class AdventureView < Live::View
 			if @current_area.exits.any?
 				builder.tag("div", class: "controls") do
 					builder.tag("span", class: "controls-label"){builder.text("Exits:")}
-					@current_area.exits.each_key do |dir|
-						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {direction: '#{dir}'});"){builder.text(dir.capitalize)}
+					@current_area.exits.each_key do |direction|
+						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {direction: '#{direction}'});"){builder.text(direction.capitalize)}
 					end
 				end
 			end
@@ -358,8 +358,8 @@ class AdventureView < Live::View
 			if @current_area.characters.any?
 				builder.tag("div", class: "controls") do
 					builder.tag("span", class: "controls-label"){builder.text("Talk to:")}
-					@current_area.characters.each_with_index do |char, idx|
-						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {character: #{idx}});"){builder.text(char.name)}
+					@current_area.characters.each_with_index do |character, idx|
+						builder.tag("button", onclick: "live.forwardEvent('#{@id}', event, {character: #{idx}});"){builder.text(character.name)}
 					end
 				end
 			end
