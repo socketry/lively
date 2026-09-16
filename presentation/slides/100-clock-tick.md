@@ -2,9 +2,10 @@
 template: code
 duration: 24
 marker: Tick Loop
-title: Adding a tick loop
-focus: 4-12
+focus: 5-10
 ---
+
+# Adding a tick loop
 
 ```ruby
 class ClockView < Live::View

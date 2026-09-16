@@ -2,8 +2,9 @@
 template: code
 duration: 16
 marker: Install Context
-title: bundle exec bake agent:context:install
 ---
+
+# bundle exec bake agent:context:install
 
 ``` bash
 $ bundle exec bake agent:context:install

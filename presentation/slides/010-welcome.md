@@ -4,11 +4,7 @@ duration: 16
 marker: Welcome
 ---
 
-# Title
-
-Lively
-
-# Subtitle
+# Lively
 
 Real-time Ruby web applications, from a single file.
 

@@ -1,8 +1,9 @@
 ---
 duration: 17
 marker: Ask the Agent
-title: Ask your agent
 ---
+
+# Ask your agent
 
 > *"Create a platformer game using Lively."*
 

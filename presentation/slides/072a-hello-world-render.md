@@ -2,9 +2,10 @@
 template: code
 duration: 18
 marker: Hello World Code
-title: application.rb
 focus: 13-17
 ---
+
+# application.rb
 
 ```ruby
 #!/usr/bin/env lively

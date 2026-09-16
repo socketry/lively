@@ -1,5 +1,6 @@
+# Lively — How It Works
+
 <div class="seq-diagram">
-  <div class="diagram-header">Lively — How It Works</div>
   <div class="seq-actors">
     <div class="seq-actor-box browser">Browser</div>
     <div></div>

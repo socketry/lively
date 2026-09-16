@@ -1,6 +1,7 @@
 ---
 duration: 9
 marker: Architecture
+template: diagram
 ---
 
 ![[shared/architecture.md]]

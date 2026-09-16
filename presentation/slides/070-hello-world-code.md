@@ -2,8 +2,9 @@
 template: code
 duration: 6
 marker: Hello World Code
-title: application.rb
 ---
+
+# application.rb
 
 ```ruby
 #!/usr/bin/env lively

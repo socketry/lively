@@ -2,19 +2,20 @@
 template: code
 duration: 11
 marker: Install Dependencies
-title: bundle update
 ---
+
+# bundle update
 
 ``` bash
 $ bundle update
 Fetching gem metadata from https://rubygems.org/..........
 Resolving dependencies...
-Installing async 2.39.0
-Installing async-websocket 0.30.0
-Installing live 0.18.2
+Installing async 2.46.0
+Installing async-websocket 0.30.1
+Installing live 0.21.0
 Installing agent-context 0.3.0
-Installing falcon 0.55.3
-Installing lively 0.17.1
+Installing falcon 0.57.0
+Installing lively 0.24.0
 Bundle updated!
 ```
 

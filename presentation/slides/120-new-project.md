@@ -1,8 +1,9 @@
 ---
 template: code
 duration: 17
-title: gems.rb
 ---
+
+# gems.rb
 
 ```ruby
 source "https://rubygems.org"

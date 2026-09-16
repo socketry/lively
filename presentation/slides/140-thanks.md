@@ -4,11 +4,7 @@ duration: 9
 marker: Thank You
 ---
 
-# Title
-
-Thank You!
-
-# Subtitle
+# Thank You!
 
 <https://github.com/socketry/lively>
 

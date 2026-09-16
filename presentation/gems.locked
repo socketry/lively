@@ -3,61 +3,62 @@ GEM
   specs:
     agent-context (0.3.0)
       bake (>= 0.23)
-    async (2.39.0)
+    async (2.46.0)
       console (~> 1.29)
       fiber-annotation
-      io-event (~> 1.11)
-      metrics (~> 0.12)
-      traces (~> 0.18)
+      io-event (~> 1.21)
     async-actor (0.2.0)
       async (~> 2.33)
-    async-container (0.34.5)
-      async (~> 2.22)
-    async-http (0.95.1)
-      async (>= 2.10.2)
-      async-pool (~> 0.11)
-      io-endpoint (~> 0.14)
-      io-stream (~> 0.6)
-      metrics (~> 0.12)
-      protocol-http (~> 0.62)
-      protocol-http1 (~> 0.39)
-      protocol-http2 (~> 0.26)
+    async-container (0.38.0)
+      async (~> 2.44)
+    async-http (0.105.0)
+      async (>= 2.35.1)
+      async-pool (~> 0.12)
+      io-endpoint (~> 0.18)
+      io-stream (~> 0.14)
+      protocol-http (~> 0.72)
+      protocol-http1 (~> 0.41)
+      protocol-http2 (~> 0.28)
       protocol-url (~> 0.2)
-      traces (~> 0.10)
     async-http-cache (0.4.6)
       async-http (~> 0.56)
-    async-pool (0.11.2)
+    async-htty (0.5.0)
+      async (~> 2.39)
+      async-http (~> 0.88)
+      protocol-http (~> 0.62)
+      protocol-htty (~> 0.4)
+    async-pool (0.12.0)
       async (>= 2.0)
-    async-service (0.22.0)
+    async-service (0.25.0)
       async
       async-container (~> 0.34)
       string-format (~> 0.2)
-    async-utilization (0.3.2)
+    async-utilization (0.5.0)
       console (~> 1.0)
-    async-webdriver (0.12.1)
+    async-webdriver (0.12.2)
       async-actor (~> 0.1)
       async-http (~> 0.61)
       async-pool (~> 0.4)
       async-websocket (~> 0.25)
       base64 (~> 0.2)
-    async-websocket (0.30.0)
+    async-websocket (0.30.1)
       async-http (~> 0.76)
       protocol-http (~> 0.34)
       protocol-rack (~> 0.7)
       protocol-websocket (~> 0.17)
-    bake (0.24.1)
+    bake (0.25.0)
       bigdecimal
       samovar (~> 2.1)
     base64 (0.3.0)
-    bigdecimal (4.1.2)
-    console (1.34.3)
+    bigdecimal (4.1.3)
+    console (1.38.0)
       fiber-annotation
       fiber-local (~> 1.1)
       json
-    falcon (0.55.3)
+    falcon (0.57.0)
       async
       async-container (~> 0.20)
-      async-http (~> 0.75)
+      async-http (~> 0.97)
       async-http-cache (~> 0.4)
       async-service (~> 0.19)
       async-utilization (~> 0.3)
@@ -71,52 +72,64 @@ GEM
     fiber-local (1.1.0)
       fiber-storage
     fiber-storage (1.0.1)
-    io-endpoint (0.17.2)
-    io-event (1.16.0)
-    io-stream (0.13.0)
+    io-endpoint (0.18.0)
+      openssl (>= 3.3.0)
+    io-event (1.22.0)
+    io-stream (0.14.0)
+      openssl (>= 3.3)
     io-watch (0.6.3)
-    json (2.19.5)
-    live (0.18.2)
+    json (3.0.2)
+    live (0.21.0)
       async-websocket (~> 0.27)
       protocol-websocket (~> 0.19)
       xrb (~> 0.10)
-    lively (0.17.1)
+    lively (0.24.0)
       agent-context
+      async-htty
+      async-service (~> 0.23)
       falcon (~> 0.47)
       io-watch
-      live (~> 0.18)
+      live (~> 0.19)
+      protocol-url (~> 0.19)
+      web-packages (~> 0.2)
       xrb
     localhost (1.8.0)
       bake
-    mapping (1.1.3)
-    markly (0.16.0)
-    metrics (0.15.0)
+    markly (0.19.0)
     openssl (4.0.2)
-    presently (0.14.1)
+    presently (0.24.1)
       async-webdriver (~> 0.12)
-      lively (~> 0.16)
-      markly (~> 0.16)
+      live (~> 0.21)
+      lively (~> 0.22)
+      markly (~> 0.19)
+      protocol-media-registry (~> 0.0)
     protocol-hpack (1.5.1)
-    protocol-http (0.62.2)
-    protocol-http1 (0.39.0)
-      protocol-http (~> 0.62)
-    protocol-http2 (0.26.0)
+    protocol-http (0.72.0)
+    protocol-http1 (0.41.0)
+      protocol-http (~> 0.68)
+    protocol-http2 (0.28.0)
       protocol-hpack (~> 1.4)
       protocol-http (~> 0.62)
-    protocol-rack (0.22.1)
+    protocol-htty (0.5.0)
+      protocol-http2
+    protocol-media (0.3.0)
+    protocol-media-registry (0.1.0)
+      protocol-media (~> 0.1)
+    protocol-rack (0.23.0)
+      console (~> 1.0)
       io-stream (>= 0.10)
       protocol-http (~> 0.58)
       rack (>= 1.0)
-    protocol-url (0.4.0)
-    protocol-websocket (0.21.0)
+    protocol-url (0.19.0)
+    protocol-websocket (0.21.2)
       protocol-http (~> 0.2)
-    rack (3.2.6)
-    samovar (2.4.1)
+    rack (3.2.7)
+    samovar (2.5.1)
       console (~> 1.0)
-      mapping (~> 1.0)
     string-format (0.2.0)
-    traces (0.18.2)
-    xrb (0.11.2)
+    web-packages (0.2.0)
+      bake
+    xrb (0.12.0)
 
 PLATFORMS
   arm64-darwin-24
@@ -128,49 +141,51 @@ DEPENDENCIES
 
 CHECKSUMS
   agent-context (0.3.0) sha256=1bc73ffb4f73756417e349654b09953b42e8b26a4d091b4f5a13bd6c41d326fe
-  async (2.39.0) sha256=df18730073f2bbb45788077dfa20cb365ecc1b9453969f44de6796b5191a00aa
+  async (2.46.0) sha256=34f984733dbf63a997376346451ec995e858cacc3105e86ccfeaf8877b4f490b
   async-actor (0.2.0) sha256=4d4c6397843a2e237386bd9536b9f0a437217daf83978e88e98f48a6deb9b12b
-  async-container (0.34.5) sha256=905d950bb4cc5219238214d3a11ac6c4b74d4affecd930027e929ba0b86234bd
-  async-http (0.95.1) sha256=0c3dd458c204c06d5c4b20b01bbec4794a1203db627fb2ce536e1799ec14786c
+  async-container (0.38.0) sha256=71479d8551870d684e602f463d7b8368909c835a64e38b555e1821512ffffc88
+  async-http (0.105.0) sha256=55191969d5cf61be5fbc2e0aadd51d77085318ba192a5ff5e12e3aba0826906a
   async-http-cache (0.4.6) sha256=2038d1f093182f16b50b4db271c25085e3938da10bfcfc2904cadb0530fddfd6
-  async-pool (0.11.2) sha256=0a43a17b02b04d9c451b7d12fafa9a50e55dc6dd00d4369aca00433f16a7e3ed
-  async-service (0.22.0) sha256=84616488145654d42f994c2097eef39811a21548bf0da18d20a7b61813e63b61
-  async-utilization (0.3.2) sha256=201a27e0948fe23fc14a01a0ecbe5e420e27cebae3a51f36e56fc45fb31df3b4
-  async-webdriver (0.12.1) sha256=532d6bc4208470aed5e1f09a15a8b7d89ecfb732ab2292aeb4405dbe91bf1e8b
-  async-websocket (0.30.0) sha256=55739954528ad8f87f7792d0452e1268d1ef2aa5b3719f79400a05a1a6202cdf
-  bake (0.24.1) sha256=8bfac7e61514b17720e3b13cf6a5e122243f43123c6802707b150904bec5f4c7
+  async-htty (0.5.0) sha256=c78172412ea592ef70c0c2a16a7a5055ae1ccd134db9b0e2df9dd93c73715e7a
+  async-pool (0.12.0) sha256=5580493dc024bd704dab2ed0bf1307100722e49cbb825c7965f8501194f58506
+  async-service (0.25.0) sha256=71d9d75c2898dddf6549150cecd57156453e5b61da69fa87f10a0c97becfb6d1
+  async-utilization (0.5.0) sha256=96c347634e09edcbcb7f70cf8c5a1ae058c64d88186341e3f924a44440f95981
+  async-webdriver (0.12.2) sha256=49a82e6f60fd229547f5f298d58a43b1439925e37a981ed05743f7a4931d65c1
+  async-websocket (0.30.1) sha256=54bb8a8f184e4aa64434c7a78ecc55850a67a3d1dcd02e3ae787376e2c673936
+  bake (0.25.0) sha256=a47bdc6a26addc048827debc36fe27bb4d5d71ac2958ad910b5386e9baf49869
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
-  bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
-  console (1.34.3) sha256=869fbd74697efc4c606f102d2812b0b008e4e7fd738a91c591e8577140ec0dcc
-  falcon (0.55.3) sha256=0287bdace3554bb2e90dd8af2278800fc8ed8428710ceb31787abfe4463c973b
+  bigdecimal (4.1.3) sha256=61ebe1e5e559bdc3cc6f2c0ee7f427321fc838f59611c294356eb04d6e21cf66
+  console (1.38.0) sha256=35b82f59130e95e9be6b832d9e539c8b3988fc192e4a8e9a86ab4922f44ad5de
+  falcon (0.57.0) sha256=c9b060bc23a3b90a80376078aae037d8f48e0b2f12f5f30f360d4b29d7baf0f7
   fiber-annotation (0.2.0) sha256=7abfadf1d119f508867d4103bf231c0354d019cc39a5738945dec2edadaf6c03
   fiber-local (1.1.0) sha256=c885f94f210fb9b05737de65d511136ea602e00c5105953748aa0f8793489f06
   fiber-storage (1.0.1) sha256=f48e5b6d8b0be96dac486332b55cee82240057065dc761c1ea692b2e719240e1
-  io-endpoint (0.17.2) sha256=3feaf766c116b35839c11fac68b6aaadc47887bb488902a57bf8e1d288fb3338
-  io-event (1.16.0) sha256=2b41d93dbb2094a477e5093f0988701274e1e07409eba62c087b0aec603e7b90
-  io-stream (0.13.0) sha256=ce24bccb302bdf3ecedef05e8669a687b461621a498d83622fdcab549c9c1636
+  io-endpoint (0.18.0) sha256=720d186bcd584e8ba490bfc91dab332cc3c5ffee848b5b03894555cb275151aa
+  io-event (1.22.0) sha256=4936d38dfcf2291d897707fd94690f1a63fdb1ea3ab4fa63c6739fc6c61e1534
+  io-stream (0.14.0) sha256=07d9b13ea2066ccbbc761fff8d69ad5a31e47561d31e02cc271f3ed9c1a8f1cd
   io-watch (0.6.3) sha256=95f80faf4b1ee00d8e184340830265ddae237b4f3a42b21f1e90593108932363
-  json (2.19.5) sha256=218a18553e4801d579ca7e0f5bc72bafd776d7397238a1fb4e74db5b0a812c59
-  live (0.18.2) sha256=e65253ba1f315fa4dc3ff31b4d2cfeb2ea76c29c13e70c83caf10276b018609d
-  lively (0.17.1) sha256=c318843e9b7a271f288a96c03146ddf78af5bd3c02a09c01a8e080dc066c07ec
+  json (3.0.2) sha256=8e6d7e7b11384c21230430cef90b71f14849a34a1f4452796670f7c981bd19df
+  live (0.21.0) sha256=fcf1a4198c274bc301bc603edb7f5b993713b8a26aa8799a9b02e39383622bda
+  lively (0.24.0) sha256=69e7fa7bc521a6dacbd31c4c0a334eb90ac9b13d366f419035aa1c9e01ed38ce
   localhost (1.8.0) sha256=df7ea825b4f64949c588c17efac86bc47ddc4460d723778abe933b71759b2701
-  mapping (1.1.3) sha256=2274931d20ecd46eaafdd1e00c58cc7472133b213bcac335cc7733d3c75f4da2
-  markly (0.16.0) sha256=6f70d79e385b1efc9e171f74c81628826259039fe6c778e03c3924c71dac5511
-  metrics (0.15.0) sha256=61ded5bac95118e995b1bc9ed4a5f19bc9814928a312a85b200abbdac9039072
+  markly (0.19.0) sha256=cd2c0e86eaf3660ed2a3a94104877f8bd41adda78e7c295c017d03de0d4044ca
   openssl (4.0.2) sha256=1037ad2868ae58df9ad917891c0c0f9815a1172f6846d4bcdd508e4c2ee747c2
-  presently (0.14.1) sha256=7f48459e2088a4ed369135b87a2aaa8092932369b5ff664889277fdf747f96e9
+  presently (0.24.1) sha256=dcf46a2c451ca4f7caef80d68b942963e10a9c250159490fb5fd0d58a25d5a9c
   protocol-hpack (1.5.1) sha256=6feca238b8078da1cd295677d6f306c6001af92d75fe0643d33e6956cbc3ad91
-  protocol-http (0.62.2) sha256=e1c1f2f56029c1af8c4e2b8a67d0d096c76620f3afd8d99d1dcd2f6b8ffa773b
-  protocol-http1 (0.39.0) sha256=e49b3f4cda6f5d94c76a323d2b7f6977cba3ebd082d2da437039594da77ad8eb
-  protocol-http2 (0.26.0) sha256=bac89cd78082b241ccd0cf7246f5160e4bb0c9c975fb4bf7deef5f88cc317486
-  protocol-rack (0.22.1) sha256=1185d245927ef9849a603700d6991ca353bc89724fbf98efa4a4333ed62a9fc3
-  protocol-url (0.4.0) sha256=64d4c03b6b51ad815ac6fdaf77a1d91e5baf9220d26becb846c5459dacdea9e1
-  protocol-websocket (0.21.0) sha256=6e2ccc2adf7de1895b0f6548fdfacf5f9735c0d4deb56cd2bac1ae38a1952e93
-  rack (3.2.6) sha256=5ed78e1f73b2e25679bec7d45ee2d4483cc4146eb1be0264fc4d94cb5ef212c2
-  samovar (2.4.1) sha256=c3b91dd0580771e3bc600621c1111f29542529dcffafaac3b6bf068b3f309e80
+  protocol-http (0.72.0) sha256=b153474785979495b9f2df78f0fdc2e02edc7e92c1f7ea00425eed73bd02194c
+  protocol-http1 (0.41.0) sha256=9863874a1228948a896c3e7ea16d13a680c8f3ed50706007c78b7033018b0ea3
+  protocol-http2 (0.28.0) sha256=b7c6195dcfa80ec2484670e9fd8fc21024cc654a391aa0792433aff1188c1691
+  protocol-htty (0.5.0) sha256=52ccd2d890d17d01346b96a99b942b48b8df82a1b9a861da87ba9d7eb8005e46
+  protocol-media (0.3.0) sha256=8480d339cdea500ea10025e5369e8830dcc1cebdeb6a9f7fa9acf12c29213536
+  protocol-media-registry (0.1.0) sha256=cce7fc102b323b3c172b165506c5d741ed5bf0c89bc6983176a801212defa560
+  protocol-rack (0.23.0) sha256=63eec3341b20565b3dd155345fd1426ecbbed322cdc8a6accc993905388c03d7
+  protocol-url (0.19.0) sha256=3f6b9f6aa742a259a0b3610fbbd9685dcd9506adf6734f428ff96259faabfb21
+  protocol-websocket (0.21.2) sha256=cbe35be8e045597b221874fba5928d7cd2483884126e3e36faece4741dc88eb7
+  rack (3.2.7) sha256=93e13e1c24f93556671d85d2d79fa228c3485815c50d7e2f265b5330c6528fb7
+  samovar (2.5.1) sha256=8a9fc41eb8868084f0321eb41678c485cfbc7d282fb306c0be67c3284b1d2394
   string-format (0.2.0) sha256=bc981c14116b061f12134549f32fa2d61a17b5a35dd6fd36596c21722a789af6
-  traces (0.18.2) sha256=80f1649cb4daace1d7174b81f3b3b7427af0b93047759ba349960cb8f315e214
-  xrb (0.11.2) sha256=1e682acd8b7b58bbe3dc3dd0e5d3c1a6dbc7ff67d009abc50d94fac43b9f0870
+  web-packages (0.2.0) sha256=9be25a515b999daa7ac4e82a05dfa309ae4e1720031d6b85d59a02b7d98ecd71
+  xrb (0.12.0) sha256=93b31201effbb03bf69136f7d32fd7eb1278b4fa225853f6539e169ca3b2fb65
 
 BUNDLED WITH
    2.6.7

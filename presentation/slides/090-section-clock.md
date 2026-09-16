@@ -5,9 +5,7 @@ marker: Real-Time Clock
 transition: slide-left
 ---
 
-# Heading
-
-Real-Time Clock
+# Real-Time Clock
 
 ---
 

@@ -5,21 +5,21 @@
    ======================== */
 
 .seq-diagram {
-	padding: 0.25rem 0;
+	padding: 0.1em 0;
 }
 
 /* Actor header row — same 5-column grid as message rows */
 .seq-actors {
 	display: grid;
 	grid-template-columns: repeat(5, 1fr);
-	padding-bottom: 0.5rem;
+	padding-bottom: 0.25em;
 }
 
 .seq-actor-box {
-	margin: 0 0.2rem;
+	margin: 0 0.2em;
 	text-align: center;
 	font-weight: bold;
-	padding: 0.45rem 0.4rem;
+	padding: 0.25em 0.4em;
 	border-radius: 6px;
 	font-size: 0.82em;
 	line-height: 1.3;
@@ -47,12 +47,12 @@
 .seq-msg {
 	display: grid;
 	grid-template-columns: repeat(5, 1fr);
-	min-height: 3.5rem;
+	min-height: 2.2em;
 }
 
 /* Small breathing room between phases */
 .seq-gap {
-	height: 0.6rem;
+	height: 0.25em;
 }
 
 /* ── Arrow cells ──────────────────────────────────────── */
@@ -62,7 +62,7 @@
 .seq-arrow {
 	position: relative;
 	text-align: center;
-	padding: 0.2rem 0.25rem 0;
+	padding: 0 0.25em;
 	font-family: monospace;
 	font-size: 0.8em;
 	line-height: 1.2;
@@ -83,30 +83,13 @@
 	transform: translateY(-50%);
 }
 
-/* Right arrowhead: tip at the destination lifeline (right: –50%) */
-.seq-r::before {
-	content: '';
-	position: absolute;
-	right: -50%;
-	top: 50%;
-	transform: translateY(-50%);
-	width: 0; height: 0;
-	border-top: 4px solid transparent;
-	border-bottom: 4px solid transparent;
-	border-left: 7px solid currentColor;
+/* Extend the message line from the source lifeline to the destination column. */
+.seq-r::after {
+	right: 0;
 }
 
-/* Left arrowhead: tip at the destination lifeline (left: –50%) */
-.seq-l::before {
-	content: '';
-	position: absolute;
-	left: -50%;
-	top: 50%;
-	transform: translateY(-50%);
-	width: 0; height: 0;
-	border-top: 4px solid transparent;
-	border-bottom: 4px solid transparent;
-	border-right: 7px solid currentColor;
+.seq-l::after {
+	left: 0;
 }
 
 /* Phase colours */
@@ -134,16 +117,61 @@
 .seq-ep-l { justify-content: center; }
 .seq-ep-r { justify-content: center; }
 
+/* Complete the line through the destination column. The endpoint's solid
+   background hides the excess, while the arrowhead sits against its edge. */
+.seq-ep-l::before,
+.seq-ep-r::before {
+	content: '';
+	position: absolute;
+	top: 50%;
+	height: 1px;
+	background: currentColor;
+	transform: translateY(-50%);
+}
+
+.seq-ep-l::before {
+	left: 0;
+	right: 50%;
+}
+
+.seq-ep-r::before {
+	left: 50%;
+	right: 0;
+}
+
 .seq-ep > span {
 	display: inline-block;
+	position: relative;
 	font-family: monospace;
 	font-size: 0.72em;
-	padding: 0.15rem 0.35rem;
+	padding: 0.15em 0.35em;
 	border-radius: 3px;
 	border: 1px solid currentColor;
 	/* Solid fill so the lifeline dashes don't bleed through the box */
 	background: rgba(8, 8, 22, 0.95);
 	white-space: nowrap;
+}
+
+.seq-ep-l > span::before,
+.seq-ep-r > span::before {
+	content: '';
+	position: absolute;
+	top: 50%;
+	width: 0;
+	height: 0;
+	transform: translateY(-50%);
+	border-top: 0.4em solid transparent;
+	border-bottom: 0.4em solid transparent;
+}
+
+.seq-ep-l > span::before {
+	left: -0.65em;
+	border-left: 0.65em solid currentColor;
+}
+
+.seq-ep-r > span::before {
+	right: -0.65em;
+	border-right: 0.65em solid currentColor;
 }
 
 /* Inherit phase colour from parent row */
@@ -156,14 +184,6 @@
 /* Each nested div level inherits 90% of its parent's font size */
 .diagram div > div {
 	font-size: 0.9em;
-}
-
-.diagram-header {
-	color: #aaa;
-	margin-bottom: 1.25rem;
-	font-size: 0.85em;
-	text-align: center;
-	letter-spacing: 0.03em;
 }
 
 .diagram-grid {
@@ -398,4 +418,3 @@
 	letter-spacing: 0.08em;
 	padding: 0.5rem 0 0.15rem;
 }
-

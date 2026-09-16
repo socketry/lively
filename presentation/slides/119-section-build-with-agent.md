@@ -5,9 +5,7 @@ marker: Build With an Agent
 transition: slide-left
 ---
 
-# Heading
-
-Build With an Agent
+# Build With an Agent
 
 ---
 

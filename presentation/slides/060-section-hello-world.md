@@ -5,9 +5,7 @@ marker: Hello World
 transition: slide-left
 ---
 
-# Heading
-
-Hello World
+# Hello World
 
 ---
 

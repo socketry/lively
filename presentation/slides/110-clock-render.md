@@ -2,9 +2,10 @@
 template: code
 duration: 17
 marker: Clock Render
-title: Showing the time
 focus: 18-22
 ---
+
+# Showing the time
 
 ```ruby
 class ClockView < Live::View
