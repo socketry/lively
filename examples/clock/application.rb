@@ -54,8 +54,6 @@ class ClockView < Live::View
 		day_progress = seconds.fdiv(86_400) * 100
 		hour = @twenty_four_hour ? now.strftime("%H") : now.strftime("%I")
 
-		builder.tag("link", rel: "stylesheet", href: "/_static/index.css")
-
 		builder.tag("main", class: "clock-page") do
 			builder.inline("span", class: "ambient ambient-one", aria: {hidden: "true"})
 			builder.inline("span", class: "ambient ambient-two", aria: {hidden: "true"})
